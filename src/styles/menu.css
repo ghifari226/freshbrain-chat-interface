@@ -1,0 +1,77 @@
+.menu {
+  position: absolute;
+  min-width: 160px;
+  background: var(--surface-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-sidebar);
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.menu__item:hover {
+  background: var(--surface-response);
+}
+
+.menu__item--danger {
+  color: var(--danger);
+}
+
+.menu__item--danger .menu__item-icon {
+  color: var(--danger);
+}
+
+.menu__item-icon {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.menu__item-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu__empty {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.menu__divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border);
+}
+
+.menu__profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.menu__profile-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-sidebar);
+}

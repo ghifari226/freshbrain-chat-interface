@@ -1,0 +1,117 @@
+:root {
+  --font-brand: 'Quicksand', sans-serif;
+  --font-system: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Lora', Georgia, serif;
+  --font-chat: var(--font-sans);
+
+  --accent: #419ad2;
+  --accent-text: #ffffff;
+  --danger: #d93636;
+
+  /* Surfaces: each key UI area gets its own background. */
+  --surface-chat: #fcfcfc;
+  --surface-sidebar: #fcfcfc;
+  --surface-bubble-user: #f3f3f3;
+  --surface-response: #f3f3f3;
+  --surface-input: #ffffff;
+  --surface-sidebar-highlight: #efefef;
+
+  /* Text: chat content, the brand wordmark, and sidebar navigation each
+     get their own color so warm mode can give each area its own tint. */
+  --text-chat: #0d0d0d;
+  --text-logo: #0d0d0d;
+  --text-sidebar: #0d0d0d;
+  --text-sidebar-highlight: #0d0d0d;
+  --text-muted: #6e6e6e;
+  --border: #e5e5e5;
+
+  color-scheme: light dark;
+  font: 15px/1.5 var(--font-system);
+}
+
+:root[data-font='serif'] {
+  --font-chat: var(--font-serif);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-chat: #000000;
+    --surface-sidebar: #000000;
+    --surface-bubble-user: #2b2b2b;
+    --surface-response: #212121;
+    --surface-input: #212121;
+    --surface-sidebar-highlight: #1a1a1a;
+    --text-chat: #ffffff;
+    --text-logo: #ffffff;
+    --text-sidebar: #ffffff;
+    --text-sidebar-highlight: #ffffff;
+    --text-muted: #9b9b9b;
+    --border: #2a2a2a;
+  }
+}
+
+/* Explicit theme/tone overrides win over the OS-preference defaults above.
+   Cool matches the original neutral palette; warm gives each area (chat,
+   sidebar, wordmark) its own tint. The tone-only warm rule below has higher
+   specificity than the theme-only rule, so it wins regardless of source
+   order or whether data-tone is set yet. --text-logo stays brightness-only
+   (unset in the warm blocks) since the wordmark keeps a fixed color across
+   both tones. */
+:root[data-theme='light'] {
+  --surface-chat: #fcfcfc;
+  --surface-sidebar: #fcfcfc;
+  --surface-bubble-user: #f3f3f3;
+  --surface-response: #f3f3f3;
+  --surface-input: #ffffff;
+  --surface-sidebar-highlight: #efefef;
+  --text-chat: #0d0d0d;
+  --text-logo: #0d0d0d;
+  --text-sidebar: #0d0d0d;
+  --text-sidebar-highlight: #0d0d0d;
+  --text-muted: #6e6e6e;
+  --border: #e5e5e5;
+}
+
+:root[data-theme='dark'] {
+  --surface-chat: #000000;
+  --surface-sidebar: #000000;
+  --surface-bubble-user: #2b2b2b;
+  --surface-response: #212121;
+  --surface-input: #212121;
+  --surface-sidebar-highlight: #1a1a1a;
+  --text-chat: #ffffff;
+  --text-logo: #ffffff;
+  --text-sidebar: #ffffff;
+  --text-sidebar-highlight: #ffffff;
+  --text-muted: #9b9b9b;
+  --border: #2a2a2a;
+}
+
+:root[data-theme='light'][data-tone='warm'] {
+  --surface-chat: #f8f8f6;
+  --surface-sidebar: #f7f7f5;
+  --surface-bubble-user: #efeeeb;
+  --surface-response: #fcfbfb;
+  --surface-input: #ffffff;
+  --surface-sidebar-highlight: #efeeeb;
+  --text-chat: #2a0b12;
+  --text-sidebar: #373734;
+  --text-sidebar-highlight: #121212;
+  --text-muted: #7b7974;
+  --border: #e8e1d3;
+}
+
+:root[data-theme='dark'][data-tone='warm'] {
+  --surface-chat: #1f1f1e;
+  --surface-sidebar: #1e1e1d;
+  --surface-bubble-user: #121212;
+  --surface-response: #252524;
+  --surface-input: #2c2c2a;
+  --surface-sidebar-highlight: #121212;
+  --text-chat: #ecfcf2;
+  --text-sidebar: #c3c2b7;
+  --text-sidebar-highlight: #f8f8f6;
+  --text-muted: #97958c;
+  --border: #33291f;
+}

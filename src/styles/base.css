@@ -1,0 +1,44 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--text-chat);
+  background: var(--surface-chat);
+}
+
+#root {
+  height: 100vh;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.icon-button {
+  border: none;
+  background: transparent;
+  color: var(--text-chat);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.icon-button:hover {
+  background: var(--surface-response);
+}
+
+.icon-button--active {
+  background: var(--surface-response);
+}
