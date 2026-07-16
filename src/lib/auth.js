@@ -4,22 +4,34 @@
 // authenticate()/register() keep the same signature, return shape, and
 // thrown-error cases (401/409 in the real contract).
 
-const ROLE_SCOPES = {
-  CEO: ['*'],
-  'Ops Manager': ['wms', 'tms'],
-  Finance: ['odoo'],
-  'Warehouse Staff': ['wms'],
-}
+import { DEFAULT_ROLE_SCOPES } from './roles.js'
 
 const MOCK_USERS = [
-  { username: 'ceo', password: 'password', role: 'CEO', allowed_scopes: ROLE_SCOPES.CEO },
+  { username: 'ceo', password: 'ceo', role: 'CEO', allowed_scopes: DEFAULT_ROLE_SCOPES.CEO },
   {
     username: 'ops',
-    password: 'password',
+    password: 'ops',
     role: 'Ops Manager',
-    allowed_scopes: ROLE_SCOPES['Ops Manager'],
+    allowed_scopes: DEFAULT_ROLE_SCOPES['Ops Manager'],
   },
-  { username: 'finance', password: 'password', role: 'Finance', allowed_scopes: ROLE_SCOPES.Finance },
+  {
+    username: 'finance',
+    password: 'finance',
+    role: 'Finance',
+    allowed_scopes: DEFAULT_ROLE_SCOPES.Finance,
+  },
+  {
+    username: 'warehouse',
+    password: 'warehouse',
+    role: 'Warehouse Staff',
+    allowed_scopes: DEFAULT_ROLE_SCOPES['Warehouse Staff'],
+  },
+  {
+    username: 'tech',
+    password: 'tech',
+    role: 'Technology',
+    allowed_scopes: DEFAULT_ROLE_SCOPES.Technology,
+  },
 ]
 
 function delay() {
@@ -64,7 +76,7 @@ export async function register(username, password, role) {
     throw new Error('Username already exists')
   }
 
-  const user = { username, password, role, allowed_scopes: ROLE_SCOPES[role] ?? [] }
+  const user = { username, password, role, allowed_scopes: DEFAULT_ROLE_SCOPES[role] ?? [] }
   MOCK_USERS.push(user)
   return toSession(user)
 }

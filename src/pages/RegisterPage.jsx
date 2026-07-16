@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth.js'
 import { useT } from '../hooks/useT.js'
-
-const ROLES = [
-  { value: 'CEO', labelKey: 'auth.roleCeo' },
-  { value: 'Ops Manager', labelKey: 'auth.roleOpsManager' },
-  { value: 'Finance', labelKey: 'auth.roleFinance' },
-  { value: 'Warehouse Staff', labelKey: 'auth.roleWarehouseStaff' },
-]
+import { ROLES, ROLE_LABEL_KEYS } from '../lib/roles.js'
 
 export default function RegisterPage({ language, setLanguage, onSwitchToLogin }) {
   const { register } = useAuth()
@@ -122,9 +116,9 @@ export default function RegisterPage({ language, setLanguage, onSwitchToLogin })
                 value={role}
                 onChange={(event) => setRole(event.target.value)}
               >
-                {ROLES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {t(option.labelKey)}
+                {ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {t(ROLE_LABEL_KEYS[role])}
                   </option>
                 ))}
               </select>

@@ -1,0 +1,287 @@
+/* Access config is an admin surface, not a chat/appearance moment — pin it
+   to Light/Cool always, regardless of any theme the user saved elsewhere.
+   Re-declaring the tokens here (rather than hardcoding every property)
+   keeps the muted-text/border/accent hierarchy intact while overriding the
+   [data-theme]/[data-tone] values inherited from <html>. See auth.css for
+   the same pattern on login/register. */
+.config-page {
+  --surface-chat: #fcfcfc;
+  --surface-response: #f3f3f3;
+  --text-chat: #0d0d0d;
+  --text-muted: #6e6e6e;
+  --border: #e5e5e5;
+  --accent: #419ad2;
+
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--surface-chat);
+  color: var(--text-chat);
+}
+
+.config-page__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.config-lang-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-response);
+  border-radius: 8px;
+  padding: 3px;
+  margin-left: auto;
+}
+
+.config-lang-toggle__option {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.config-lang-toggle__option--active {
+  background: #ffffff;
+  color: var(--text-chat);
+}
+
+.config-page__title {
+  border: none;
+  background: transparent;
+  color: var(--text-chat);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.config-page__nav {
+  display: flex;
+  gap: 4px;
+  padding: 12px 24px 0;
+}
+
+.config-page__nav-item {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 8px 14px;
+  border-radius: 8px 8px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.config-page__nav-item:hover {
+  background: var(--surface-response);
+}
+
+.config-page__nav-item--active {
+  color: var(--text-chat);
+  background: var(--surface-response);
+}
+
+.config-page__body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.config-section__title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.config-section__desc {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Landing page */
+
+.config-home__intro {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.config-home__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.config-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface-response);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.config-card:hover {
+  border-color: var(--accent);
+}
+
+.config-card__icon {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.config-card__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.config-card__desc {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Scope catalog (read-only) */
+
+.scope-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-catalog__system {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.scope-catalog__system-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.scope-catalog__system-tag {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.scope-catalog__system-label {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.scope-catalog__sub-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scope-catalog__sub-item {
+  background: var(--surface-response);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.scope-catalog__sub-tag {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-chat);
+}
+
+/* Role assignments (editable) */
+
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.role-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.role-card__header {
+  margin-bottom: 10px;
+}
+
+.role-card__name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.role-card__fixed {
+  display: flex;
+}
+
+.scope-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-response);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.scope-pill--fixed {
+  font-family: monospace;
+}
+
+.role-card__systems {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.role-card__system {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.role-card__sub-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 6px;
+  margin-left: 22px;
+}
+
+.scope-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.scope-checkbox--system .scope-checkbox__tag {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.scope-checkbox__tag {
+  font-family: monospace;
+}
+
+.scope-checkbox__label {
+  color: var(--text-muted);
+}

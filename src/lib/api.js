@@ -39,3 +39,22 @@ export async function sendMessage({ message, conversation_id }) {
     conversation_id: conversation_id ?? makeId(),
   }
 }
+
+/**
+ * Mocks the title-summarization a real backend would run against the
+ * first message of a new conversation. Resolves independently of
+ * sendMessage so the title can pop in shortly after send, same as it
+ * does for real Claude conversations.
+ *
+ * @param {string} message
+ * @returns {Promise<string>}
+ */
+export async function generateTitle(message) {
+  await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 500))
+
+  const words = message.trim().split(/\s+/).filter(Boolean)
+  const summary = words.slice(0, 6).join(' ')
+  const title = summary.charAt(0).toUpperCase() + summary.slice(1)
+
+  return words.length > 6 ? `${title}…` : title
+}

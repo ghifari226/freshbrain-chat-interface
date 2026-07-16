@@ -3,7 +3,8 @@ import Sidebar from './components/Sidebar.jsx'
 import ChatPanel from './components/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
-import { sendMessage } from './lib/api.js'
+import ConfigSection from './pages/config/ConfigSection.jsx'
+import { sendMessage, generateTitle } from './lib/api.js'
 import { makeMockConversations } from './lib/mockConversations.js'
 import { useTheme } from './hooks/useTheme.js'
 import { useTone } from './hooks/useTone.js'
@@ -11,6 +12,7 @@ import { useChatFont } from './hooks/useChatFont.js'
 import { useLanguage } from './hooks/useLanguage.js'
 import { useAuthSession } from './hooks/useAuthSession.js'
 import { useAuth } from './hooks/useAuth.js'
+import { useRoute } from './hooks/useRoute.js'
 import { LanguageProvider } from './lib/i18n.jsx'
 import { AuthProvider } from './lib/AuthProvider.jsx'
 import { strings } from './lib/strings.js'
@@ -111,6 +113,7 @@ function ChatWorkspace({ language, setLanguage }) {
 
   async function handleSend(text) {
     const userMessage = { id: makeId(), role: 'user', text, createdAt: new Date().toISOString() }
+    const isFirstMessage = !activeConversation || activeConversation.messages.length === 0
     let conversationId = activeConversation?.id
 
     if (conversationId) {
@@ -131,6 +134,14 @@ function ChatWorkspace({ language, setLanguage }) {
         ...prev,
       ])
       setActiveConversationId(conversationId)
+    }
+
+    if (isFirstMessage) {
+      generateTitle(text).then((title) => {
+        setConversations((prev) =>
+          prev.map((c) => (c.id === conversationId ? { ...c, title } : c)),
+        )
+      })
     }
 
     setIsLoading(true)
@@ -194,12 +205,17 @@ function ChatWorkspace({ language, setLanguage }) {
 export default function App() {
   const [language, setLanguage] = useLanguage()
   const [session, setSession] = useAuthSession()
+  const [path] = useRoute()
 
   return (
     <LanguageProvider language={language}>
       <AuthProvider session={session} setSession={setSession}>
         {session ? (
-          <ChatWorkspace language={language} setLanguage={setLanguage} />
+          path.startsWith('/config') ? (
+            <ConfigSection language={language} setLanguage={setLanguage} />
+          ) : (
+            <ChatWorkspace language={language} setLanguage={setLanguage} />
+          )
         ) : (
           <AuthGate language={language} setLanguage={setLanguage} />
         )}

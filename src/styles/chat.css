@@ -99,6 +99,10 @@
   color: var(--text-muted);
 }
 
+:root[data-theme='dark'] .welcome__caption {
+  color: var(--text-chat);
+}
+
 .message-list {
   flex: 1;
   overflow-y: auto;

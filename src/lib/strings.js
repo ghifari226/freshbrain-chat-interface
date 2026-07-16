@@ -20,6 +20,7 @@ export const strings = {
   userMenu: {
     accountMenu: { en: 'Account menu', id: 'Menu akun' },
     settings: { en: 'Settings', id: 'Pengaturan' },
+    accessConfig: { en: 'Access Configuration', id: 'Konfigurasi Akses' },
     logOut: { en: 'Log out', id: 'Keluar' },
   },
   settings: {
@@ -77,6 +78,7 @@ export const strings = {
     roleOpsManager: { en: 'Ops Manager', id: 'Manajer Operasional' },
     roleFinance: { en: 'Finance', id: 'Keuangan' },
     roleWarehouseStaff: { en: 'Warehouse Staff', id: 'Staf Gudang' },
+    roleTechnology: { en: 'Technology', id: 'Teknologi' },
     loginButton: { en: 'Log in', id: 'Masuk' },
     loginButtonLoading: { en: 'Logging in...', id: 'Sedang masuk...' },
     registerButton: { en: 'Create account', id: 'Buat akun' },
@@ -92,5 +94,41 @@ export const strings = {
       id: 'Nama pengguna atau kata sandi salah',
     },
     usernameTaken: { en: 'Username already exists', id: 'Nama pengguna sudah digunakan' },
+  },
+  config: {
+    backToChat: { en: 'Back to chat', id: 'Kembali ke obrolan' },
+    title: { en: 'Access Configuration', id: 'Konfigurasi Akses' },
+    navScopes: { en: 'Scopes', id: 'Cakupan' },
+    navRoles: { en: 'Roles', id: 'Peran' },
+    homeIntro: {
+      en: "Manage which of FreshBrain's internal systems each role can query. This page only controls access — it has nothing to do with defining the tools or capabilities themselves.",
+      id: 'Kelola sistem internal FreshBrain mana yang dapat diakses oleh setiap peran. Halaman ini hanya mengatur akses — tidak ada hubungannya dengan mendefinisikan tools atau kapabilitas itu sendiri.',
+    },
+    scopesCardTitle: { en: 'Scope catalog', id: 'Katalog cakupan' },
+    scopesCardDesc: {
+      en: 'Browse the full list of assignable scopes, grouped by system.',
+      id: 'Telusuri daftar lengkap cakupan yang dapat diberikan, dikelompokkan per sistem.',
+    },
+    rolesCardTitle: { en: 'Role assignments', id: 'Penugasan peran' },
+    rolesCardDesc: {
+      en: 'View and edit which scopes each role is allowed to access.',
+      id: 'Lihat dan ubah cakupan yang boleh diakses oleh setiap peran.',
+    },
+    scopesTitle: { en: 'Scope catalog', id: 'Katalog cakupan' },
+    scopesDesc: {
+      en: 'Read-only. The full set of scopes that can be assigned to a role, grouped by system.',
+      id: 'Hanya-baca. Kumpulan lengkap cakupan yang dapat diberikan ke suatu peran, dikelompokkan per sistem.',
+    },
+    rolesTitle: { en: 'Role assignments', id: 'Penugasan peran' },
+    rolesDesc: {
+      en: 'Toggle which scopes each role can access. Changes here are local to this session and are not saved to a backend yet.',
+      id: 'Aktifkan/nonaktifkan cakupan yang dapat diakses tiap peran. Perubahan di sini hanya berlaku untuk sesi ini dan belum disimpan ke backend.',
+    },
+    allAccess: { en: 'All access (*)', id: 'Akses penuh (*)' },
+    noScopes: { en: 'No scopes assigned', id: 'Belum ada cakupan yang diberikan' },
+    restricted: {
+      en: "You don't have access to this page.",
+      id: 'Anda tidak memiliki akses ke halaman ini.',
+    },
   },
 }

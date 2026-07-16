@@ -2,13 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import SettingsModal from './SettingsModal.jsx'
 import { useT } from '../hooks/useT.js'
 import { useAuth } from '../hooks/useAuth.js'
-
-const ROLE_LABEL_KEYS = {
-  CEO: 'auth.roleCeo',
-  'Ops Manager': 'auth.roleOpsManager',
-  Finance: 'auth.roleFinance',
-  'Warehouse Staff': 'auth.roleWarehouseStaff',
-}
+import { useRoute } from '../hooks/useRoute.js'
+import { ROLE_LABEL_KEYS } from '../lib/roles.js'
 
 export default function UserMenu({
   collapsed = false,
@@ -23,6 +18,7 @@ export default function UserMenu({
 }) {
   const t = useT()
   const { session, logout } = useAuth()
+  const [, navigate] = useRoute()
   const roleLabel = ROLE_LABEL_KEYS[session?.role] ? t(ROLE_LABEL_KEYS[session.role]) : session?.role
   const [isOpen, setIsOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -60,6 +56,18 @@ export default function UserMenu({
             <i className="fa-solid fa-gear menu__item-icon" />
             {t('userMenu.settings')}
           </button>
+          {session?.role === 'Technology' && (
+            <button
+              className="menu__item"
+              onClick={() => {
+                navigate('/config')
+                setIsOpen(false)
+              }}
+            >
+              <i className="fa-solid fa-shield-halved menu__item-icon" />
+              {t('userMenu.accessConfig')}
+            </button>
+          )}
           <div className="menu__divider" />
           <button
             className="menu__item"
