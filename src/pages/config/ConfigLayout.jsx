@@ -1,6 +1,7 @@
 import { useT } from '../../hooks/useT.js'
+import { getConfigPermission } from '../../lib/configPermissions.js'
 
-export default function ConfigLayout({ path, navigate, language, setLanguage, children }) {
+export default function ConfigLayout({ path, navigate, language, setLanguage, role, children }) {
   const t = useT()
 
   return (
@@ -40,24 +41,39 @@ export default function ConfigLayout({ path, navigate, language, setLanguage, ch
       </header>
 
       <nav className="config-page__nav">
-        <button
-          className={
-            'config-page__nav-item' +
-            (path === '/config/scopes' ? ' config-page__nav-item--active' : '')
-          }
-          onClick={() => navigate('/config/scopes')}
-        >
-          {t('config.navScopes')}
-        </button>
-        <button
-          className={
-            'config-page__nav-item' +
-            (path === '/config/roles' ? ' config-page__nav-item--active' : '')
-          }
-          onClick={() => navigate('/config/roles')}
-        >
-          {t('config.navRoles')}
-        </button>
+        {getConfigPermission(role, 'scopes') !== 'hidden' && (
+          <button
+            className={
+              'config-page__nav-item' +
+              (path === '/config/scopes' ? ' config-page__nav-item--active' : '')
+            }
+            onClick={() => navigate('/config/scopes')}
+          >
+            {t('config.navScopes')}
+          </button>
+        )}
+        {getConfigPermission(role, 'roles') !== 'hidden' && (
+          <button
+            className={
+              'config-page__nav-item' +
+              (path === '/config/roles' ? ' config-page__nav-item--active' : '')
+            }
+            onClick={() => navigate('/config/roles')}
+          >
+            {t('config.navRoles')}
+          </button>
+        )}
+        {getConfigPermission(role, 'users') !== 'hidden' && (
+          <button
+            className={
+              'config-page__nav-item' +
+              (path === '/config/users' ? ' config-page__nav-item--active' : '')
+            }
+            onClick={() => navigate('/config/users')}
+          >
+            {t('config.navUsers')}
+          </button>
+        )}
       </nav>
 
       <div className="config-page__body">{children}</div>

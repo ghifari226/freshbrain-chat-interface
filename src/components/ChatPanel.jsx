@@ -46,6 +46,7 @@ export default function ChatPanel({ conversation, isLoading, onSend, onFeedback,
               role={message.role}
               text={message.text}
               feedback={message.feedback}
+              isError={message.isError}
               onFeedbackChange={(feedback) => onFeedback(message.id, feedback)}
             />
           ))}

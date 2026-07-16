@@ -161,6 +161,10 @@
   color: var(--text-chat);
 }
 
+.message__bubble--error {
+  color: var(--danger);
+}
+
 .message__bubble--loading {
   display: flex;
   gap: 4px;

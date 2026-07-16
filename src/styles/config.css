@@ -104,6 +104,15 @@
   font-size: 14px;
 }
 
+.config-section__notice {
+  background: var(--surface-response);
+  color: var(--text-muted);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+
 /* Landing page */
 
 .config-home__intro {
@@ -284,4 +293,64 @@
 
 .scope-checkbox__label {
   color: var(--text-muted);
+}
+
+/* Users (editable) */
+
+.config-reset-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--surface-response);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+
+.config-reset-link__label {
+  color: var(--text-muted);
+}
+
+.config-reset-link__value {
+  font-family: monospace;
+  color: var(--text-chat);
+}
+
+.config-add-form {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.user-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.user-card__meta {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.role-card__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.config-link-button {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
 }

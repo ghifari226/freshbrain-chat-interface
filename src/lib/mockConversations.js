@@ -6,6 +6,7 @@ export function makeMockConversations() {
   return [
     {
       id: 'c1',
+      backendId: null,
       title: 'Peringatan suhu cold storage',
       timestamp: '2026-07-12T09:14:00Z',
       messages: [
@@ -15,6 +16,7 @@ export function makeMockConversations() {
     },
     {
       id: 'c2',
+      backendId: null,
       title: 'Ringkasan pengiriman masuk',
       timestamp: '2026-07-11T15:42:00Z',
       messages: [

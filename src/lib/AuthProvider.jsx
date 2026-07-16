@@ -1,16 +1,11 @@
 import { AuthContext } from './AuthContext.js'
-import { authenticate, register as registerUser } from './auth.js'
+import { authenticate } from './auth.js'
 
 export function AuthProvider({ session, setSession, children }) {
   const value = {
     session,
-    async login(username, password) {
-      const nextSession = await authenticate(username, password)
-      setSession(nextSession)
-      return nextSession
-    },
-    async register(username, password, role) {
-      const nextSession = await registerUser(username, password, role)
+    async login(email, password) {
+      const nextSession = await authenticate(email, password)
       setSession(nextSession)
       return nextSession
     },

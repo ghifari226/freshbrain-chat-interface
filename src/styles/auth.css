@@ -195,3 +195,20 @@
   padding: 0;
   margin-left: 2px;
 }
+
+.auth-forgot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -6px;
+}
+
+.auth-forgot__link {
+  border: none;
+  background: transparent;
+  color: #419ad2;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}

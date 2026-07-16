@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import SettingsModal from './SettingsModal.jsx'
+import ProfileModal from './ProfileModal.jsx'
 import { useT } from '../hooks/useT.js'
 import { useAuth } from '../hooks/useAuth.js'
 import { useRoute } from '../hooks/useRoute.js'
 import { ROLE_LABEL_KEYS } from '../lib/roles.js'
+import { canAccessConfig } from '../lib/configPermissions.js'
 
 export default function UserMenu({
   collapsed = false,
@@ -22,6 +24,7 @@ export default function UserMenu({
   const roleLabel = ROLE_LABEL_KEYS[session?.role] ? t(ROLE_LABEL_KEYS[session.role]) : session?.role
   const [isOpen, setIsOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const wrapRef = useRef(null)
 
   useEffect(() => {
@@ -39,12 +42,19 @@ export default function UserMenu({
     <div className={'user-menu' + (collapsed ? ' user-menu--collapsed' : '')} ref={wrapRef}>
       {isOpen && (
         <div className={'menu menu--user' + (collapsed ? ' menu--user-collapsed' : '')}>
-          <div className="menu__profile">
+          <button
+            className="menu__profile"
+            aria-label={t('userMenu.viewProfile')}
+            onClick={() => {
+              setIsProfileOpen(true)
+              setIsOpen(false)
+            }}
+          >
             <span className="user-avatar">
               <i className="fa-solid fa-user" />
             </span>
             <span className="menu__profile-name">{roleLabel}</span>
-          </div>
+          </button>
           <div className="menu__divider" />
           <button
             className="menu__item"
@@ -56,7 +66,7 @@ export default function UserMenu({
             <i className="fa-solid fa-gear menu__item-icon" />
             {t('userMenu.settings')}
           </button>
-          {session?.role === 'Technology' && (
+          {canAccessConfig(session?.role) && (
             <button
               className="menu__item"
               onClick={() => {
@@ -110,6 +120,10 @@ export default function UserMenu({
           language={language}
           setLanguage={setLanguage}
         />
+      )}
+
+      {isProfileOpen && (
+        <ProfileModal onClose={() => setIsProfileOpen(false)} session={session} />
       )}
     </div>
   )

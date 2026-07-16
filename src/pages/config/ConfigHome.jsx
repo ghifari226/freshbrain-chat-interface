@@ -1,6 +1,7 @@
 import { useT } from '../../hooks/useT.js'
+import { getConfigPermission } from '../../lib/configPermissions.js'
 
-export default function ConfigHome({ navigate }) {
+export default function ConfigHome({ navigate, role }) {
   const t = useT()
 
   return (
@@ -8,17 +9,29 @@ export default function ConfigHome({ navigate }) {
       <p className="config-home__intro">{t('config.homeIntro')}</p>
 
       <div className="config-home__cards">
-        <button className="config-card" onClick={() => navigate('/config/scopes')}>
-          <i className="fa-solid fa-list-check config-card__icon" />
-          <span className="config-card__title">{t('config.scopesCardTitle')}</span>
-          <span className="config-card__desc">{t('config.scopesCardDesc')}</span>
-        </button>
+        {getConfigPermission(role, 'scopes') !== 'hidden' && (
+          <button className="config-card" onClick={() => navigate('/config/scopes')}>
+            <i className="fa-solid fa-list-check config-card__icon" />
+            <span className="config-card__title">{t('config.scopesCardTitle')}</span>
+            <span className="config-card__desc">{t('config.scopesCardDesc')}</span>
+          </button>
+        )}
 
-        <button className="config-card" onClick={() => navigate('/config/roles')}>
-          <i className="fa-solid fa-users-gear config-card__icon" />
-          <span className="config-card__title">{t('config.rolesCardTitle')}</span>
-          <span className="config-card__desc">{t('config.rolesCardDesc')}</span>
-        </button>
+        {getConfigPermission(role, 'roles') !== 'hidden' && (
+          <button className="config-card" onClick={() => navigate('/config/roles')}>
+            <i className="fa-solid fa-users-gear config-card__icon" />
+            <span className="config-card__title">{t('config.rolesCardTitle')}</span>
+            <span className="config-card__desc">{t('config.rolesCardDesc')}</span>
+          </button>
+        )}
+
+        {getConfigPermission(role, 'users') !== 'hidden' && (
+          <button className="config-card" onClick={() => navigate('/config/users')}>
+            <i className="fa-solid fa-user-gear config-card__icon" />
+            <span className="config-card__title">{t('config.usersCardTitle')}</span>
+            <span className="config-card__desc">{t('config.usersCardDesc')}</span>
+          </button>
+        )}
       </div>
     </div>
   )

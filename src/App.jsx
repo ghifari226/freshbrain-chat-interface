@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import Sidebar from './components/Sidebar.jsx'
 import ChatPanel from './components/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
-import RegisterPage from './pages/RegisterPage.jsx'
 import ConfigSection from './pages/config/ConfigSection.jsx'
 import { sendMessage, generateTitle } from './lib/api.js'
 import { makeMockConversations } from './lib/mockConversations.js'
@@ -19,28 +18,6 @@ import { strings } from './lib/strings.js'
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10)
-}
-
-function AuthGate({ language, setLanguage }) {
-  const [authView, setAuthView] = useState('login')
-
-  if (authView === 'register') {
-    return (
-      <RegisterPage
-        language={language}
-        setLanguage={setLanguage}
-        onSwitchToLogin={() => setAuthView('login')}
-      />
-    )
-  }
-
-  return (
-    <LoginPage
-      language={language}
-      setLanguage={setLanguage}
-      onSwitchToRegister={() => setAuthView('register')}
-    />
-  )
 }
 
 function ChatWorkspace({ language, setLanguage }) {
@@ -115,6 +92,10 @@ function ChatWorkspace({ language, setLanguage }) {
     const userMessage = { id: makeId(), role: 'user', text, createdAt: new Date().toISOString() }
     const isFirstMessage = !activeConversation || activeConversation.messages.length === 0
     let conversationId = activeConversation?.id
+    // The backend only assigns a real conversation id once it has persisted
+    // the first message; until then this stays null so sendMessage knows to
+    // start a new conversation server-side instead of reusing our local id.
+    const backendConversationId = isFirstMessage ? null : activeConversation.backendId
 
     if (conversationId) {
       setConversations((prev) =>
@@ -127,6 +108,7 @@ function ChatWorkspace({ language, setLanguage }) {
       setConversations((prev) => [
         {
           id: conversationId,
+          backendId: null,
           title: strings.sidebar.newChat[language],
           timestamp: new Date().toISOString(),
           messages: [userMessage],
@@ -149,7 +131,7 @@ function ChatWorkspace({ language, setLanguage }) {
     try {
       const response = await sendMessage({
         message: text,
-        conversation_id: conversationId,
+        conversation_id: backendConversationId,
         user_id: session?.user_id,
         role: session?.role,
         allowed_scopes: session?.allowed_scopes,
@@ -163,7 +145,22 @@ function ChatWorkspace({ language, setLanguage }) {
       }
       setConversations((prev) =>
         prev.map((c) =>
-          c.id === conversationId ? { ...c, messages: [...c.messages, assistantMessage] } : c,
+          c.id === conversationId
+            ? { ...c, backendId: response.conversation_id, messages: [...c.messages, assistantMessage] }
+            : c,
+        ),
+      )
+    } catch (error) {
+      const errorMessage = {
+        id: makeId(),
+        role: 'assistant',
+        text: error.message || 'Something went wrong. Please try again.',
+        isError: true,
+        createdAt: new Date().toISOString(),
+      }
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === conversationId ? { ...c, messages: [...c.messages, errorMessage] } : c,
         ),
       )
     } finally {
@@ -217,7 +214,7 @@ export default function App() {
             <ChatWorkspace language={language} setLanguage={setLanguage} />
           )
         ) : (
-          <AuthGate language={language} setLanguage={setLanguage} />
+          <LoginPage language={language} setLanguage={setLanguage} />
         )}
       </AuthProvider>
     </LanguageProvider>

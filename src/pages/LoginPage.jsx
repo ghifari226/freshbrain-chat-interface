@@ -3,10 +3,10 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useT } from '../hooks/useT.js'
 import { strings } from '../lib/strings.js'
 
-export default function LoginPage({ language, setLanguage, onSwitchToRegister }) {
+export default function LoginPage({ language, setLanguage }) {
   const { login } = useAuth()
   const t = useT()
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [formError, setFormError] = useState('')
@@ -16,7 +16,7 @@ export default function LoginPage({ language, setLanguage, onSwitchToRegister })
     event.preventDefault()
 
     const errors = {}
-    if (!username.trim()) errors.username = 'usernameRequired'
+    if (!email.trim()) errors.email = 'emailRequired'
     if (!password) errors.password = 'passwordRequired'
     setFieldErrors(errors)
     setFormError('')
@@ -24,7 +24,7 @@ export default function LoginPage({ language, setLanguage, onSwitchToRegister })
 
     setIsSubmitting(true)
     try {
-      await login(username.trim(), password)
+      await login(email.trim(), password)
     } catch {
       setFormError('invalidCredentials')
     } finally {
@@ -84,23 +84,23 @@ export default function LoginPage({ language, setLanguage, onSwitchToRegister })
             {formError && <div className="auth-form__error">{t('auth.' + formError)}</div>}
 
             <div className="form-field">
-              <label className="form-field__label" htmlFor="login-username">
-                {t('auth.usernameLabel')}
+              <label className="form-field__label" htmlFor="login-email">
+                {t('auth.emailLabel')}
               </label>
               <input
-                id="login-username"
+                id="login-email"
                 className="form-field__input"
-                type="text"
-                value={username}
+                type="email"
+                value={email}
                 onChange={(event) => {
-                  setUsername(event.target.value)
-                  setFieldErrors((prev) => ({ ...prev, username: '' }))
+                  setEmail(event.target.value)
+                  setFieldErrors((prev) => ({ ...prev, email: '' }))
                 }}
-                placeholder={t('auth.usernamePlaceholder')}
-                autoComplete="username"
+                placeholder={t('auth.emailPlaceholder')}
+                autoComplete="email"
               />
-              {fieldErrors.username && (
-                <span className="form-field__error">{t('auth.' + fieldErrors.username)}</span>
+              {fieldErrors.email && (
+                <span className="form-field__error">{t('auth.' + fieldErrors.email)}</span>
               )}
             </div>
 
@@ -125,17 +125,16 @@ export default function LoginPage({ language, setLanguage, onSwitchToRegister })
               )}
             </div>
 
+            <div className="auth-forgot">
+              <button className="auth-forgot__link" type="button">
+                {t('auth.forgotPassword')}
+              </button>
+            </div>
+
             <button className="auth-submit" type="submit" disabled={isSubmitting}>
               {isSubmitting ? t('auth.loginButtonLoading') : t('auth.loginButton')}
             </button>
           </form>
-
-          <div className="auth-switch">
-            <span>{t('auth.noAccount')}</span>{' '}
-            <button className="auth-switch__link" onClick={onSwitchToRegister}>
-              {t('auth.registerLink')}
-            </button>
-          </div>
         </div>
       </div>
     </div>

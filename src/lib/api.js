@@ -1,23 +1,12 @@
-// All API interaction lives here. Currently mocked; swap the body of
-// sendMessage for a real fetch/axios call when the backend is ready —
-// callers shouldn't need to change.
+// All API interaction lives here.
 
-function makeId() {
-  return Math.random().toString(36).slice(2, 10)
-}
-
-const MOCK_REPLIES = [
-  'Berikut yang saya temukan — cold storage unit 3 sudah 1,5°C di atas target selama 4 jam terakhir.',
-  'Berdasarkan log pengiriman masuk terbaru, Anda menerima 3 pengiriman hari ini dengan total 1.240 unit.',
-  'Saya sudah cek okupansi gudang — kapasitas Anda saat ini 82% di seluruh zona.',
-  'Pesanan tersebut sedang dalam perjalanan dan diperkirakan tiba besok pagi.',
-]
+import { API_BASE_URL } from './config.js'
 
 /**
  * user_id/role/allowed_scopes/token ride along per auth-contract.md's
- * "every subsequent request" shape, so swapping this mock for a real
- * fetch (Authorization: Bearer token header, the rest in the body)
- * needs no changes at the call site.
+ * "every subsequent request" shape, so once the backend consumes them
+ * (Authorization: Bearer token header, the rest in the body) no changes
+ * are needed at the call site.
  *
  * @param {{
  *   message: string,
@@ -30,14 +19,28 @@ const MOCK_REPLIES = [
  * @returns {Promise<{ answer: string, conversation_id: string }>}
  */
 export async function sendMessage({ message, conversation_id }) {
-  await new Promise((resolve) => setTimeout(resolve, 900 + Math.random() * 600))
-
-  const answer = MOCK_REPLIES[message.length % MOCK_REPLIES.length]
-
-  return {
-    answer,
-    conversation_id: conversation_id ?? makeId(),
+  let res
+  try {
+    res = await fetch(`${API_BASE_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, conversation_id: conversation_id ?? null }),
+    })
+  } catch {
+    throw new Error('Unable to reach the server. Check your connection and try again.')
   }
+
+  if (!res.ok) {
+    let detail
+    try {
+      detail = (await res.json()).detail
+    } catch {
+      // response body wasn't JSON; fall through to the generic message
+    }
+    throw new Error(detail || `Request failed (${res.status})`)
+  }
+
+  return res.json()
 }
 
 /**

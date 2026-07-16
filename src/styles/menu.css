@@ -68,6 +68,16 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  border-radius: 6px;
+}
+
+.menu__profile:hover {
+  background: var(--surface-response);
 }
 
 .menu__profile-name {
