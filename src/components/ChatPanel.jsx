@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import Message from './Message.jsx'
 import MessageInput from './MessageInput.jsx'
+import StagingModeToggle from './StagingModeToggle.jsx'
 import { useT } from '../hooks/useT.js'
 
 export default function ChatPanel({ conversation, isLoading, onSend, onFeedback, inputRef }) {
@@ -16,6 +17,7 @@ export default function ChatPanel({ conversation, isLoading, onSend, onFeedback,
   if (isNewChat) {
     return (
       <main className="chat-panel chat-panel--welcome">
+        <StagingModeToggle />
         <div className="welcome">
           <div className="welcome__greeting">
             <img src="/logo.png" alt="" className="welcome__logo welcome__logo--light" />
@@ -36,6 +38,7 @@ export default function ChatPanel({ conversation, isLoading, onSend, onFeedback,
 
   return (
     <main className="chat-panel">
+      <StagingModeToggle />
       <div className="chat-header">{conversation.title}</div>
 
       <div className="message-list">

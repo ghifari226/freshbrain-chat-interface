@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useRoute } from '../hooks/useRoute.js'
 import { ROLE_LABEL_KEYS } from '../lib/roles.js'
 import { canAccessConfig } from '../lib/configPermissions.js'
+import { canAccessFeature } from '../lib/permissions.js'
 
 export default function UserMenu({
   collapsed = false,
@@ -66,6 +67,30 @@ export default function UserMenu({
             <i className="fa-solid fa-gear menu__item-icon" />
             {t('userMenu.settings')}
           </button>
+          {canAccessFeature(session?.allowed_permissions, 'freshpedia') && (
+            <button
+              className="menu__item"
+              onClick={() => {
+                navigate('/freshpedia')
+                setIsOpen(false)
+              }}
+            >
+              <i className="fa-solid fa-book-open menu__item-icon" />
+              {t('userMenu.freshpedia')}
+            </button>
+          )}
+          {canAccessFeature(session?.allowed_permissions, 'tool_catalog') && (
+            <button
+              className="menu__item"
+              onClick={() => {
+                navigate('/tool-catalog')
+                setIsOpen(false)
+              }}
+            >
+              <i className="fa-solid fa-toolbox menu__item-icon" />
+              {t('userMenu.toolCatalog')}
+            </button>
+          )}
           {canAccessConfig(session?.role) && (
             <button
               className="menu__item"

@@ -14,51 +14,57 @@ import { DEFAULT_ROLE_SCOPES } from './roles.js'
 
 const MOCK_USERS = [
   {
+    email: 'andi.wijaya@freshfactory.id',
     password: 'ceo',
     name: 'Andi Wijaya',
-    email: 'andi.wijaya@freshfactory.id',
     phone: '+62 811-1000-0001',
     role: 'CEO',
+    allowed_permissions: [],
     allowed_scopes: DEFAULT_ROLE_SCOPES.CEO,
   },
   {
+    email: 'budi.santoso@freshfactory.id',
     password: 'ops',
     name: 'Budi Santoso',
-    email: 'budi.santoso@freshfactory.id',
     phone: '+62 811-1000-0002',
     role: 'Ops Manager',
+    allowed_permissions: [],
     allowed_scopes: DEFAULT_ROLE_SCOPES['Ops Manager'],
   },
   {
+    email: 'citra.lestari@freshfactory.id',
     password: 'finance',
     name: 'Citra Lestari',
-    email: 'citra.lestari@freshfactory.id',
     phone: '+62 811-1000-0003',
     role: 'Finance',
+    allowed_permissions: [],
     allowed_scopes: DEFAULT_ROLE_SCOPES.Finance,
   },
   {
+    email: 'dedi.kurniawan@freshfactory.id',
     password: 'warehouse',
     name: 'Dedi Kurniawan',
-    email: 'dedi.kurniawan@freshfactory.id',
     phone: '+62 811-1000-0004',
     role: 'Warehouse Staff',
+    allowed_permissions: [],
     allowed_scopes: DEFAULT_ROLE_SCOPES['Warehouse Staff'],
   },
   {
+    email: 'eka.putri@freshfactory.id',
     password: 'tech',
     name: 'Eka Putri',
-    email: 'eka.putri@freshfactory.id',
     phone: '+62 811-1000-0005',
     role: 'Technology',
+    allowed_permissions: [],
     allowed_scopes: DEFAULT_ROLE_SCOPES.Technology,
   },
   {
+    email: 'fitri.handayani@freshfactory.id',
     password: 'hr',
     name: 'Fitri Handayani',
-    email: 'fitri.handayani@freshfactory.id',
     phone: '+62 811-1000-0006',
     role: 'HR',
+    allowed_permissions: [],
     allowed_scopes: DEFAULT_ROLE_SCOPES.HR,
   },
 ]
@@ -85,18 +91,25 @@ function toSession(user) {
     phone: user.phone,
     role: user.role,
     allowed_scopes: user.allowed_scopes,
+    allowed_permissions: user.allowed_permissions,
     token: 'mock-jwt-token',
   }
 }
 
 function toDirectoryEntry(user) {
-  return { name: user.name, email: user.email, phone: user.phone, role: user.role }
+  return {
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    allowed_permissions: user.allowed_permissions,
+  }
 }
 
 /**
  * @param {string} email
  * @param {string} password
- * @returns {Promise<{ user_id: string, name: string, email: string, phone: string, role: string, allowed_scopes: string[], token: string }>}
+ * @returns {Promise<{ user_id: string, name: string, email: string, phone: string, role: string, allowed_scopes: string[], allowed_permissions: string[], token: string }>}
  */
 export async function authenticate(email, password) {
   await delay()
@@ -110,7 +123,7 @@ export async function authenticate(email, password) {
 }
 
 /**
- * @returns {Promise<{ name: string, email: string, phone: string, role: string }[]>}
+ * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[] }[]>}
  */
 export async function listUsers() {
   await delay()
@@ -128,7 +141,7 @@ export async function listUsers() {
  * sending is implemented.
  *
  * @param {{ name: string, email: string, phone?: string, role: string }} input
- * @returns {Promise<{ name: string, email: string, phone: string, role: string, resetToken: string }>}
+ * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[], resetToken: string }>}
  */
 export async function createUser({ name, email, phone, role }) {
   await delay()
@@ -145,6 +158,7 @@ export async function createUser({ name, email, phone, role }) {
     phone,
     role,
     allowed_scopes: DEFAULT_ROLE_SCOPES[role] ?? [],
+    allowed_permissions: [],
   }
   MOCK_USERS.push(user)
   return { ...toDirectoryEntry(user), resetToken }
@@ -152,8 +166,8 @@ export async function createUser({ name, email, phone, role }) {
 
 /**
  * @param {string} email
- * @param {{ name?: string, phone?: string, role?: string }} updates
- * @returns {Promise<{ name: string, email: string, phone: string, role: string }>}
+ * @param {{ name?: string, phone?: string, role?: string, allowed_permissions?: string[] }} updates
+ * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[] }>}
  */
 export async function updateUser(email, updates) {
   await delay()
@@ -169,5 +183,6 @@ export async function updateUser(email, updates) {
     user.role = updates.role
     user.allowed_scopes = DEFAULT_ROLE_SCOPES[updates.role] ?? []
   }
+  if (updates.allowed_permissions !== undefined) user.allowed_permissions = updates.allowed_permissions
   return toDirectoryEntry(user)
 }

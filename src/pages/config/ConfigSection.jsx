@@ -46,7 +46,7 @@ export default function ConfigSection({ language, setLanguage }) {
       ) : path === '/config/roles' ? (
         <RolesPage />
       ) : path === '/config/users' ? (
-        <UsersPage permission={permission} />
+        <UsersPage permission={permission} role={role} />
       ) : (
         <ConfigHome navigate={navigate} role={role} />
       )}

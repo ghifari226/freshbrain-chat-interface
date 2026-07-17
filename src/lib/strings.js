@@ -21,6 +21,8 @@ export const strings = {
     accountMenu: { en: 'Account menu', id: 'Menu akun' },
     viewProfile: { en: 'View profile', id: 'Lihat profil' },
     settings: { en: 'Settings', id: 'Pengaturan' },
+    freshpedia: { en: 'Freshpedia', id: 'Freshpedia' },
+    toolCatalog: { en: 'Tool Catalog', id: 'Katalog Alat' },
     accessConfig: { en: 'Access Configuration', id: 'Konfigurasi Akses' },
     logOut: { en: 'Log out', id: 'Keluar' },
   },
@@ -165,5 +167,30 @@ export const strings = {
     },
     copyLink: { en: 'Copy', id: 'Salin' },
     copied: { en: 'Copied', id: 'Tersalin' },
+  },
+  permissions: {
+    sectionLabel: { en: 'Permissions', id: 'Izin' },
+    freshpediaView: { en: 'Freshpedia — View', id: 'Freshpedia — Lihat' },
+    freshpediaEdit: { en: 'Freshpedia — Edit', id: 'Freshpedia — Ubah' },
+    toolCatalogView: { en: 'Tool Catalog — View', id: 'Katalog Alat — Lihat' },
+    toolCatalogEdit: { en: 'Tool Catalog — Edit', id: 'Katalog Alat — Ubah' },
+  },
+  freshpedia: {
+    title: { en: 'Freshpedia', id: 'Freshpedia' },
+    comingSoon: {
+      en: "Freshpedia is coming soon — this is a placeholder while the content backend is being built.",
+      id: 'Freshpedia akan segera hadir — ini adalah placeholder selagi backend konten sedang dibangun.',
+    },
+  },
+  toolCatalog: {
+    title: { en: 'Tool Catalog', id: 'Katalog Alat' },
+    comingSoon: {
+      en: "Tool Catalog is coming soon — this is a placeholder while the ai-engine integration is being built.",
+      id: 'Katalog Alat akan segera hadir — ini adalah placeholder selagi integrasi ai-engine sedang dibangun.',
+    },
+  },
+  staging: {
+    toggleLabel: { en: 'Toggle staging mode', id: 'Alihkan mode staging' },
+    bannerLabel: { en: 'STAGING MODE', id: 'MODE STAGING' },
   },
 }

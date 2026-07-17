@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react'
 import { createUser, listUsers, updateUser } from '../../lib/auth.js'
 import { ROLES, ROLE_LABEL_KEYS } from '../../lib/roles.js'
+import { PERMISSIONS, PERMISSION_LABEL_KEYS } from '../../lib/permissions.js'
 import { useT } from '../../hooks/useT.js'
+import { useAuth } from '../../hooks/useAuth.js'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES[0] }
 
-export default function UsersPage({ permission }) {
+export default function UsersPage({ permission, role }) {
   const t = useT()
+  const { session, updateSession } = useAuth()
   const canEdit = permission === 'edit'
+  // Freshpedia/Tool Catalog grants are a separate, Technology-only
+  // capability — orthogonal to canEdit above, which governs name/role and
+  // is HR's job (see configPermissions.js). Neither role holds both.
+  const canManagePermissions = role === 'Technology'
 
   // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
@@ -69,6 +76,21 @@ export default function UsersPage({ permission }) {
     const updated = await updateUser(email, editForm)
     setUsers((prev) => prev.map((u) => (u.email === email ? updated : u)))
     setEditingEmail(null)
+    // Only `name` is safe to patch live here — `updated` (from
+    // toDirectoryEntry) doesn't carry allowed_scopes, so patching `role`
+    // without it would leave the session's role and allowed_scopes
+    // pointing at different roles until the next login.
+    if (email === session?.email) updateSession({ name: updated.name })
+  }
+
+  async function handleTogglePermission(user, tag) {
+    const current = user.allowed_permissions ?? []
+    const next = current.includes(tag) ? current.filter((p) => p !== tag) : [...current, tag]
+    const updated = await updateUser(user.email, { allowed_permissions: next })
+    setUsers((prev) => prev.map((u) => (u.email === user.email ? updated : u)))
+    if (user.email === session?.email) {
+      updateSession({ allowed_permissions: updated.allowed_permissions })
+    }
   }
 
   return (
@@ -237,6 +259,24 @@ export default function UsersPage({ permission }) {
                       {t('config.editUser')}
                     </button>
                   )}
+                </div>
+              )}
+
+              {!isEditing && canManagePermissions && (
+                <div className="user-card__permissions">
+                  <span className="user-card__permissions-label">{t('permissions.sectionLabel')}</span>
+                  {PERMISSIONS.map((tag) => (
+                    <label className="permission-checkbox" key={tag}>
+                      <input
+                        type="checkbox"
+                        checked={(user.allowed_permissions ?? []).includes(tag)}
+                        onChange={() => handleTogglePermission(user, tag)}
+                      />
+                      <span className="permission-checkbox__label">
+                        {t(PERMISSION_LABEL_KEYS[tag])}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               )}
             </div>

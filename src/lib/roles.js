@@ -7,7 +7,7 @@ export const DEFAULT_ROLE_SCOPES = {
   CEO: ['*'],
   'Ops Manager': ['wms', 'tms'],
   Finance: ['odoo'],
-  'Warehouse Staff': ['wms'],
+  'Warehouse Staff': ['wms.inventory'],
   // Technology manages access config itself, it doesn't query chat data.
   Technology: [],
   // HR manages the user directory, it doesn't query chat data either.

@@ -3,6 +3,8 @@ import Sidebar from './components/Sidebar.jsx'
 import ChatPanel from './components/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import ConfigSection from './pages/config/ConfigSection.jsx'
+import FreshpediaPage from './pages/FreshpediaPage.jsx'
+import ToolCatalogPage from './pages/ToolCatalogPage.jsx'
 import { sendMessage, generateTitle } from './lib/api.js'
 import { makeMockConversations } from './lib/mockConversations.js'
 import { useTheme } from './hooks/useTheme.js'
@@ -210,6 +212,10 @@ export default function App() {
         {session ? (
           path.startsWith('/config') ? (
             <ConfigSection language={language} setLanguage={setLanguage} />
+          ) : path === '/freshpedia' ? (
+            <FreshpediaPage language={language} setLanguage={setLanguage} />
+          ) : path === '/tool-catalog' ? (
+            <ToolCatalogPage language={language} setLanguage={setLanguage} />
           ) : (
             <ChatWorkspace language={language} setLanguage={setLanguage} />
           )

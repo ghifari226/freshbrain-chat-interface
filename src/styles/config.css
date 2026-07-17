@@ -354,3 +354,34 @@
   font-weight: 600;
   padding: 0;
 }
+
+/* Freshpedia/Tool Catalog permission grants (Technology-only, see
+   UsersPage.jsx canManagePermissions) */
+
+.user-card__permissions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.user-card__permissions-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.permission-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.permission-checkbox__label {
+  color: var(--text-muted);
+}
