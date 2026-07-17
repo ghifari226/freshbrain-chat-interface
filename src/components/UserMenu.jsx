@@ -4,7 +4,6 @@ import ProfileModal from './ProfileModal.jsx'
 import { useT } from '../hooks/useT.js'
 import { useAuth } from '../hooks/useAuth.js'
 import { useRoute } from '../hooks/useRoute.js'
-import { ROLE_LABEL_KEYS } from '../lib/roles.js'
 import { canAccessConfig } from '../lib/configPermissions.js'
 import { canAccessFeature } from '../lib/permissions.js'
 
@@ -22,7 +21,6 @@ export default function UserMenu({
   const t = useT()
   const { session, logout } = useAuth()
   const [, navigate] = useRoute()
-  const roleLabel = ROLE_LABEL_KEYS[session?.role] ? t(ROLE_LABEL_KEYS[session.role]) : session?.role
   const [isOpen, setIsOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -54,7 +52,7 @@ export default function UserMenu({
             <span className="user-avatar">
               <i className="fa-solid fa-user" />
             </span>
-            <span className="menu__profile-name">{roleLabel}</span>
+            <span className="menu__profile-name">{session?.name}</span>
           </button>
           <div className="menu__divider" />
           <button
@@ -127,7 +125,7 @@ export default function UserMenu({
         </span>
         {!collapsed && (
           <>
-            <span className="user-menu__name">{roleLabel}</span>
+            <span className="user-menu__name">{session?.name}</span>
             <i className="fa-solid fa-chevron-down user-menu__chevron" />
           </>
         )}

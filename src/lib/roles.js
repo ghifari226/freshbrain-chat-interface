@@ -21,4 +21,8 @@ export const ROLE_LABEL_KEYS = {
   'Warehouse Staff': 'auth.roleWarehouseStaff',
   Technology: 'auth.roleTechnology',
   HR: 'auth.roleHr',
+  // Job titles in MOCK_USERS that differ from their scope bucket — not
+  // among the assignable ROLES, but UsersPage looks these up directly.
+  'Client Service Management': 'auth.roleClientServiceManagement',
+  'Human Resource': 'auth.roleHumanResource',
 }

@@ -91,6 +91,11 @@ export const strings = {
     roleWarehouseStaff: { en: 'Warehouse Staff', id: 'Staf Gudang' },
     roleTechnology: { en: 'Technology', id: 'Teknologi' },
     roleHr: { en: 'HR', id: 'HR' },
+    roleClientServiceManagement: {
+      en: 'Client Service Management',
+      id: 'Manajemen Layanan Klien',
+    },
+    roleHumanResource: { en: 'Human Resource', id: 'Sumber Daya Manusia' },
     loginButton: { en: 'Log in', id: 'Masuk' },
     loginButtonLoading: { en: 'Logging in...', id: 'Sedang masuk...' },
     emailRequired: { en: 'Email is required', id: 'Email wajib diisi' },
