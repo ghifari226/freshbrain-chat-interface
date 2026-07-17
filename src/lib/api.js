@@ -1,6 +1,14 @@
-// All API interaction lives here.
+// All API interaction lives here. Like auth.js, each function tries the
+// real endpoint first; since ai-engine isn't reachable yet, the fetch
+// itself fails (not a real HTTP error) and we fall back to a local mock —
+// a real non-2xx response still throws, since that's a real backend
+// telling us something failed, not "there's no backend."
 
-import { API_BASE_URL } from './config.js'
+import { AI_ENGINE_BASE_URL } from './config.js'
+
+function makeId() {
+  return Math.random().toString(36).slice(2, 10)
+}
 
 /**
  * user_id/role/allowed_scopes/token ride along per auth-contract.md's
@@ -21,13 +29,17 @@ import { API_BASE_URL } from './config.js'
 export async function sendMessage({ message, conversation_id }) {
   let res
   try {
-    res = await fetch(`${API_BASE_URL}/chat`, {
+    res = await fetch(`${AI_ENGINE_BASE_URL}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, conversation_id: conversation_id ?? null }),
     })
   } catch {
-    throw new Error('Unable to reach the server. Check your connection and try again.')
+    // no real ai-engine yet — fall back to a canned reply so the app stays usable
+    return {
+      answer: `(mock ai-engine reply) You said: "${message}"`,
+      conversation_id: conversation_id ?? makeId(),
+    }
   }
 
   if (!res.ok) {
@@ -44,15 +56,28 @@ export async function sendMessage({ message, conversation_id }) {
 }
 
 /**
- * Mocks the title-summarization a real backend would run against the
- * first message of a new conversation. Resolves independently of
- * sendMessage so the title can pop in shortly after send, same as it
- * does for real Claude conversations.
+ * Title-summarization for the first message of a new conversation.
+ * Resolves independently of sendMessage so the title can pop in shortly
+ * after send, same as it does for real Claude conversations.
+ *
+ * There's no agreed contract for this endpoint yet (auth-contract.md only
+ * covers login/register) — `/chat/title` is chat-interface's own proposal.
  *
  * @param {string} message
  * @returns {Promise<string>}
  */
 export async function generateTitle(message) {
+  try {
+    const res = await fetch(`${AI_ENGINE_BASE_URL}/chat/title`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    })
+    if (res.ok) return (await res.json()).title
+  } catch {
+    // no real ai-engine yet — fall through to the local mock below
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 500))
 
   const words = message.trim().split(/\s+/).filter(Boolean)

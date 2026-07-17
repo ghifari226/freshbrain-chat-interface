@@ -7,21 +7,21 @@ export function makeMockConversations() {
     {
       id: 'c1',
       backendId: null,
-      title: 'Peringatan suhu cold storage',
+      title: 'Revenue bulan lalu',
       timestamp: '2026-07-12T09:14:00Z',
       messages: [
-        { id: 'm1', role: 'user', text: 'Kenapa unit 3 mengirim peringatan tadi pagi?', createdAt: '2026-07-12T09:14:00Z' },
-        { id: 'm2', role: 'assistant', text: 'Unit 3 sempat 1,5°C di atas target antara pukul 6-8 pagi, kemungkinan pintu terbuka saat proses restock.', createdAt: '2026-07-12T09:14:20Z' },
+        { id: 'm1', role: 'user', text: 'Berapa revenue bulan lalu', createdAt: '2026-07-12T09:14:00Z' },
+        { id: 'm2', role: 'assistant', text: 'Revenue bulan lalu tercatat sebesar Rp 10.176.965.194,47.', createdAt: '2026-07-12T09:14:20Z' },
       ],
     },
     {
       id: 'c2',
       backendId: null,
-      title: 'Ringkasan pengiriman masuk',
+      title: 'Total warehouse saat ini',
       timestamp: '2026-07-11T15:42:00Z',
       messages: [
-        { id: 'm3', role: 'user', text: 'Berapa banyak pengiriman yang masuk kemarin?', createdAt: '2026-07-11T15:42:00Z' },
-        { id: 'm4', role: 'assistant', text: 'Anda menerima 3 pengiriman dengan total 1.240 unit.', createdAt: '2026-07-11T15:42:15Z' },
+        { id: 'm3', role: 'user', text: 'Berapa total warehouse saat ini', createdAt: '2026-07-11T15:42:00Z' },
+        { id: 'm4', role: 'assistant', text: 'Saat ini terdapat total 45 warehouse.', createdAt: '2026-07-11T15:42:15Z' },
       ],
     },
   ]

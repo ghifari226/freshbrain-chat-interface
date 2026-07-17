@@ -1,15 +1,21 @@
-// Mocked auth, matching the request/response contract in
-// freshbrain-agreement/auth-contract.md. Swapping in the real
-// chat-gateway later means changing only this file's internals —
-// authenticate() keeps the same signature, return shape, and thrown-error
-// cases (401 in the real contract).
+// Auth, matching the request/response contract in
+// freshbrain-agreement/auth-contract.md. Each exported function tries the
+// real endpoint first; since chat-gateway doesn't exist yet, that fetch
+// always fails and every function falls back to the MOCK_USERS logic
+// below, unchanged. Once chat-gateway is up, the fallback branches (and
+// eventually MOCK_USERS itself) just get deleted — call sites don't change.
 //
 // No username, by design — this isn't a social product, email + password
 // is the login identity. MOCK_USERS also backs the /config/users admin
 // directory below (listUsers/createUser/updateUser) — self-service
 // registration has been removed in favor of HR-managed user creation, so
 // this is now the only place new mock accounts come from.
+//
+// listUsers/createUser/updateUser have no entry in auth-contract.md (it
+// only documents /login and /register) — the /config/users paths below are
+// chat-interface's own proposal, not an agreed contract yet.
 
+import { CHAT_GATEWAY_BASE_URL } from './config.js'
 import { DEFAULT_ROLE_SCOPES } from './roles.js'
 
 const MOCK_USERS = [
@@ -103,6 +109,17 @@ function toDirectoryEntry(user) {
  * @returns {Promise<{ user_id: string, name: string, email: string, phone: string, role: string, allowed_scopes: string[], allowed_permissions: string[], token: string }>}
  */
 export async function authenticate(email, password) {
+  try {
+    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    if (res.ok) return res.json()
+  } catch {
+    // no real chat-gateway yet — fall through to the mock below
+  }
+
   await delay()
 
   const user = MOCK_USERS.find((u) => u.email === email)
@@ -117,6 +134,13 @@ export async function authenticate(email, password) {
  * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[] }[]>}
  */
 export async function listUsers() {
+  try {
+    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users`)
+    if (res.ok) return res.json()
+  } catch {
+    // no real chat-gateway yet — fall through to the mock below
+  }
+
   await delay()
   return MOCK_USERS.map(toDirectoryEntry)
 }
@@ -135,6 +159,17 @@ export async function listUsers() {
  * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[], resetToken: string }>}
  */
 export async function createUser({ name, email, phone, role }) {
+  try {
+    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone, role }),
+    })
+    if (res.ok) return res.json()
+  } catch {
+    // no real chat-gateway yet — fall through to the mock below
+  }
+
   await delay()
 
   if (MOCK_USERS.some((u) => u.email === email)) {
@@ -161,6 +196,17 @@ export async function createUser({ name, email, phone, role }) {
  * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[] }>}
  */
 export async function updateUser(email, updates) {
+  try {
+    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users/${encodeURIComponent(email)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+    if (res.ok) return res.json()
+  } catch {
+    // no real chat-gateway yet — fall through to the mock below
+  }
+
   await delay()
 
   const user = MOCK_USERS.find((u) => u.email === email)
