@@ -16,7 +16,7 @@
 
 .message-input {
   width: 100%;
-  max-width: 760px;
+  max-width: 900px;
   display: flex;
   align-items: flex-end;
   gap: 8px;

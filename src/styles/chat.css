@@ -39,7 +39,7 @@
 .welcome {
   position: relative;
   width: 100%;
-  max-width: 760px;
+  max-width: 900px;
   padding: 0 24px;
 }
 
@@ -113,12 +113,12 @@
 
 .message-list__inner {
   width: 100%;
-  max-width: 760px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 24px 24px 12px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 32px;
 }
 
 .message {

@@ -1,8 +1,11 @@
 // All API interaction lives here. Like auth.js, each function tries the
 // real endpoint first; since ai-engine isn't reachable yet, the fetch
-// itself fails (not a real HTTP error) and we fall back to a local mock —
-// a real non-2xx response still throws, since that's a real backend
-// telling us something failed, not "there's no backend."
+// itself fails (not a real HTTP error) and we fall back to a local mock.
+// sendMessage additionally retries once with a fresh conversation on a
+// 400/404 (see the comment inline) since a conversation_id from an earlier
+// network-failure fallback isn't a real backend id. Any other non-2xx
+// response still throws, since that's a real backend telling us something
+// failed, not "there's no backend."
 
 import { AI_ENGINE_BASE_URL } from './config.js'
 
@@ -26,21 +29,12 @@ function makeId() {
  * }} request
  * @returns {Promise<{ answer: string, conversation_id: string }>}
  */
-export async function sendMessage({ message, conversation_id }) {
-  let res
-  try {
-    res = await fetch(`${AI_ENGINE_BASE_URL}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, conversation_id: conversation_id ?? null }),
-    })
-  } catch {
-    // no real ai-engine yet — fall back to a canned reply so the app stays usable
-    return {
-      answer: `(mock ai-engine reply) You said: "${message}"`,
-      conversation_id: conversation_id ?? makeId(),
-    }
-  }
+async function postChat(message, conversationId) {
+  const res = await fetch(`${AI_ENGINE_BASE_URL}/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, conversation_id: conversationId ?? null }),
+  })
 
   if (!res.ok) {
     let detail
@@ -49,10 +43,39 @@ export async function sendMessage({ message, conversation_id }) {
     } catch {
       // response body wasn't JSON; fall through to the generic message
     }
-    throw new Error(detail || `Request failed (${res.status})`)
+    const error = new Error(detail || `Request failed (${res.status})`)
+    error.status = res.status
+    throw error
   }
 
   return res.json()
+}
+
+export async function sendMessage({ message, conversation_id }) {
+  await new Promise((resolve) => setTimeout(resolve, 900 + Math.random() * 600))
+
+  try {
+    return await postChat(message, conversation_id)
+  } catch (error) {
+    if (error.status === undefined) {
+      // fetch itself failed (ai-engine unreachable) — fall back to a canned
+      // reply so the app stays usable, but say so instead of pretending
+      return {
+        answer: `You said: "${message}" (Tidak dapat terhubung ke ai-engine)`,
+        conversation_id: conversation_id ?? makeId(),
+      }
+    }
+
+    // conversation_id came from an earlier network failure (see fallback
+    // above) and isn't a real backend id, or the conversation otherwise
+    // doesn't exist server-side — transparently continue as a new backend
+    // conversation instead of surfacing the error.
+    if (conversation_id && (error.status === 400 || error.status === 404)) {
+      return postChat(message, null)
+    }
+
+    throw error
+  }
 }
 
 /**
