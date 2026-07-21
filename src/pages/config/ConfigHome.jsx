@@ -1,7 +1,7 @@
 import { useT } from '../../hooks/useT.js'
-import { getConfigPermission } from '../../lib/configPermissions.js'
+import { canViewRoles, canViewUsers } from '../../lib/permissions.js'
 
-export default function ConfigHome({ navigate, role }) {
+export default function ConfigHome({ navigate, session }) {
   const t = useT()
 
   return (
@@ -9,7 +9,7 @@ export default function ConfigHome({ navigate, role }) {
       <p className="config-home__intro">{t('config.homeIntro')}</p>
 
       <div className="config-home__cards">
-        {getConfigPermission(role, 'scopes') !== 'hidden' && (
+        {session?.config_scopes_view && (
           <button className="config-card" onClick={() => navigate('/config/scopes')}>
             <i className="fa-solid fa-list-check config-card__icon" />
             <span className="config-card__title">{t('config.scopesCardTitle')}</span>
@@ -17,7 +17,7 @@ export default function ConfigHome({ navigate, role }) {
           </button>
         )}
 
-        {getConfigPermission(role, 'roles') !== 'hidden' && (
+        {canViewRoles(session) && (
           <button className="config-card" onClick={() => navigate('/config/roles')}>
             <i className="fa-solid fa-users-gear config-card__icon" />
             <span className="config-card__title">{t('config.rolesCardTitle')}</span>
@@ -25,7 +25,7 @@ export default function ConfigHome({ navigate, role }) {
           </button>
         )}
 
-        {getConfigPermission(role, 'users') !== 'hidden' && (
+        {canViewUsers(session) && (
           <button className="config-card" onClick={() => navigate('/config/users')}>
             <i className="fa-solid fa-user-gear config-card__icon" />
             <span className="config-card__title">{t('config.usersCardTitle')}</span>

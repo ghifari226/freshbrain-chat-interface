@@ -1,61 +1,253 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Tooltip,
+  Autocomplete,
+  TextField,
+  Chip,
+} from '@mui/material'
 import { createUser, listUsers, updateUser } from '../../lib/auth.js'
 import { ROLES, ROLE_LABEL_KEYS } from '../../lib/roles.js'
-import { PERMISSIONS, PERMISSION_LABEL_KEYS } from '../../lib/permissions.js'
+import {
+  ALL_PERMISSIONS,
+  ACCESS_CONFIG_PERMISSIONS,
+  USER_PERMISSIONS,
+  CHAT_ACCESS_PERMISSIONS,
+  PERMISSION_LABEL_KEYS,
+  TECHNOLOGY_LOCKED_PERMISSIONS,
+} from '../../lib/permissions.js'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES[0] }
 
-export default function UsersPage({ permission, role }) {
+// Order-independent — see the identical concern in RolesPage's scopesEqual.
+function permissionsEqual(a, b) {
+  return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
+}
+
+function digitsOnly(value) {
+  return value.replace(/\D/g, '')
+}
+
+// A query starting with "0" is ambiguous: it might be a local-format trunk
+// prefix ("0811..." for stored "+62 811...") or just a substring that
+// happens to start with 0 (e.g. the last-4-digits "0006"). Rather than
+// guessing, try both readings and match if either is found in the phone's
+// digits — phone numbers themselves are stored as "+62 ...", never with a
+// literal leading 0, so only the query needs the alternate form.
+function phoneMatches(phoneDigits, queryDigits) {
+  if (phoneDigits.includes(queryDigits)) return true
+  if (queryDigits.startsWith('0')) return phoneDigits.includes(`62${queryDigits.slice(1)}`)
+  return false
+}
+
+// One group of checkboxes in the Shield dialog (Access Config / User
+// Management / Chat Access), boxed off so the three groups read as distinct
+// sections rather than one long list. isFieldLocked marks Technology's
+// hardcoded fields (checked+disabled, never editable); isFieldDisabled
+// marks fields blocked by the self-escalation guard (actor editing their
+// own row, doesn't already hold this field).
+function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldLocked, isFieldDisabled, onToggle, t }) {
+  return (
+    <div className="permission-group">
+      <span className="permission-group__label">{t(titleKey)}</span>
+      {fields.map((field) => {
+        const locked = isFieldLocked(field)
+        return (
+          <label className="permission-checkbox" key={field}>
+            <input
+              type="checkbox"
+              checked={locked || Boolean(dialogPermissions[field])}
+              disabled={locked || isFieldDisabled(field)}
+              onChange={() => onToggle(field)}
+            />
+            <span className="permission-checkbox__label">
+              {locked && <i className="fa-solid fa-lock" />} {t(PERMISSION_LABEL_KEYS[field])}
+            </span>
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function UsersPage() {
   const t = useT()
   const { session, updateSession } = useAuth()
-  const canEdit = permission === 'edit'
-  // Freshpedia/Tool Catalog grants are a separate, Technology-only
-  // capability — orthogonal to canEdit above, which governs name/role and
-  // is HR's job (see configPermissions.js). Neither role holds both.
-  const canManagePermissions = role === 'Technology'
+  // The role-string check (`role === 'Technology'`) this replaces is the
+  // one thing this whole refactor is about: gating is now per-individual
+  // permission, not per-role.
+  const canEdit = Boolean(session?.users_edit)
+  const canEditAccessConfigGroup = Boolean(session?.config_access_permission_edit)
+  const canEditChatAccessGroup = Boolean(session?.chat_access_permission_edit)
+  const showShieldIcon = canEditAccessConfigGroup || canEditChatAccessGroup
+  const canReassignToTechnology = TECHNOLOGY_LOCKED_PERMISSIONS.every((field) =>
+    Boolean(session?.[field]),
+  )
+  const actorForUpdate = useMemo(() => ({ email: session?.email }), [session?.email])
+  const roleOptions = canReassignToTechnology ? ROLES : ROLES.filter((r) => r !== 'Technology')
 
   // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [editingEmail, setEditingEmail] = useState(null)
-  const [editForm, setEditForm] = useState({ name: '', phone: '', role: '' })
   const [resetLink, setResetLink] = useState(null)
   const [isCopied, setIsCopied] = useState(false)
+  // Add and Edit share one dialog/form: null (closed), 'new', or the email
+  // of the row being edited — so both flows are the same UI/UX, not two
+  // different code paths that could drift apart.
+  const [userFormTarget, setUserFormTarget] = useState(null)
+  const [permissionsDialogEmail, setPermissionsDialogEmail] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  // Empty set = no role filter applied (show everyone). Chips are additive
+  // (OR within roles), combined with searchQuery as AND.
+  const [selectedRoles, setSelectedRoles] = useState(new Set())
+  // Draft permission edits, keyed by email — toggling a checkbox only ever
+  // touches this, never the API. The upload/cancel icons inside the Shield
+  // dialog's title (shown only while dirty) are the only things that either
+  // commit this via updateUser or discard it — closing the dialog any other
+  // way (backdrop, Escape, the Close button) also discards, so there's never
+  // a silently-pending edit left behind once the dialog isn't open.
+  const [pendingPermissions, setPendingPermissions] = useState({})
+  const isEditMode = Boolean(userFormTarget) && userFormTarget !== 'new'
+  const editingUser = isEditMode ? users.find((u) => u.email === userFormTarget) : null
+  // Derived from `users`, not a snapshot, so the dialog's title/base data is
+  // never stale.
+  const permissionsDialogUser = users.find((u) => u.email === permissionsDialogEmail) ?? null
+  const dialogPermissions = pendingPermissions[permissionsDialogEmail] ?? permissionsDialogUser ?? {}
+  const isPermissionsDialogDirty = permissionsDialogUser
+    ? !permissionsEqual(dialogPermissions, permissionsDialogUser)
+    : false
+
+  function isTechnologyLockedField(field) {
+    return permissionsDialogUser?.role === 'Technology' && TECHNOLOGY_LOCKED_PERMISSIONS.includes(field)
+  }
+
+  // Mirrors updateUser's runtime guard for immediate feedback — the actor
+  // can't check a box for a field they don't already hold themselves,
+  // whether editing their own row or (structurally impossible here, since
+  // the dialog can't even open on someone else without the group's edit
+  // gate) anyone else's.
+  function isSelfEscalationBlocked(field) {
+    return permissionsDialogEmail === session?.email && !session?.[field]
+  }
+
+  // Built from the actual data rather than ROLES — MOCK_USERS carries a few
+  // job titles (e.g. "Human Resource") that aren't in the assignable ROLES
+  // list, and those users still need to be filterable by their real role.
+  const availableRoles = useMemo(
+    () => Array.from(new Set(users.map((u) => u.role))).sort(),
+    [users],
+  )
+
+  const filteredUsers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    const queryDigits = digitsOnly(searchQuery)
+    return users.filter((u) => {
+      if (query) {
+        const matchesText =
+          u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)
+        const matchesPhone = queryDigits.length > 0 && phoneMatches(digitsOnly(u.phone), queryDigits)
+        if (!matchesText && !matchesPhone) return false
+      }
+      if (selectedRoles.size > 0 && !selectedRoles.has(u.role)) return false
+      return true
+    })
+  }, [users, searchQuery, selectedRoles])
+
+  function toggleRoleFilter(role) {
+    setSelectedRoles((prev) => {
+      const next = new Set(prev)
+      if (next.has(role)) next.delete(role)
+      else next.add(role)
+      return next
+    })
+  }
+
+  // Gates the search/chip filter bar below — without it, the bar renders
+  // immediately (with an empty chip row, since availableRoles is derived
+  // from users) and then pops once the mock fetch resolves. Waiting for
+  // usersLoaded means the filter bar and the grid's real rows appear in the
+  // same paint.
+  const [usersLoaded, setUsersLoaded] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     listUsers().then((data) => {
-      if (!cancelled) setUsers(data)
+      if (!cancelled) {
+        setUsers(data)
+        setUsersLoaded(true)
+      }
     })
     return () => {
       cancelled = true
     }
   }, [])
 
-  async function handleAddUser(event) {
+  function openAddUserDialog() {
+    setForm(EMPTY_FORM)
+    setFormError('')
+    setUserFormTarget('new')
+  }
+
+  function openEditUserDialog(row) {
+    setForm({ name: row.name, email: row.email, phone: row.phone, role: row.role })
+    setFormError('')
+    setUserFormTarget(row.email)
+  }
+
+  function closeUserFormDialog() {
+    setUserFormTarget(null)
+  }
+
+  async function handleSubmitUserForm(event) {
     event.preventDefault()
     setFormError('')
 
-    if (!form.name.trim() || !form.email.trim()) return
+    if (!form.name.trim() || (userFormTarget === 'new' && !form.email.trim())) return
 
     setIsSubmitting(true)
     try {
-      const { resetToken, ...user } = await createUser({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        role: form.role,
-      })
-      setUsers((prev) => [...prev, user])
+      if (userFormTarget === 'new') {
+        const { resetToken, ...user } = await createUser({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          role: form.role,
+        })
+        setUsers((prev) => [...prev, user])
+        setResetLink(`/reset/${resetToken}`)
+        setIsCopied(false)
+      } else {
+        const email = userFormTarget
+        const updated = await updateUser(
+          email,
+          { name: form.name.trim(), phone: form.phone.trim(), role: form.role },
+          actorForUpdate,
+        )
+        setUsers((prev) => prev.map((u) => (u.email === email ? updated : u)))
+        // Only `name` is safe to patch live here — `updated` (from
+        // toDirectoryEntry) doesn't carry allowed_scopes, so patching `role`
+        // without it would leave the session's role and allowed_scopes
+        // pointing at different roles until the next login.
+        if (email === session?.email) updateSession({ name: updated.name })
+      }
       setForm(EMPTY_FORM)
-      setResetLink(`/reset/${resetToken}`)
-      setIsCopied(false)
-    } catch {
-      setFormError('emailTaken')
+      setUserFormTarget(null)
+    } catch (error) {
+      // 'emailTaken' is a translated string key (create-only failure mode);
+      // update failures surface updateUser's own message directly since
+      // there's no equivalent translated copy for guard rejections that, in
+      // practice, the UI already prevents from being reachable (Technology
+      // filtered out of the role picker, etc).
+      setFormError(userFormTarget === 'new' ? 'emailTaken' : error.message)
     } finally {
       setIsSubmitting(false)
     }
@@ -67,38 +259,126 @@ export default function UsersPage({ permission, role }) {
     })
   }
 
-  function startEdit(user) {
-    setEditingEmail(user.email)
-    setEditForm({ name: user.name, phone: user.phone ?? '', role: user.role })
+  function handleTogglePermission(email, field) {
+    setPendingPermissions((prev) => {
+      const user = users.find((u) => u.email === email)
+      const current = prev[email] ?? user ?? {}
+      return { ...prev, [email]: { ...current, [field]: !current[field] } }
+    })
   }
 
-  async function handleSaveEdit(email) {
-    const updated = await updateUser(email, editForm)
-    setUsers((prev) => prev.map((u) => (u.email === email ? updated : u)))
-    setEditingEmail(null)
-    // Only `name` is safe to patch live here — `updated` (from
-    // toDirectoryEntry) doesn't carry allowed_scopes, so patching `role`
-    // without it would leave the session's role and allowed_scopes
-    // pointing at different roles until the next login.
-    if (email === session?.email) updateSession({ name: updated.name })
+  function discardPendingPermissions(email) {
+    setPendingPermissions((prev) => {
+      const { [email]: _discard, ...rest } = prev
+      return rest
+    })
   }
 
-  async function handleTogglePermission(user, tag) {
-    const current = user.allowed_permissions ?? []
-    const next = current.includes(tag) ? current.filter((p) => p !== tag) : [...current, tag]
-    const updated = await updateUser(user.email, { allowed_permissions: next })
-    setUsers((prev) => prev.map((u) => (u.email === user.email ? updated : u)))
-    if (user.email === session?.email) {
-      updateSession({ allowed_permissions: updated.allowed_permissions })
+  // The only thing that actually calls updateUser for permissions — see
+  // handleTogglePermission above, which only ever touches the local draft.
+  // Sends only the fields that actually differ from the target's
+  // last-synced row (not the full 12), so a save from an actor who can only
+  // see one Shield group never accidentally re-submits the other group's
+  // unchanged values (which they may not hold the gate to touch at all).
+  async function handleSavePermissions(email) {
+    const next = pendingPermissions[email]
+    if (!next) return
+    const original = users.find((u) => u.email === email) ?? {}
+    const updates = {}
+    for (const field of ALL_PERMISSIONS) {
+      if (Boolean(next[field]) !== Boolean(original[field])) {
+        updates[field] = Boolean(next[field])
+      }
     }
+    const updated = await updateUser(email, updates, actorForUpdate)
+    setUsers((prev) => prev.map((u) => (u.email === email ? updated : u)))
+    if (email === session?.email) {
+      const patch = {}
+      for (const field of ALL_PERMISSIONS) patch[field] = updated[field]
+      updateSession(patch)
+    }
+    discardPendingPermissions(email)
   }
+
+  function closePermissionsDialog() {
+    if (permissionsDialogEmail) discardPendingPermissions(permissionsDialogEmail)
+    setPermissionsDialogEmail(null)
+  }
+
+  const columns = useMemo(() => {
+    const base = []
+
+    if (showShieldIcon || canEdit) {
+      base.push({
+        field: 'rowActions',
+        type: 'actions',
+        headerName: '',
+        width: showShieldIcon && canEdit ? 84 : 48,
+        getActions: ({ row }) => {
+          const actions = []
+          if (showShieldIcon) {
+            actions.push(
+              <GridActionsCellItem
+                key="permissions"
+                icon={<i className="fa-solid fa-shield-halved" />}
+                label={t('permissions.sectionLabel')}
+                onClick={() => setPermissionsDialogEmail(row.email)}
+              />,
+            )
+          }
+          if (canEdit) {
+            actions.push(
+              <GridActionsCellItem
+                key="edit"
+                icon={<i className="fa-solid fa-pen" />}
+                label={t('config.editUser')}
+                onClick={() => openEditUserDialog(row)}
+              />,
+            )
+          }
+          return actions
+        },
+      })
+    }
+
+    base.push(
+      { field: 'name', headerName: t('config.nameLabel'), flex: 1 },
+      { field: 'email', headerName: t('auth.emailLabel'), flex: 1.2 },
+      { field: 'phone', headerName: t('config.phoneLabel'), flex: 1 },
+      {
+        field: 'role',
+        headerName: t('auth.roleLabel'),
+        flex: 1,
+        valueFormatter: (value) => t(ROLE_LABEL_KEYS[value] ?? value),
+      },
+    )
+
+    return base
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canEdit, showShieldIcon, t])
 
   return (
     <div className="config-section">
-      <h2 className="config-section__title">{t('config.usersTitle')}</h2>
-      <p className="config-section__desc">{t('config.usersDesc')}</p>
+      <div className="config-section__title-row">
+        <h2 className="config-section__title">{t('config.usersTitle')}</h2>
+        <Tooltip title={t('config.usersDesc')} placement="right">
+          <i className="fa-solid fa-circle-info config-section__info-icon" />
+        </Tooltip>
+        {canEdit && (
+          <Button
+            className="config-section__title-action"
+            variant="contained"
+            size="small"
+            onClick={openAddUserDialog}
+          >
+            {t('config.addUser')}
+          </Button>
+        )}
+      </div>
 
-      {!canEdit && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
+      {!canEdit && !showShieldIcon && (
+        <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>
+      )}
 
       {resetLink && (
         <div className="config-reset-link">
@@ -110,179 +390,181 @@ export default function UsersPage({ permission, role }) {
         </div>
       )}
 
-      {canEdit && (
-        <form className="auth-form config-add-form" onSubmit={handleAddUser}>
-          <div className="form-field">
-            <label className="form-field__label" htmlFor="user-name">
-              {t('config.nameLabel')}
-            </label>
-            <input
-              id="user-name"
-              className="form-field__input"
-              type="text"
-              value={form.name}
-              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              placeholder={t('config.namePlaceholder')}
-            />
+      {usersLoaded && (
+        <div className="filter-bar">
+          <div className="filter-bar__chips" role="group" aria-label={t('config.filterByRoleLabel')}>
+            {availableRoles.map((r) => {
+              const isActive = selectedRoles.has(r)
+              return (
+                <Chip
+                  key={r}
+                  label={t(ROLE_LABEL_KEYS[r] ?? r)}
+                  size="small"
+                  clickable
+                  onClick={() => toggleRoleFilter(r)}
+                  color={isActive ? 'primary' : 'default'}
+                  variant={isActive ? 'filled' : 'outlined'}
+                />
+              )
+            })}
           </div>
-
-          <div className="form-field">
-            <label className="form-field__label" htmlFor="user-email">
-              {t('auth.emailLabel')}
-            </label>
-            <input
-              id="user-email"
-              className="form-field__input"
-              type="email"
-              value={form.email}
-              onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-              placeholder={t('config.emailPlaceholder')}
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-field__label" htmlFor="user-phone">
-              {t('config.phoneLabel')}
-            </label>
-            <input
-              id="user-phone"
-              className="form-field__input"
-              type="tel"
-              value={form.phone}
-              onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
-              placeholder={t('config.phonePlaceholder')}
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-field__label" htmlFor="user-role">
-              {t('auth.roleLabel')}
-            </label>
-            <select
-              id="user-role"
-              className="form-field__select"
-              value={form.role}
-              onChange={(event) => setForm((prev) => ({ ...prev, role: event.target.value }))}
-            >
-              {ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {t(ROLE_LABEL_KEYS[role])}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {formError && <span className="form-field__error">{t('auth.' + formError)}</span>}
-
-          <button className="auth-submit" type="submit" disabled={isSubmitting}>
-            {t('config.addUserSubmit')}
-          </button>
-        </form>
+          <input
+            type="search"
+            className="form-field__input filter-bar__search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={t('config.searchUsersPlaceholder')}
+            aria-label={t('config.searchUsersPlaceholder')}
+          />
+        </div>
       )}
 
-      <div className="role-list">
-        {users.map((user) => {
-          const isEditing = editingEmail === user.email
+      <DataGrid
+        rows={filteredUsers}
+        columns={columns}
+        getRowId={(row) => row.email}
+        disableRowSelectionOnClick
+        autoHeight
+        hideFooter={filteredUsers.length <= 100}
+      />
 
-          return (
-            <div className="role-card" key={user.email}>
-              {isEditing ? (
-                <>
-                  <div className="form-field">
-                    <label className="form-field__label">{t('config.nameLabel')}</label>
-                    <input
-                      className="form-field__input"
-                      type="text"
-                      value={editForm.name}
-                      onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, name: event.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label className="form-field__label">{t('auth.emailLabel')}</label>
-                    <input className="form-field__input" type="email" value={user.email} disabled />
-                  </div>
-                  <div className="form-field">
-                    <label className="form-field__label">{t('config.phoneLabel')}</label>
-                    <input
-                      className="form-field__input"
-                      type="tel"
-                      value={editForm.phone}
-                      onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, phone: event.target.value }))
-                      }
-                      placeholder={t('config.phonePlaceholder')}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label className="form-field__label">{t('auth.roleLabel')}</label>
-                    <select
-                      className="form-field__select"
-                      value={editForm.role}
-                      onChange={(event) =>
-                        setEditForm((prev) => ({ ...prev, role: event.target.value }))
-                      }
-                    >
-                      {ROLES.map((role) => (
-                        <option key={role} value={role}>
-                          {t(ROLE_LABEL_KEYS[role])}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="role-card__actions">
-                    <button
-                      className="config-link-button"
-                      onClick={() => handleSaveEdit(user.email)}
-                    >
-                      {t('config.saveUser')}
-                    </button>
-                    <button className="config-link-button" onClick={() => setEditingEmail(null)}>
-                      {t('config.cancelEdit')}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="role-card__header user-card__header">
-                  <div>
-                    <span className="role-card__name">{user.name}</span>
-                    <span className="user-card__meta">
-                      {user.email}
-                      {user.phone ? ` · ${user.phone}` : ''} · {t(ROLE_LABEL_KEYS[user.role])}
-                    </span>
-                  </div>
-                  {canEdit && (
-                    <button className="config-link-button" onClick={() => startEdit(user)}>
-                      {t('config.editUser')}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {!isEditing && canManagePermissions && (
-                <div className="user-card__permissions">
-                  <span className="user-card__permissions-label">{t('permissions.sectionLabel')}</span>
-                  {PERMISSIONS.map((tag) => (
-                    <label className="permission-checkbox" key={tag}>
-                      <input
-                        type="checkbox"
-                        checked={(user.allowed_permissions ?? []).includes(tag)}
-                        onChange={() => handleTogglePermission(user, tag)}
-                      />
-                      <span className="permission-checkbox__label">
-                        {t(PERMISSION_LABEL_KEYS[tag])}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
+      <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog}>
+        <DialogTitle>{isEditMode ? editingUser?.name : t('config.addUser')}</DialogTitle>
+        <DialogContent>
+          <form id="user-form" className="auth-form config-add-form" onSubmit={handleSubmitUserForm}>
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="user-email">
+                {t('auth.emailLabel')}
+              </label>
+              <input
+                id="user-email"
+                className="form-field__input"
+                type="email"
+                value={form.email}
+                onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                placeholder={t('config.emailPlaceholder')}
+                autoComplete="off"
+                disabled={isEditMode}
+              />
             </div>
-          )
-        })}
-      </div>
+
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="user-name">
+                {t('config.nameLabel')}
+              </label>
+              <input
+                id="user-name"
+                className="form-field__input"
+                type="text"
+                value={form.name}
+                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder={t('config.namePlaceholder')}
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="user-phone">
+                {t('config.phoneLabel')}
+              </label>
+              <input
+                id="user-phone"
+                className="form-field__input"
+                type="tel"
+                value={form.phone}
+                onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                placeholder={t('config.phonePlaceholder')}
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="user-role">
+                {t('auth.roleLabel')}
+              </label>
+              <Autocomplete
+                id="user-role"
+                size="small"
+                disableClearable
+                autoHighlight
+                options={roleOptions}
+                value={form.role}
+                getOptionLabel={(r) => t(ROLE_LABEL_KEYS[r] ?? r)}
+                isOptionEqualToValue={(option, current) => option === current}
+                onChange={(_event, newValue) =>
+                  setForm((prev) => ({ ...prev, role: newValue ?? prev.role }))
+                }
+                renderInput={(params) => <TextField {...params} placeholder={t('auth.roleLabel')} />}
+              />
+            </div>
+
+            {formError && (
+              <span className="form-field__error">
+                {userFormTarget === 'new' ? t('auth.' + formError) : formError}
+              </span>
+            )}
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeUserFormDialog}>{t('config.cancelEdit')}</Button>
+          <Button type="submit" form="user-form" variant="contained" disabled={isSubmitting}>
+            {t(isEditMode ? 'config.saveUser' : 'config.addUserSubmit')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(permissionsDialogUser)} onClose={closePermissionsDialog}>
+        <DialogTitle>{permissionsDialogUser?.name}</DialogTitle>
+        <DialogContent>
+          <div className="permission-group-list">
+            {canEditAccessConfigGroup && (
+              <>
+                <PermissionCheckboxGroup
+                  titleKey="permissions.accessConfigSectionLabel"
+                  fields={ACCESS_CONFIG_PERMISSIONS}
+                  dialogPermissions={dialogPermissions}
+                  isFieldLocked={isTechnologyLockedField}
+                  isFieldDisabled={isSelfEscalationBlocked}
+                  onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
+                  t={t}
+                />
+                <PermissionCheckboxGroup
+                  titleKey="permissions.userManagementSectionLabel"
+                  fields={USER_PERMISSIONS}
+                  dialogPermissions={dialogPermissions}
+                  isFieldLocked={isTechnologyLockedField}
+                  isFieldDisabled={isSelfEscalationBlocked}
+                  onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
+                  t={t}
+                />
+              </>
+            )}
+            {canEditChatAccessGroup && (
+              <PermissionCheckboxGroup
+                titleKey="permissions.chatAccessSectionLabel"
+                fields={CHAT_ACCESS_PERMISSIONS}
+                dialogPermissions={dialogPermissions}
+                isFieldLocked={isTechnologyLockedField}
+                isFieldDisabled={isSelfEscalationBlocked}
+                onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
+                t={t}
+              />
+            )}
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closePermissionsDialog}>{t('config.cancelEdit')}</Button>
+          <Button
+            variant="contained"
+            disabled={!isPermissionsDialogDirty}
+            onClick={async () => {
+              await handleSavePermissions(permissionsDialogEmail)
+              setPermissionsDialogEmail(null)
+            }}
+          >
+            {t('config.saveUser')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   )
 }

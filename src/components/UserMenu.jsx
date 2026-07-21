@@ -4,8 +4,7 @@ import ProfileModal from './ProfileModal.jsx'
 import { useT } from '../hooks/useT.js'
 import { useAuth } from '../hooks/useAuth.js'
 import { useRoute } from '../hooks/useRoute.js'
-import { canAccessConfig } from '../lib/configPermissions.js'
-import { canAccessFeature } from '../lib/permissions.js'
+import { canAccessConfigSection } from '../lib/permissions.js'
 
 export default function UserMenu({
   collapsed = false,
@@ -65,7 +64,7 @@ export default function UserMenu({
             <i className="fa-solid fa-gear menu__item-icon" />
             {t('userMenu.settings')}
           </button>
-          {canAccessFeature(session?.allowed_permissions, 'freshpedia') && (
+          {session?.chat_freshpedia_view && (
             <button
               className="menu__item"
               onClick={() => {
@@ -77,7 +76,7 @@ export default function UserMenu({
               {t('userMenu.freshpedia')}
             </button>
           )}
-          {canAccessFeature(session?.allowed_permissions, 'tool_catalog') && (
+          {session?.chat_tools_view && (
             <button
               className="menu__item"
               onClick={() => {
@@ -89,7 +88,7 @@ export default function UserMenu({
               {t('userMenu.toolCatalog')}
             </button>
           )}
-          {canAccessConfig(session?.role) && (
+          {canAccessConfigSection(session) && (
             <button
               className="menu__item"
               onClick={() => {

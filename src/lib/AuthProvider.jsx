@@ -13,9 +13,9 @@ export function AuthProvider({ session, setSession, children }) {
       setSession(null)
     },
     // Patches the live session in place — for when the logged-in user edits
-    // their own record elsewhere (e.g. Users page) and fields like
-    // allowed_permissions/allowed_scopes need to reflect immediately,
-    // without forcing a full logout/login to re-fetch via authenticate().
+    // their own record elsewhere (e.g. Users page) and fields like the 12
+    // permission booleans need to reflect immediately, without forcing a
+    // full logout/login to re-fetch via authenticate().
     updateSession(patch) {
       setSession((prev) => (prev ? { ...prev, ...patch } : prev))
     },

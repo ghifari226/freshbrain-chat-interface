@@ -90,7 +90,6 @@ export const strings = {
     roleFinance: { en: 'Finance', id: 'Keuangan' },
     roleWarehouseStaff: { en: 'Warehouse Staff', id: 'Staf Gudang' },
     roleTechnology: { en: 'Technology', id: 'Teknologi' },
-    roleHr: { en: 'HR', id: 'HR' },
     roleClientServiceManagement: {
       en: 'Client Service Management',
       id: 'Manajemen Layanan Klien',
@@ -154,6 +153,11 @@ export const strings = {
     },
     nameLabel: { en: 'Name', id: 'Nama' },
     namePlaceholder: { en: 'Full name', id: 'Nama lengkap' },
+    searchUsersPlaceholder: {
+      en: 'Search by name, email, or phone…',
+      id: 'Cari berdasarkan nama, email, atau telepon…',
+    },
+    filterByRoleLabel: { en: 'Filter by role', id: 'Filter berdasarkan peran' },
     emailPlaceholder: { en: 'name@company.com', id: 'nama@perusahaan.com' },
     phoneLabel: { en: 'Phone', id: 'Telepon' },
     phonePlaceholder: { en: '+62 812-3456-7890', id: '+62 812-3456-7890' },
@@ -162,6 +166,7 @@ export const strings = {
     editUser: { en: 'Edit', id: 'Ubah' },
     saveUser: { en: 'Save', id: 'Simpan' },
     cancelEdit: { en: 'Cancel', id: 'Batal' },
+    close: { en: 'Close', id: 'Tutup' },
     viewOnlyNotice: {
       en: "View only. You don't have permission to make changes here.",
       id: 'Hanya lihat. Anda tidak memiliki izin untuk mengubah data di sini.',
@@ -175,24 +180,41 @@ export const strings = {
   },
   permissions: {
     sectionLabel: { en: 'Permissions', id: 'Izin' },
-    freshpediaView: { en: 'Freshpedia — View', id: 'Freshpedia — Lihat' },
-    freshpediaEdit: { en: 'Freshpedia — Edit', id: 'Freshpedia — Ubah' },
-    toolCatalogView: { en: 'Tool Catalog — View', id: 'Katalog Alat — Lihat' },
-    toolCatalogEdit: { en: 'Tool Catalog — Edit', id: 'Katalog Alat — Ubah' },
+    accessConfigSectionLabel: { en: 'Access Config', id: 'Konfigurasi Akses' },
+    userManagementSectionLabel: { en: 'User Management', id: 'Manajemen Pengguna' },
+    chatAccessSectionLabel: { en: 'Chat Access', id: 'Akses Chat' },
+
+    usersView: { en: 'Users — View', id: 'Pengguna — Lihat' },
+    usersEdit: { en: 'Users — Edit', id: 'Pengguna — Ubah' },
+
+    configScopesView: { en: 'Scopes — View', id: 'Cakupan — Lihat' },
+    configRolesView: { en: 'Roles — View', id: 'Peran — Lihat' },
+    configRolesEdit: { en: 'Roles — Edit', id: 'Peran — Ubah' },
+    configAccessPermissionEdit: {
+      en: 'Manage Access Config & User Management permissions',
+      id: 'Kelola izin Konfigurasi Akses & Manajemen Pengguna',
+    },
+
+    chatToolsView: { en: 'Tool Catalog — View', id: 'Katalog Alat — Lihat' },
+    chatToolsRequest: { en: 'Tool Catalog — Request', id: 'Katalog Alat — Ajukan' },
+    chatFreshpediaView: { en: 'Freshpedia — View', id: 'Freshpedia — Lihat' },
+    chatFreshpediaRequest: { en: 'Freshpedia — Request', id: 'Freshpedia — Ajukan' },
+    chatStagingTest: { en: 'Staging Preview', id: 'Pratinjau Staging' },
+    chatAccessPermissionEdit: {
+      en: 'Manage Chat Access permissions',
+      id: 'Kelola izin Akses Chat',
+    },
   },
   freshpedia: {
     title: { en: 'Freshpedia', id: 'Freshpedia' },
-    comingSoon: {
-      en: "Freshpedia is coming soon — this is a placeholder while the content backend is being built.",
-      id: 'Freshpedia akan segera hadir — ini adalah placeholder selagi backend konten sedang dibangun.',
-    },
   },
   toolCatalog: {
     title: { en: 'Tool Catalog', id: 'Katalog Alat' },
-    comingSoon: {
-      en: "Tool Catalog is coming soon — this is a placeholder while the ai-engine integration is being built.",
-      id: 'Katalog Alat akan segera hadir — ini adalah placeholder selagi integrasi ai-engine sedang dibangun.',
-    },
+    toolColumn: { en: 'Tool', id: 'Alat' },
+    statusColumn: { en: 'Status', id: 'Status' },
+    filterByStatusLabel: { en: 'Filter by status', id: 'Filter berdasarkan status' },
+    stagingStatus: { en: 'Staging', id: 'Staging' },
+    productionStatus: { en: 'Production', id: 'Produksi' },
   },
   staging: {
     toggleLabel: { en: 'Toggle staging mode', id: 'Alihkan mode staging' },

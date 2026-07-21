@@ -1,7 +1,7 @@
 import { useT } from '../../hooks/useT.js'
-import { getConfigPermission } from '../../lib/configPermissions.js'
+import { canViewRoles, canViewUsers } from '../../lib/permissions.js'
 
-export default function ConfigLayout({ path, navigate, language, setLanguage, role, children }) {
+export default function ConfigLayout({ path, navigate, language, setLanguage, session, children }) {
   const t = useT()
 
   return (
@@ -41,7 +41,7 @@ export default function ConfigLayout({ path, navigate, language, setLanguage, ro
       </header>
 
       <nav className="config-page__nav">
-        {getConfigPermission(role, 'scopes') !== 'hidden' && (
+        {session?.config_scopes_view && (
           <button
             className={
               'config-page__nav-item' +
@@ -52,7 +52,7 @@ export default function ConfigLayout({ path, navigate, language, setLanguage, ro
             {t('config.navScopes')}
           </button>
         )}
-        {getConfigPermission(role, 'roles') !== 'hidden' && (
+        {canViewRoles(session) && (
           <button
             className={
               'config-page__nav-item' +
@@ -63,7 +63,7 @@ export default function ConfigLayout({ path, navigate, language, setLanguage, ro
             {t('config.navRoles')}
           </button>
         )}
-        {getConfigPermission(role, 'users') !== 'hidden' && (
+        {canViewUsers(session) && (
           <button
             className={
               'config-page__nav-item' +

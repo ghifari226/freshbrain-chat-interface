@@ -1,5 +1,6 @@
 // Auth, matching the request/response contract in
-// freshbrain-agreement/auth-contract.md. Each exported function tries the
+// freshbrain-agreement/auth-contract.md (including the /config/users admin
+// section) and permission-catalog.md. Each exported function tries the
 // real endpoint first; since chat-gateway doesn't exist yet, that fetch
 // always fails and every function falls back to the MOCK_USERS logic
 // below, unchanged. Once chat-gateway is up, the fallback branches (and
@@ -8,15 +9,30 @@
 // No username, by design — this isn't a social product, email + password
 // is the login identity. MOCK_USERS also backs the /config/users admin
 // directory below (listUsers/createUser/updateUser) — self-service
-// registration has been removed in favor of HR-managed user creation, so
-// this is now the only place new mock accounts come from.
-//
-// listUsers/createUser/updateUser have no entry in auth-contract.md (it
-// only documents /login and /register) — the /config/users paths below are
-// chat-interface's own proposal, not an agreed contract yet.
+// registration has been removed in favor of admin-managed user creation,
+// so this is now the only place new mock accounts come from.
 
 import { CHAT_GATEWAY_BASE_URL } from './config.js'
-import { DEFAULT_ROLE_SCOPES } from './roles.js'
+import { ROLE_SCOPES } from './roles.js'
+import {
+  ALL_PERMISSIONS,
+  ACCESS_CONFIG_PERMISSIONS,
+  CHAT_ACCESS_PERMISSIONS,
+  USER_PERMISSIONS,
+  TECHNOLOGY_LOCKED_PERMISSIONS,
+  TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS,
+} from './permissions.js'
+
+function allFalsePermissions() {
+  return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, false]))
+}
+
+function technologyPermissions() {
+  const perms = allFalsePermissions()
+  for (const field of TECHNOLOGY_LOCKED_PERMISSIONS) perms[field] = true
+  for (const field of TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS) perms[field] = true
+  return perms
+}
 
 const MOCK_USERS = [
   {
@@ -25,8 +41,7 @@ const MOCK_USERS = [
     name: 'Larry Ridwan',
     phone: '+62 811-1000-0001',
     role: 'CEO',
-    allowed_permissions: [],
-    allowed_scopes: DEFAULT_ROLE_SCOPES.CEO,
+    ...allFalsePermissions(),
   },
   {
     email: 'delapramuwidia@gmail.com',
@@ -34,8 +49,7 @@ const MOCK_USERS = [
     name: 'Delanda Pramuwidia',
     phone: '+62 811-1000-0002',
     role: 'Client Service Management',
-    allowed_permissions: [],
-    allowed_scopes: DEFAULT_ROLE_SCOPES['Ops Manager'],
+    ...allFalsePermissions(),
   },
   {
     email: 'gesikautzar@gmail.com',
@@ -43,8 +57,7 @@ const MOCK_USERS = [
     name: 'Gesi Kautzar',
     phone: '+62 811-1000-0003',
     role: 'Human Resource',
-    allowed_permissions: [],
-    allowed_scopes: DEFAULT_ROLE_SCOPES.HR,
+    ...allFalsePermissions(),
   },
   {
     email: 'ghifari@freshfactory.id',
@@ -52,8 +65,7 @@ const MOCK_USERS = [
     name: 'Ghifari',
     phone: '+62 811-1000-0004',
     role: 'Technology',
-    allowed_permissions: [],
-    allowed_scopes: DEFAULT_ROLE_SCOPES.Technology,
+    ...technologyPermissions(),
   },
   {
     email: 'shabrinanisayulianti@gmail.com',
@@ -61,8 +73,7 @@ const MOCK_USERS = [
     name: 'Shabrina Nisa Yulianti',
     phone: '+62 811-1000-0006',
     role: 'Finance',
-    allowed_permissions: [],
-    allowed_scopes: DEFAULT_ROLE_SCOPES.Finance,
+    ...allFalsePermissions(),
   },
 ]
 
@@ -71,10 +82,31 @@ function delay() {
 }
 
 // Stand-in for a real reset-password token. There's no email-sending
-// channel yet, so this is surfaced once in the UsersPage UI for HR to copy
-// and relay manually — real generation/delivery is a chat-gateway decision.
+// channel yet, so this is surfaced once in the UsersPage UI for an admin to
+// copy and relay manually — real generation/delivery is a chat-gateway
+// decision.
 function makeResetToken() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10)
+}
+
+// Re-derives the 12 boolean fields from a stored MOCK_USERS row, forcing
+// Technology's 5 locked fields to match role regardless of what's stored
+// (true for Technology, false otherwise — defense in depth, not just a
+// creation-time seed). Called from every read path (toSession,
+// toDirectoryEntry) so the locks can never drift even from a bad write.
+function shapeUserPermissions(user) {
+  const perms = {}
+  for (const field of ALL_PERMISSIONS) perms[field] = Boolean(user[field])
+  const isTechnology = user.role === 'Technology'
+  for (const field of TECHNOLOGY_LOCKED_PERMISSIONS) perms[field] = isTechnology
+  return perms
+}
+
+// allowed_scopes lives only on roles, not users (see roles.md) — resolved
+// here via the role "join" every time a session/directory entry is shaped,
+// same as a real chat-gateway would do at read time.
+function resolveScopes(role) {
+  return ROLE_SCOPES[role] ?? []
 }
 
 // name/email/phone are documented in auth-contract.md's /login response
@@ -87,8 +119,8 @@ function toSession(user) {
     email: user.email,
     phone: user.phone,
     role: user.role,
-    allowed_scopes: user.allowed_scopes,
-    allowed_permissions: user.allowed_permissions,
+    allowed_scopes: resolveScopes(user.role),
+    ...shapeUserPermissions(user),
     token: 'mock-jwt-token',
   }
 }
@@ -99,14 +131,13 @@ function toDirectoryEntry(user) {
     email: user.email,
     phone: user.phone,
     role: user.role,
-    allowed_permissions: user.allowed_permissions,
+    ...shapeUserPermissions(user),
   }
 }
 
 /**
  * @param {string} email
  * @param {string} password
- * @returns {Promise<{ user_id: string, name: string, email: string, phone: string, role: string, allowed_scopes: string[], allowed_permissions: string[], token: string }>}
  */
 export async function authenticate(email, password) {
   try {
@@ -131,7 +162,7 @@ export async function authenticate(email, password) {
 }
 
 /**
- * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[] }[]>}
+ * @returns {Promise<object[]>}
  */
 export async function listUsers() {
   try {
@@ -147,16 +178,21 @@ export async function listUsers() {
 
 /**
  * New users get no password — they're created pending a reset link, not
- * with an HR-assigned credential. `resetToken` is only returned here, once,
- * for the caller to display; it isn't retrievable again from listUsers().
+ * with an admin-assigned credential. `resetToken` is only returned here,
+ * once, for the caller to display; it isn't retrievable again from
+ * listUsers().
+ *
+ * All 12 permission booleans start false, except when `role` is
+ * 'Technology': the 5 locked fields plus the 7 default-editable fields all
+ * start true, per permission-catalog.md's creation-time rule. This is
+ * purely a function of `role` — never something the request body can ask
+ * for directly.
  *
  * `email` is captured but not verified or used to actually send anything —
- * real delivery is a chat-gateway/email-provider decision for later. It's
- * here so the record isn't missing an obvious real-world field, not because
- * sending is implemented.
+ * real delivery is a chat-gateway/email-provider decision for later.
  *
  * @param {{ name: string, email: string, phone?: string, role: string }} input
- * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[], resetToken: string }>}
+ * @returns {Promise<object>}
  */
 export async function createUser({ name, email, phone, role }) {
   try {
@@ -183,19 +219,25 @@ export async function createUser({ name, email, phone, role }) {
     email,
     phone,
     role,
-    allowed_scopes: DEFAULT_ROLE_SCOPES[role] ?? [],
-    allowed_permissions: [],
+    ...(role === 'Technology' ? technologyPermissions() : allFalsePermissions()),
   }
   MOCK_USERS.push(user)
   return { ...toDirectoryEntry(user), resetToken }
 }
 
 /**
- * @param {string} email
- * @param {{ name?: string, phone?: string, role?: string, allowed_permissions?: string[] }} updates
- * @returns {Promise<{ name: string, email: string, phone: string, role: string, allowed_permissions: string[] }>}
+ * The mock stand-in for chat-gateway's write-path enforcement (see
+ * auth-contract.md's PATCH /config/users/{email} rules). `actor` is always
+ * re-read fresh from MOCK_USERS by email here — the caller's
+ * `actor.permissions`, if any, is never trusted, matching the "re-validate
+ * live, not cached session state" rule.
+ *
+ * @param {string} email - target user being updated
+ * @param {{ name?: string, phone?: string, role?: string } & Partial<Record<string, boolean>>} updates
+ * @param {{ email: string }} actor - the calling session's own email
+ * @returns {Promise<object>}
  */
-export async function updateUser(email, updates) {
+export async function updateUser(email, updates, actor) {
   try {
     const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users/${encodeURIComponent(email)}`, {
       method: 'PATCH',
@@ -214,12 +256,74 @@ export async function updateUser(email, updates) {
     throw new Error('User not found')
   }
 
+  const actorUser = MOCK_USERS.find((u) => u.email === actor?.email)
+  if (!actorUser) {
+    throw new Error('Actor not found')
+  }
+  const actorPermissions = shapeUserPermissions(actorUser)
+
+  const touchedPermissionFields = ALL_PERMISSIONS.filter((field) => updates[field] !== undefined)
+  const touchesConfigOrUsersGroup = touchedPermissionFields.some(
+    (field) => ACCESS_CONFIG_PERMISSIONS.includes(field) || USER_PERMISSIONS.includes(field),
+  )
+  const touchesChatGroup = touchedPermissionFields.some((field) =>
+    CHAT_ACCESS_PERMISSIONS.includes(field),
+  )
+  const touchesProfileOrRole =
+    updates.name !== undefined || updates.phone !== undefined || updates.role !== undefined
+
+  // Field-level gate: config_*/users_* need config_access_permission_edit,
+  // chat_* need chat_access_permission_edit, name/phone/role need users_edit
+  // — see permission-catalog.md's "who can edit" column.
+  if (touchesConfigOrUsersGroup && !actorPermissions.config_access_permission_edit) {
+    throw new Error('You do not have permission to edit this field')
+  }
+  if (touchesChatGroup && !actorPermissions.chat_access_permission_edit) {
+    throw new Error('You do not have permission to edit this field')
+  }
+  if (touchesProfileOrRole && !actorPermissions.users_edit) {
+    throw new Error('You do not have permission to edit this field')
+  }
+
+  // Technology-lock write protection: unconditional, regardless of actor —
+  // these 5 only ever flip as a side effect of a role change, never a
+  // direct boolean write by anyone.
+  for (const field of TECHNOLOGY_LOCKED_PERMISSIONS) {
+    if (updates[field] !== undefined) {
+      throw new Error(`${field} cannot be set directly — it follows role`)
+    }
+  }
+
+  // Reassigning ANY user to Technology requires the actor to already hold
+  // all 5 locked permissions themselves — not just users_edit. Applies
+  // regardless of whether the target is the actor's own row. Gated on an
+  // actual transition (user.role !== 'Technology' already) so a no-op edit
+  // that merely leaves an existing Technology user's role field unchanged
+  // (e.g. editing just their phone number) never trips this guard.
+  if (updates.role === 'Technology' && user.role !== 'Technology') {
+    const actorHasAllLocks = TECHNOLOGY_LOCKED_PERMISSIONS.every((field) => actorPermissions[field])
+    if (!actorHasAllLocks) {
+      throw new Error('Reassigning to Technology requires holding all Technology access permissions')
+    }
+  }
+
+  // Self-escalation guard: editing your own row can never flip a boolean
+  // you don't already hold from false to true. Demotion (true -> false) on
+  // yourself is always allowed.
+  if (email === actor.email) {
+    for (const field of touchedPermissionFields) {
+      if (updates[field] === true && !actorPermissions[field]) {
+        throw new Error('Cannot grant a permission you do not already hold')
+      }
+    }
+  }
+
   if (updates.name !== undefined) user.name = updates.name
   if (updates.phone !== undefined) user.phone = updates.phone
-  if (updates.role !== undefined) {
-    user.role = updates.role
-    user.allowed_scopes = DEFAULT_ROLE_SCOPES[updates.role] ?? []
+  if (updates.role !== undefined) user.role = updates.role
+  for (const field of touchedPermissionFields) {
+    user[field] = updates[field]
   }
-  if (updates.allowed_permissions !== undefined) user.allowed_permissions = updates.allowed_permissions
+
   return toDirectoryEntry(user)
 }

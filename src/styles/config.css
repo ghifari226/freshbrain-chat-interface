@@ -64,6 +64,8 @@
 .config-page__nav {
   display: flex;
   gap: 4px;
+  max-width: 720px;
+  margin: 0 auto;
   padding: 12px 24px 0;
 }
 
@@ -96,6 +98,27 @@
   margin: 0 0 4px;
   font-size: 18px;
   font-weight: 600;
+}
+
+.config-section__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+
+.config-section__title-row .config-section__title {
+  margin: 0;
+}
+
+.config-section__info-icon {
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: help;
+}
+
+.config-section__title-row .config-section__title-action {
+  margin-left: auto;
 }
 
 .config-section__desc {
@@ -208,10 +231,40 @@
   padding: 4px 8px;
 }
 
+.scope-catalog__sub-item--active {
+  background: var(--accent);
+}
+
+/* Higher specificity than .scope-catalog__sub-tag--clickable:hover on
+   purpose — otherwise the cursor sitting on the chip right after the click
+   that activated it repaints the text back to accent-on-accent (invisible). */
+.scope-catalog__sub-item--active .scope-catalog__sub-tag.scope-catalog__sub-tag--clickable {
+  color: #ffffff;
+}
+
 .scope-catalog__sub-tag {
   font-family: monospace;
   font-size: 12px;
   color: var(--text-chat);
+}
+
+.scope-catalog__sub-tag--clickable {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.scope-catalog__sub-tag--clickable:hover {
+  color: var(--accent);
+}
+
+.scope-catalog__description {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 /* Role assignments (editable) */
@@ -229,12 +282,21 @@
 }
 
 .role-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 10px;
 }
 
 .role-card__name {
   font-size: 15px;
   font-weight: 600;
+}
+
+.role-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .role-card__fixed {
@@ -282,8 +344,43 @@
   font-size: 13px;
 }
 
+.scope-checkbox--system {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.scope-checkbox__control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
 .scope-checkbox--system .scope-checkbox__tag {
   font-weight: 600;
+  color: var(--accent);
+}
+
+.role-card__system-toggle {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.role-card__system-toggle:hover {
+  background: var(--surface-response);
+}
+
+/* Unsaved-change indicator — shown next to a role name (RolesPage) or a
+   user's name (UsersPage) when there's a local edit not yet persisted. */
+.icon-button--pending {
   color: var(--accent);
 }
 
@@ -355,24 +452,33 @@
   padding: 0;
 }
 
-/* Freshpedia/Tool Catalog permission grants (Technology-only, see
-   UsersPage.jsx canManagePermissions) */
+/* Shield dialog's Access Config / User Management / Chat Access groups —
+   each its own bordered card so the three sections read as distinct,
+   matching the app's existing bordered-card visual language (role-card,
+   config-add-form) rather than a single flat checkbox list. */
 
-.user-card__permissions {
+.permission-group-list {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
+  flex-direction: column;
+  gap: 12px;
 }
 
-.user-card__permissions-label {
+.permission-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.permission-group__label {
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
-  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .permission-checkbox {
@@ -384,4 +490,37 @@
 
 .permission-checkbox__label {
   color: var(--text-muted);
+}
+
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.filter-bar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-bar__search {
+  width: 100%;
+}
+
+.role-edit-cell {
+  width: 100%;
+}
+
+.freshpedia-index {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.freshpedia-index__entry {
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
 }

@@ -22,16 +22,63 @@ function makeId() {
   return Math.random().toString(36).slice(2, 10)
 }
 
-function ChatWorkspace({ language, setLanguage }) {
+function ChatWorkspace({
+  language,
+  setLanguage,
+  conversations,
+  activeConversationId,
+  isLoading,
+  inputRef,
+  onNewChat,
+  onSelectConversation,
+  onRenameConversation,
+  onDeleteConversation,
+  onSend,
+  onFeedback,
+}) {
+  const [theme, setTheme] = useTheme()
+  const [tone, setTone] = useTone()
+  const [chatFont, setChatFont] = useChatFont()
+
+  const activeConversation = conversations.find((c) => c.id === activeConversationId) ?? null
+
+  return (
+    <div className="app">
+      <Sidebar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onSelectConversation={onSelectConversation}
+        onNewChat={onNewChat}
+        onRenameConversation={onRenameConversation}
+        onDeleteConversation={onDeleteConversation}
+        theme={theme}
+        setTheme={setTheme}
+        tone={tone}
+        setTone={setTone}
+        chatFont={chatFont}
+        setChatFont={setChatFont}
+        language={language}
+        setLanguage={setLanguage}
+      />
+      <ChatPanel
+        conversation={activeConversation}
+        isLoading={isLoading}
+        onSend={onSend}
+        onFeedback={(messageId, feedback) => onFeedback(activeConversationId, messageId, feedback)}
+        inputRef={inputRef}
+      />
+    </div>
+  )
+}
+
+function AuthenticatedApp({ language, setLanguage }) {
+  const [path] = useRoute()
+  const { session } = useAuth()
+
   const [conversations, setConversations] = useState(() => makeMockConversations())
   const [activeConversationId, setActiveConversationId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef(null)
-
-  const [theme, setTheme] = useTheme()
-  const [tone, setTone] = useTone()
-  const [chatFont, setChatFont] = useChatFont()
-  const { session } = useAuth()
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) ?? null
 
@@ -170,55 +217,42 @@ function ChatWorkspace({ language, setLanguage }) {
     }
   }
 
+  if (path.startsWith('/config')) {
+    return <ConfigSection language={language} setLanguage={setLanguage} />
+  }
+  if (path === '/freshpedia') {
+    return <FreshpediaPage language={language} setLanguage={setLanguage} />
+  }
+  if (path === '/tool-catalog') {
+    return <ToolCatalogPage language={language} setLanguage={setLanguage} />
+  }
   return (
-    <div className="app">
-      <Sidebar
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        onSelectConversation={handleSelectConversation}
-        onNewChat={handleNewChat}
-        onRenameConversation={handleRenameConversation}
-        onDeleteConversation={handleDeleteConversation}
-        theme={theme}
-        setTheme={setTheme}
-        tone={tone}
-        setTone={setTone}
-        chatFont={chatFont}
-        setChatFont={setChatFont}
-        language={language}
-        setLanguage={setLanguage}
-      />
-      <ChatPanel
-        conversation={activeConversation}
-        isLoading={isLoading}
-        onSend={handleSend}
-        onFeedback={(messageId, feedback) =>
-          handleMessageFeedback(activeConversationId, messageId, feedback)
-        }
-        inputRef={inputRef}
-      />
-    </div>
+    <ChatWorkspace
+      language={language}
+      setLanguage={setLanguage}
+      conversations={conversations}
+      activeConversationId={activeConversationId}
+      isLoading={isLoading}
+      inputRef={inputRef}
+      onNewChat={handleNewChat}
+      onSelectConversation={handleSelectConversation}
+      onRenameConversation={handleRenameConversation}
+      onDeleteConversation={handleDeleteConversation}
+      onSend={handleSend}
+      onFeedback={handleMessageFeedback}
+    />
   )
 }
 
 export default function App() {
   const [language, setLanguage] = useLanguage()
   const [session, setSession] = useAuthSession()
-  const [path] = useRoute()
 
   return (
     <LanguageProvider language={language}>
       <AuthProvider session={session} setSession={setSession}>
         {session ? (
-          path.startsWith('/config') ? (
-            <ConfigSection language={language} setLanguage={setLanguage} />
-          ) : path === '/freshpedia' ? (
-            <FreshpediaPage language={language} setLanguage={setLanguage} />
-          ) : path === '/tool-catalog' ? (
-            <ToolCatalogPage language={language} setLanguage={setLanguage} />
-          ) : (
-            <ChatWorkspace language={language} setLanguage={setLanguage} />
-          )
+          <AuthenticatedApp language={language} setLanguage={setLanguage} />
         ) : (
           <LoginPage language={language} setLanguage={setLanguage} />
         )}

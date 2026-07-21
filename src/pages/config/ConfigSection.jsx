@@ -6,49 +6,45 @@ import RolesPage from './RolesPage.jsx'
 import UsersPage from './UsersPage.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useRoute } from '../../hooks/useRoute.js'
-import { canAccessConfig, getConfigPermission } from '../../lib/configPermissions.js'
+import { canAccessConfigSection, canViewRoles, canViewUsers } from '../../lib/permissions.js'
 
-const PAGE_BY_PATH = {
-  '/config/scopes': 'scopes',
-  '/config/roles': 'roles',
-  '/config/users': 'users',
+// Per-path reachability — independent booleans now, not a collapsed
+// 'edit'/'view'/'hidden' tri-state, since the new model has independent
+// view/edit permissions rather than one combined level.
+const PAGE_VISIBLE_BY_PATH = {
+  '/config/scopes': (session) => Boolean(session?.config_scopes_view),
+  '/config/roles': (session) => canViewRoles(session),
+  '/config/users': (session) => canViewUsers(session),
 }
 
 export default function ConfigSection({ language, setLanguage }) {
   const { session } = useAuth()
   const [path, navigate] = useRoute()
-  const role = session?.role
-  const isAuthorized = canAccessConfig(role)
-  const page = PAGE_BY_PATH[path]
-  const permission = page ? getConfigPermission(role, page) : null
+  const isAuthorized = canAccessConfigSection(session)
+  const isPageVisible = PAGE_VISIBLE_BY_PATH[path]
+  const pageVisible = isPageVisible ? isPageVisible(session) : true
 
   useEffect(() => {
     if (!isAuthorized) {
       navigate('/')
-    } else if (permission === 'hidden') {
+    } else if (!pageVisible) {
       navigate('/config')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthorized, permission])
+  }, [isAuthorized, pageVisible])
 
-  if (!isAuthorized || permission === 'hidden') return null
+  if (!isAuthorized || !pageVisible) return null
 
   return (
-    <ConfigLayout
-      path={path}
-      navigate={navigate}
-      language={language}
-      setLanguage={setLanguage}
-      role={role}
-    >
+    <ConfigLayout path={path} navigate={navigate} language={language} setLanguage={setLanguage} session={session}>
       {path === '/config/scopes' ? (
         <ScopesPage />
       ) : path === '/config/roles' ? (
-        <RolesPage />
+        <RolesPage session={session} />
       ) : path === '/config/users' ? (
-        <UsersPage permission={permission} role={role} />
+        <UsersPage />
       ) : (
-        <ConfigHome navigate={navigate} role={role} />
+        <ConfigHome navigate={navigate} session={session} />
       )}
     </ConfigLayout>
   )
