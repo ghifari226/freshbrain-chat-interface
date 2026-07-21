@@ -15,25 +15,34 @@ function makeId() {
 
 /**
  * user_id/role/allowed_scopes/token ride along per auth-contract.md's
- * "every subsequent request" shape, so once the backend consumes them
- * (Authorization: Bearer token header, the rest in the body) no changes
- * are needed at the call site.
+ * "every subsequent request" shape — role/allowed_scopes gate which tools
+ * ai-engine even shows Claude, token goes in the Authorization header, not
+ * the body.
  *
  * @param {{
  *   message: string,
- *   conversation_id: string | null,
- *   user_id?: string,
+ *   conversationId: string | null,
+ *   userId?: string,
  *   role?: string,
- *   allowed_scopes?: string[],
+ *   allowedScopes?: string[],
  *   token?: string,
  * }} request
  * @returns {Promise<{ answer: string, conversation_id: string }>}
  */
-async function postChat(message, conversationId) {
+async function postChat({ message, conversationId, userId, role, allowedScopes, token }) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+
   const res = await fetch(`${AI_ENGINE_BASE_URL}/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, conversation_id: conversationId ?? null }),
+    headers,
+    body: JSON.stringify({
+      message,
+      conversation_id: conversationId ?? null,
+      user_id: userId,
+      role,
+      allowed_scopes: allowedScopes,
+    }),
   })
 
   if (!res.ok) {
@@ -51,11 +60,20 @@ async function postChat(message, conversationId) {
   return res.json()
 }
 
-export async function sendMessage({ message, conversation_id }) {
+export async function sendMessage({ message, conversation_id, user_id, role, allowed_scopes, token }) {
   await new Promise((resolve) => setTimeout(resolve, 900 + Math.random() * 600))
 
+  const request = {
+    message,
+    conversationId: conversation_id,
+    userId: user_id,
+    role,
+    allowedScopes: allowed_scopes,
+    token,
+  }
+
   try {
-    return await postChat(message, conversation_id)
+    return await postChat(request)
   } catch (error) {
     if (error.status === undefined) {
       // fetch itself failed (ai-engine unreachable) — fall back to a canned
@@ -71,7 +89,7 @@ export async function sendMessage({ message, conversation_id }) {
     // doesn't exist server-side — transparently continue as a new backend
     // conversation instead of surfacing the error.
     if (conversation_id && (error.status === 400 || error.status === 404)) {
-      return postChat(message, null)
+      return postChat({ ...request, conversationId: null })
     }
 
     throw error
