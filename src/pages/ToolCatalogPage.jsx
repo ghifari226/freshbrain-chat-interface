@@ -1,35 +1,201 @@
-import { useEffect, useState } from 'react'
-import { DataGrid } from '@mui/x-data-grid'
-import { Chip } from '@mui/material'
+import { useEffect, useMemo, useState } from 'react'
+import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid'
+import { Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button, Autocomplete, TextField } from '@mui/material'
 import StandalonePageLayout from './StandalonePageLayout.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useRoute } from '../hooks/useRoute.js'
 import { useT } from '../hooks/useT.js'
+import { canAccessToolCatalog } from '../lib/permissions.js'
+import { getScopeCatalog } from '../lib/scopeCatalog.js'
+import { listToolCatalogEntries, createToolCatalogEntry, updateToolCatalogEntry } from '../lib/toolCatalog.js'
 
-// Staging/Production only — see the project note on Freshpedia/Tool
-// Catalog's status model. No Draft here: unlike Freshpedia, a tool entry
-// isn't hand-authored prose, so there's no meaningful "not ready to be
-// browsed yet" state to hide.
-const STATUSES = ['staging', 'production']
+// Same status filter chips as Freshpedia (order + single-select + Request
+// exclusivity) — that's the only thing this page copies from it. Content
+// is a plain view-only table; the only actions anywhere on this page are
+// "New request" and, on your own pending request, "Edit Request".
+const STATUS_FILTERS = ['production', 'staging', 'request']
+const STATUS_COLOR = { production: 'success', staging: 'warning', request: 'default' }
+const EMPTY_FORM = { system: '', name: '', description: '', exampleQuestions: [] }
 
-// No real tool data yet (ai-engine integration isn't built) — this is
-// purely the intended shell: status filter chips above an empty grid,
-// showing DataGrid's own "no rows" state rather than fabricated rows.
+function isFormValid(form) {
+  return Boolean(form.system) && Boolean(form.name.trim()) && Boolean(form.description.trim())
+}
+
+function EntryForm({ form, setForm, systems, t }) {
+  function updateQuestion(index, value) {
+    setForm((prev) => ({
+      ...prev,
+      exampleQuestions: prev.exampleQuestions.map((q, i) => (i === index ? value : q)),
+    }))
+  }
+
+  function addQuestion() {
+    setForm((prev) => ({ ...prev, exampleQuestions: [...prev.exampleQuestions, ''] }))
+  }
+
+  function removeQuestion(index) {
+    setForm((prev) => ({
+      ...prev,
+      exampleQuestions: prev.exampleQuestions.filter((_q, i) => i !== index),
+    }))
+  }
+
+  return (
+    <>
+      <div className="form-field">
+        <label className="form-field__label" htmlFor="tool-system">
+          {t('toolCatalog.systemLabel')}
+        </label>
+        <Autocomplete
+          id="tool-system"
+          size="small"
+          autoHighlight
+          options={systems}
+          value={systems.find((entry) => entry.system === form.system) ?? null}
+          getOptionLabel={(entry) => entry?.label ?? ''}
+          isOptionEqualToValue={(option, current) => option.system === current.system}
+          onChange={(_event, newValue) =>
+            setForm((prev) => ({ ...prev, system: newValue?.system ?? '' }))
+          }
+          renderInput={(params) => <TextField {...params} placeholder={t('toolCatalog.systemLabel')} />}
+        />
+      </div>
+
+      <div className="form-field">
+        <label className="form-field__label" htmlFor="tool-name">
+          {t('toolCatalog.nameLabel')}
+        </label>
+        <input
+          id="tool-name"
+          className="form-field__input"
+          type="text"
+          value={form.name}
+          onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value.toLowerCase() }))}
+          placeholder={t('toolCatalog.namePlaceholder')}
+        />
+      </div>
+
+      <div className="form-field">
+        <label className="form-field__label" htmlFor="tool-description">
+          {t('toolCatalog.descriptionLabel')}
+        </label>
+        <textarea
+          id="tool-description"
+          className="form-field__input"
+          rows={4}
+          value={form.description}
+          onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+          placeholder={t('toolCatalog.descriptionPlaceholder')}
+        />
+      </div>
+
+      <div className="form-field">
+        <label className="form-field__label">{t('toolCatalog.exampleQuestionsLabel')}</label>
+        {form.exampleQuestions.map((question, index) => (
+          <div className="form-field__list-row" key={index}>
+            <input
+              className="form-field__input"
+              type="text"
+              value={question}
+              onChange={(event) => updateQuestion(index, event.target.value)}
+              placeholder={t('toolCatalog.exampleQuestionPlaceholder')}
+            />
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={t('toolCatalog.removeQuestionAction')}
+              onClick={() => removeQuestion(index)}
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+          </div>
+        ))}
+        <Button size="small" onClick={addQuestion}>
+          {t('toolCatalog.addQuestionAction')}
+        </Button>
+      </div>
+    </>
+  )
+}
+
 export default function ToolCatalogPage({ language, setLanguage }) {
   const t = useT()
   const { session } = useAuth()
   const [, navigate] = useRoute()
-  const isAuthorized = Boolean(session?.chat_tools_view)
+
+  const isAuthorized = canAccessToolCatalog(session)
+  const canViewProduction = Boolean(session?.chat_tools_view)
+  const canViewStaging = Boolean(session?.chat_staging_test)
+  const canViewRequest = Boolean(session?.chat_tools_request)
+
+  const availableStatusFilters = useMemo(
+    () =>
+      STATUS_FILTERS.filter(
+        (status) =>
+          (status === 'production' && canViewProduction) ||
+          (status === 'staging' && canViewStaging) ||
+          (status === 'request' && canViewRequest),
+      ),
+    [canViewProduction, canViewStaging, canViewRequest],
+  )
+
+  const [entries, setEntries] = useState([])
+  const [systems, setSystems] = useState([])
+  // Production/Staging are independent multi-select (either, both, or
+  // neither — neither and both both mean "show everything accessible").
+  // Request is a separate exclusive toggle: activating it shows only
+  // Request rows regardless of the Production/Staging set; clicking
+  // Production or Staging while Request is active deactivates Request
+  // ("clicking away from request") and applies normal toggle behavior to
+  // the clicked status.
   const [selectedStatuses, setSelectedStatuses] = useState(new Set())
+  const [isRequestActive, setIsRequestActive] = useState(
+    () => !(canViewProduction || canViewStaging) && canViewRequest,
+  )
+  const [entryFormTarget, setEntryFormTarget] = useState(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (!isAuthorized) navigate('/')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthorized])
 
-  if (!isAuthorized) return null
+  useEffect(() => {
+    let cancelled = false
+    listToolCatalogEntries().then((data) => {
+      if (!cancelled) setEntries(data)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  function toggleStatus(status) {
+  useEffect(() => {
+    let cancelled = false
+    getScopeCatalog().then((data) => {
+      if (!cancelled) setSystems(data.map((entry) => ({ system: entry.system, label: entry.label })))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function toggleStatusFilter(status) {
+    if (status === 'request') {
+      setIsRequestActive((prev) => !prev)
+      return
+    }
+    if (isRequestActive) {
+      // Leaving Request — take the click at face value: show exactly this
+      // status, not a toggle against whatever the set held before Request
+      // was activated (that produced confusing results, e.g. clicking
+      // Staging could show Production if Staging was already in the set).
+      setIsRequestActive(false)
+      setSelectedStatuses(new Set([status]))
+      return
+    }
     setSelectedStatuses((prev) => {
       const next = new Set(prev)
       if (next.has(status)) next.delete(status)
@@ -38,35 +204,179 @@ export default function ToolCatalogPage({ language, setLanguage }) {
     })
   }
 
-  const columns = [
-    { field: 'name', headerName: t('toolCatalog.toolColumn'), flex: 1 },
-    { field: 'status', headerName: t('toolCatalog.statusColumn'), flex: 1 },
-  ]
+  const isRequestFilterActive = isRequestActive
+  const visibleRows = useMemo(() => {
+    let filtered
+    if (isRequestFilterActive) {
+      filtered = entries.filter((entry) => entry.status === 'request')
+    } else {
+      // Empty or both-selected read the same: show everything accessible.
+      const effective = selectedStatuses.size === 0 ? new Set(['production', 'staging']) : selectedStatuses
+      filtered = entries.filter((entry) => {
+        if (entry.status === 'production' && !canViewProduction) return false
+        if (entry.status === 'staging' && !canViewStaging) return false
+        if (entry.status === 'request') return false
+        if (!effective.has(entry.status)) return false
+        return true
+      })
+    }
+    return filtered.map((entry) => ({ ...entry, displayName: `${entry.system}.${entry.name}` }))
+  }, [entries, canViewProduction, canViewStaging, selectedStatuses, isRequestFilterActive])
+  const isEditMode = Boolean(entryFormTarget) && entryFormTarget !== 'new'
+
+  const columns = useMemo(() => {
+    const base = [
+      { field: 'displayName', headerName: t('toolCatalog.toolColumn'), flex: 1 },
+      {
+        field: 'status',
+        headerName: t('toolCatalog.statusColumn'),
+        flex: 1,
+        renderCell: (params) => (
+          <Chip
+            label={t(`toolCatalog.${params.value}Status`)}
+            size="small"
+            color={STATUS_COLOR[params.value]}
+            variant={params.value === 'production' ? 'filled' : 'outlined'}
+          />
+        ),
+      },
+    ]
+    if (isRequestFilterActive) {
+      base.push({
+        field: 'rowActions',
+        type: 'actions',
+        headerName: '',
+        width: 48,
+        // Anyone with chat_tools_request can edit any pending request, not
+        // just their own — reaching this view already implies the
+        // permission, so no per-row ownership check.
+        getActions: ({ row }) => [
+          <GridActionsCellItem
+            key="edit"
+            icon={<i className="fa-solid fa-pen" />}
+            label={t('toolCatalog.editRequestAction')}
+            onClick={() => openEditEntryDialog(row)}
+          />,
+        ],
+      })
+    }
+    return base
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRequestFilterActive, t])
+
+  if (!isAuthorized) return null
+
+  function openAddEntryDialog() {
+    setForm(EMPTY_FORM)
+    setFormError('')
+    setEntryFormTarget('new')
+  }
+
+  function openEditEntryDialog(entry) {
+    setForm({
+      system: entry.system,
+      name: entry.name,
+      description: entry.description,
+      exampleQuestions: entry.exampleQuestions,
+    })
+    setFormError('')
+    setEntryFormTarget(entry.id)
+  }
+
+  function closeEntryFormDialog() {
+    setEntryFormTarget(null)
+  }
+
+  async function handleSubmitEntryForm(event) {
+    event.preventDefault()
+    setFormError('')
+    if (!isFormValid(form)) return
+
+    setIsSubmitting(true)
+    try {
+      if (entryFormTarget === 'new') {
+        const created = await createToolCatalogEntry(form, session)
+        setEntries((prev) => [...prev, created])
+      } else {
+        const updated = await updateToolCatalogEntry(entryFormTarget, form, session)
+        setEntries((prev) => prev.map((entry) => (entry.id === entryFormTarget ? updated : entry)))
+      }
+      setForm(EMPTY_FORM)
+      setEntryFormTarget(null)
+    } catch (error) {
+      setFormError(error.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <StandalonePageLayout titleKey="toolCatalog.title" language={language} setLanguage={setLanguage}>
       <div className="config-section">
-        <div className="filter-bar">
-          <div className="filter-bar__chips" role="group" aria-label={t('toolCatalog.filterByStatusLabel')}>
-            {STATUSES.map((status) => {
-              const isActive = selectedStatuses.has(status)
-              return (
-                <Chip
-                  key={status}
-                  label={t(`toolCatalog.${status}Status`)}
-                  size="small"
-                  clickable
-                  onClick={() => toggleStatus(status)}
-                  color={isActive ? 'primary' : 'default'}
-                  variant={isActive ? 'filled' : 'outlined'}
-                />
-              )
-            })}
+        {availableStatusFilters.length > 1 && (
+          <div className="filter-bar">
+            <div
+              className="filter-bar__chips"
+              role="group"
+              aria-label={t('toolCatalog.filterByStatusLabel')}
+            >
+              {availableStatusFilters.map((status) => {
+                const isActive =
+                  status === 'request' ? isRequestActive : !isRequestActive && selectedStatuses.has(status)
+                return (
+                  <Chip
+                    key={status}
+                    label={t(`toolCatalog.${status}Status`)}
+                    size="small"
+                    clickable
+                    onClick={() => toggleStatusFilter(status)}
+                    color={isActive ? 'primary' : 'default'}
+                    variant={isActive ? 'filled' : 'outlined'}
+                  />
+                )
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
-        <DataGrid rows={[]} columns={columns} getRowId={(row) => row.name} autoHeight hideFooter />
+        {isRequestFilterActive && canViewRequest && (
+          <div className="config-section__title-row">
+            <Button
+              className="config-section__title-action"
+              variant="contained"
+              size="small"
+              onClick={openAddEntryDialog}
+            >
+              {t('toolCatalog.addEntry')}
+            </Button>
+          </div>
+        )}
+
+        <DataGrid rows={visibleRows} columns={columns} getRowId={(row) => row.id} autoHeight hideFooter />
       </div>
+
+      <Dialog open={Boolean(entryFormTarget)} onClose={closeEntryFormDialog}>
+        <DialogTitle>
+          {isEditMode ? `${form.system}.${form.name}` : t('toolCatalog.addEntry')}
+        </DialogTitle>
+        <DialogContent>
+          <form id="tool-form" className="auth-form config-add-form" onSubmit={handleSubmitEntryForm}>
+            <EntryForm form={form} setForm={setForm} systems={systems} t={t} />
+            {formError && <span className="form-field__error">{formError}</span>}
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeEntryFormDialog}>{t('toolCatalog.cancelEntry')}</Button>
+          <Button
+            type="submit"
+            form="tool-form"
+            variant="contained"
+            disabled={isSubmitting || !isFormValid(form)}
+          >
+            {t(isEditMode ? 'toolCatalog.saveEntry' : 'toolCatalog.addEntrySubmit')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </StandalonePageLayout>
   )
 }

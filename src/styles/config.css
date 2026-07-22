@@ -513,14 +513,56 @@
   width: 100%;
 }
 
-.freshpedia-index {
+/* Shared flat status-list row shape — Freshpedia and Tool Catalog both use
+   this for their Production/Staging/Request lists. */
+.entry-index {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.freshpedia-index__entry {
-  padding: 10px 4px;
+.entry-index__entry {
   border-bottom: 1px solid var(--border);
   font-size: 14px;
+}
+
+.entry-index__entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px;
+}
+
+.entry-index__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Transition-icon and edit-icon colors on entry-index rows — green for a
+   move that lands on Production, yellow for a move that lands on Staging
+   (matches that status's own chip color), blue for edit. */
+.icon-button--success {
+  color: #2e7d32;
+}
+
+.icon-button--warning {
+  color: #ed6c02;
+}
+
+.icon-button--edit {
+  color: var(--accent);
+}
+
+/* Dynamic example-question list rows inside the Tool Catalog form. */
+.form-field__list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-field__list-row .form-field__input {
+  flex: 1;
 }

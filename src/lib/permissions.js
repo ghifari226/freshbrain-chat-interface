@@ -118,3 +118,19 @@ export function canEditChatAccessGroup(actorPermissions) {
 export function canShowShieldIcon(actorPermissions) {
   return canEditAccessConfigGroup(actorPermissions) || canEditChatAccessGroup(actorPermissions)
 }
+
+/**
+ * @param {Record<string, boolean> | undefined} permissions
+ */
+export function canAccessFreshpedia(permissions) {
+  const p = permissions ?? {}
+  return Boolean(p.chat_freshpedia_view || p.chat_staging_test || p.chat_freshpedia_request)
+}
+
+/**
+ * @param {Record<string, boolean> | undefined} permissions
+ */
+export function canAccessToolCatalog(permissions) {
+  const p = permissions ?? {}
+  return Boolean(p.chat_tools_view || p.chat_staging_test || p.chat_tools_request)
+}

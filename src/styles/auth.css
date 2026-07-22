@@ -163,6 +163,11 @@
   color: #d93636;
 }
 
+.form-field__hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .auth-submit {
   border: none;
   border-radius: 8px;
