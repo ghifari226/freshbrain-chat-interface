@@ -1,7 +1,7 @@
 // Family 2 (config_*) and Family 3 (chat_*) admin/UI permissions, plus the
 // two unprefixed users_* fields — see freshbrain-agreement's
 // permission-catalog.md for the full cross-team contract. Fully separate
-// from allowed_scopes (lib/roles.js's ROLE_SCOPES), which gates chat-time
+// from allowed_scopes (roles.js's ROLE_SCOPES), which gates chat-time
 // data/tool access, not any of this.
 
 // Shown as "User Management" in the Shield dialog — grouped separately

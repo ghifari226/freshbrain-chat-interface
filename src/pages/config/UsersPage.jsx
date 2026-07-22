@@ -11,8 +11,8 @@ import {
   TextField,
   Chip,
 } from '@mui/material'
-import { createUser, listUsers, updateUser } from '../../lib/auth.js'
-import { ROLES, ROLE_LABEL_KEYS } from '../../lib/roles.js'
+import { createUser, listUsers, updateUser } from '../../services/authService.js'
+import { ROLES, ROLE_LABEL_KEYS } from '../../config/roles.js'
 import {
   ALL_PERMISSIONS,
   ACCESS_CONFIG_PERMISSIONS,
@@ -20,7 +20,7 @@ import {
   CHAT_ACCESS_PERMISSIONS,
   PERMISSION_LABEL_KEYS,
   TECHNOLOGY_LOCKED_PERMISSIONS,
-} from '../../lib/permissions.js'
+} from '../../config/permissions.js'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 

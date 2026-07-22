@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
-import Message from './Message.jsx'
+import ChatMessage from './ChatMessage.jsx'
 import MessageInput from './MessageInput.jsx'
 import StagingModeToggle from './StagingModeToggle.jsx'
-import { useT } from '../hooks/useT.js'
+import { useT } from '../../hooks/useT.js'
 
 export default function ChatPanel({ conversation, isLoading, onSend, onFeedback, inputRef }) {
   const t = useT()
@@ -44,7 +44,7 @@ export default function ChatPanel({ conversation, isLoading, onSend, onFeedback,
       <div className="message-list">
         <div className="message-list__inner">
           {conversation.messages.map((message) => (
-            <Message
+            <ChatMessage
               key={message.id}
               role={message.role}
               text={message.text}

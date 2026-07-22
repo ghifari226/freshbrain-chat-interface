@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Tooltip } from '@mui/material'
-import { getScopeCatalog } from '../../lib/scopeCatalog.js'
+import { getScopeCatalog } from '../../config/scopeCatalog.js'
 import { useT } from '../../hooks/useT.js'
 
 export default function ScopesPage() {

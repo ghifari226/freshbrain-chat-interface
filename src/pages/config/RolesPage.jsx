@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Tooltip } from '@mui/material'
-import { getScopeCatalog } from '../../lib/scopeCatalog.js'
-import { ROLES, ROLE_LABEL_KEYS, ROLE_SCOPES } from '../../lib/roles.js'
+import { getScopeCatalog } from '../../config/scopeCatalog.js'
+import { ROLES, ROLE_LABEL_KEYS, ROLE_SCOPES } from '../../config/roles.js'
 import { useT } from '../../hooks/useT.js'
 
 function seedRoleScopes() {

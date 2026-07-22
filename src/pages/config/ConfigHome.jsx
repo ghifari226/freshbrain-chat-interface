@@ -1,5 +1,5 @@
 import { useT } from '../../hooks/useT.js'
-import { canViewRoles, canViewUsers } from '../../lib/permissions.js'
+import { canViewRoles, canViewUsers } from '../../config/permissions.js'
 
 export default function ConfigHome({ navigate, session }) {
   const t = useT()

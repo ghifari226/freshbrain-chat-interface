@@ -5,9 +5,9 @@ import StandalonePageLayout from './StandalonePageLayout.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useRoute } from '../hooks/useRoute.js'
 import { useT } from '../hooks/useT.js'
-import { canAccessToolCatalog } from '../lib/permissions.js'
-import { getScopeCatalog } from '../lib/scopeCatalog.js'
-import { listToolCatalogEntries, createToolCatalogEntry, updateToolCatalogEntry } from '../lib/toolCatalog.js'
+import { canAccessToolCatalog } from '../config/permissions.js'
+import { getScopeCatalog } from '../config/scopeCatalog.js'
+import { listToolCatalogEntries, createToolCatalogEntry, updateToolCatalogEntry } from '../services/toolCatalog.js'
 
 // Same status filter chips as Freshpedia (order + single-select + Request
 // exclusivity) — that's the only thing this page copies from it. Content

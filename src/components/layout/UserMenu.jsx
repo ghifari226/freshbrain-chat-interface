@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import SettingsModal from './SettingsModal.jsx'
-import ProfileModal from './ProfileModal.jsx'
-import { useT } from '../hooks/useT.js'
-import { useAuth } from '../hooks/useAuth.js'
-import { useRoute } from '../hooks/useRoute.js'
-import { canAccessConfigSection, canAccessFreshpedia, canAccessToolCatalog } from '../lib/permissions.js'
+import SettingsModal from '../modals/SettingsModal.jsx'
+import ProfileModal from '../modals/ProfileModal.jsx'
+import { useT } from '../../hooks/useT.js'
+import { useAuth } from '../../hooks/useAuth.js'
+import { useRoute } from '../../hooks/useRoute.js'
+import { canAccessConfigSection, canAccessFreshpedia, canAccessToolCatalog } from '../../config/permissions.js'
 
 export default function UserMenu({
   collapsed = false,

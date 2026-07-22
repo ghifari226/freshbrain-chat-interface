@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { useT } from '../hooks/useT.js'
+import { useT } from '../../hooks/useT.js'
 
 const MAX_LINES = 10
 const LINE_HEIGHT = 24

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import ConversationItem from './ConversationItem.jsx'
+import ConversationItem from '../chat/ConversationItem.jsx'
 import UserMenu from './UserMenu.jsx'
-import SearchModal from './SearchModal.jsx'
-import { useT } from '../hooks/useT.js'
+import SearchModal from '../modals/SearchModal.jsx'
+import { useT } from '../../hooks/useT.js'
 
 export default function Sidebar({
   conversations,

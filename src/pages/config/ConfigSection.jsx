@@ -6,7 +6,7 @@ import RolesPage from './RolesPage.jsx'
 import UsersPage from './UsersPage.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useRoute } from '../../hooks/useRoute.js'
-import { canAccessConfigSection, canViewRoles, canViewUsers } from '../../lib/permissions.js'
+import { canAccessConfigSection, canViewRoles, canViewUsers } from '../../config/permissions.js'
 
 // Per-path reachability — independent booleans now, not a collapsed
 // 'edit'/'view'/'hidden' tri-state, since the new model has independent

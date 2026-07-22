@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth.js'
 import { useT } from '../hooks/useT.js'
-import { strings } from '../lib/strings.js'
+import { strings } from '../i18n/strings.js'
 
 export default function LoginPage({ language, setLanguage }) {
   const { login } = useAuth()

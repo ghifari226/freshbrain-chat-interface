@@ -14,13 +14,13 @@ import StandalonePageLayout from './StandalonePageLayout.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useRoute } from '../hooks/useRoute.js'
 import { useT } from '../hooks/useT.js'
-import { canAccessFreshpedia } from '../lib/permissions.js'
+import { canAccessFreshpedia } from '../config/permissions.js'
 import {
   listFreshpediaEntries,
   createFreshpediaEntry,
   updateFreshpediaEntry,
   setFreshpediaEntryStatus,
-} from '../lib/freshpedia.js'
+} from '../services/freshpedia.js'
 
 // One flat, always-visible list. Default (no filter) mixes Production +
 // Staging alphabetically — that's "the pedia". Selecting the Request

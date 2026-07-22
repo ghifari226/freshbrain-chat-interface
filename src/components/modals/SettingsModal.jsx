@@ -1,4 +1,4 @@
-import { useT } from '../hooks/useT.js'
+import { useT } from '../../hooks/useT.js'
 
 export default function SettingsModal({
   onClose,

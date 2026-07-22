@@ -1,5 +1,5 @@
 import { AuthContext } from './AuthContext.js'
-import { authenticate } from './auth.js'
+import { authenticate } from '../services/authService.js'
 
 export function AuthProvider({ session, setSession, children }) {
   const value = {

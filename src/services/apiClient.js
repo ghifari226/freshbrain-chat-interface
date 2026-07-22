@@ -7,7 +7,7 @@
 // response still throws, since that's a real backend telling us something
 // failed, not "there's no backend."
 
-import { AI_ENGINE_BASE_URL } from './config.js'
+import { AI_ENGINE_BASE_URL } from '../config/appConfig.js'
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10)

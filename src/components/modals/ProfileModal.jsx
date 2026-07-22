@@ -1,5 +1,5 @@
-import { useT } from '../hooks/useT.js'
-import { ROLE_LABEL_KEYS } from '../lib/roles.js'
+import { useT } from '../../hooks/useT.js'
+import { ROLE_LABEL_KEYS } from '../../config/roles.js'
 
 export default function ProfileModal({ onClose, session }) {
   const t = useT()

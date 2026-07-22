@@ -1,7 +1,7 @@
 // The catalog of assignable scopes, grouped by system. Currently a local
 // mirror of freshbrain-agreement/scope-catalog.md. Data-fetching is isolated
 // in getScopeCatalog() so swapping this for a live ai-engine query later
-// doesn't require touching any callers — same pattern as lib/api.js.
+// doesn't require touching any callers — same pattern as services/apiClient.js.
 
 // subScopeDescriptions are placeholder copy ("<system>.<sub> description")
 // until real descriptions are written — see ScopesPage's per-chip

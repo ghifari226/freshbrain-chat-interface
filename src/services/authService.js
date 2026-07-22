@@ -12,8 +12,8 @@
 // registration has been removed in favor of admin-managed user creation,
 // so this is now the only place new mock accounts come from.
 
-import { CHAT_GATEWAY_BASE_URL } from './config.js'
-import { ROLE_SCOPES } from './roles.js'
+import { CHAT_GATEWAY_BASE_URL } from '../config/appConfig.js'
+import { ROLE_SCOPES } from '../config/roles.js'
 import {
   ALL_PERMISSIONS,
   ACCESS_CONFIG_PERMISSIONS,
@@ -21,7 +21,7 @@ import {
   USER_PERMISSIONS,
   TECHNOLOGY_LOCKED_PERMISSIONS,
   TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS,
-} from './permissions.js'
+} from '../config/permissions.js'
 
 function allFalsePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, false]))

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useT } from '../hooks/useT.js'
+import { useT } from '../../hooks/useT.js'
 
 export default function ConversationItem({
   conversation,

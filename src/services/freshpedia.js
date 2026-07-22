@@ -1,4 +1,4 @@
-import { CHAT_GATEWAY_BASE_URL } from './config.js'
+import { CHAT_GATEWAY_BASE_URL } from '../config/appConfig.js'
 
 function delay() {
   return new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 400))

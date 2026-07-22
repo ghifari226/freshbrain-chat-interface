@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth.js'
-import { useT } from '../hooks/useT.js'
+import { useAuth } from '../../hooks/useAuth.js'
+import { useT } from '../../hooks/useT.js'
 
 // chat_staging_test is its own independent, per-individual toggle (not
 // derived from Freshpedia/Tool Catalog view access) — see
