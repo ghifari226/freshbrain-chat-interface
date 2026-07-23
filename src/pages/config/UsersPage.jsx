@@ -26,7 +26,7 @@ import { useAuth } from '../../hooks/useAuth.js'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES[0] }
 
-// Order-independent — see the identical concern in RolesPage's scopesEqual.
+// Order-independent — see the identical concern in RoleScopesPage's scopesEqual.
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
 }

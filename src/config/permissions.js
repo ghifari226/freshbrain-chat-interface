@@ -34,6 +34,13 @@ export const ALL_PERMISSIONS = [
   ...CHAT_ACCESS_PERMISSIONS,
 ]
 
+// Snapshot of the 12 at module load, before any Permission Catalog edits —
+// this is the fixed, contract-backed set (see freshbrain-agreement's
+// permission-catalog.md, "Kenapa boolean, bukan array"). Locked: can't be
+// deleted or renamed via the catalog UI, since gating logic elsewhere
+// references these exact field names as literal strings.
+export const CORE_PERMISSIONS = [...ALL_PERMISSIONS]
+
 // Technology's hardcoded locks/defaults — single source of truth, imported
 // by both auth.js's shaping functions and UsersPage's UI-disable logic so
 // the two can never drift apart.
@@ -55,6 +62,15 @@ export const TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS = [
   'chat_staging_test',
 ]
 
+// Which existing group array a new permission joins, plus the Shield
+// dialog's section label for display in the Permission Catalog list —
+// reusing the same three groupings PermissionCheckboxGroup already renders.
+export const PERMISSION_GROUPS = [
+  { id: 'access_config', array: ACCESS_CONFIG_PERMISSIONS, labelKey: 'permissions.accessConfigSectionLabel' },
+  { id: 'user_management', array: USER_PERMISSIONS, labelKey: 'permissions.userManagementSectionLabel' },
+  { id: 'chat_access', array: CHAT_ACCESS_PERMISSIONS, labelKey: 'permissions.chatAccessSectionLabel' },
+]
+
 export const PERMISSION_LABEL_KEYS = {
   users_view: 'permissions.usersView',
   users_edit: 'permissions.usersEdit',
@@ -68,6 +84,60 @@ export const PERMISSION_LABEL_KEYS = {
   chat_freshpedia_request: 'permissions.chatFreshpediaRequest',
   chat_staging_test: 'permissions.chatStagingTest',
   chat_access_permission_edit: 'permissions.chatAccessPermissionEdit',
+}
+
+/**
+ * Permission Catalog is UI-only for now, same caveat as Role Catalog's
+ * addRoleToCatalog in roles.js — there's no contract for adding a 13th
+ * permission (permission-catalog.md documents 12 fixed DB columns, not an
+ * open set). Mutates the shared group array + ALL_PERMISSIONS +
+ * PERMISSION_LABEL_KEYS in place, so a new permission immediately shows up
+ * as a real togglable checkbox in UsersPage's Shield dialog (which reads
+ * those same arrays), defaulting to false for every existing user.
+ *
+ * @param {{ key: string, group: string, label: string }} input
+ */
+export function addPermissionToCatalog({ key, group, label }) {
+  const trimmedKey = key.trim()
+  if (!trimmedKey || ALL_PERMISSIONS.includes(trimmedKey)) {
+    throw new Error('Permission key already exists')
+  }
+  const groupEntry = PERMISSION_GROUPS.find((g) => g.id === group)
+  if (!groupEntry) throw new Error('Unknown permission group')
+
+  groupEntry.array.push(trimmedKey)
+  ALL_PERMISSIONS.push(trimmedKey)
+  // Same echo-back trick as ROLE_LABEL_KEYS — t() renders this as plain
+  // text since it won't resolve as a translation path.
+  PERMISSION_LABEL_KEYS[trimmedKey] = label.trim() || trimmedKey
+}
+
+/**
+ * @param {string} key
+ */
+export function removePermissionFromCatalog(key) {
+  if (CORE_PERMISSIONS.includes(key)) {
+    throw new Error('This permission cannot be deleted')
+  }
+  for (const group of PERMISSION_GROUPS) {
+    const index = group.array.indexOf(key)
+    if (index !== -1) group.array.splice(index, 1)
+  }
+  const allIndex = ALL_PERMISSIONS.indexOf(key)
+  if (allIndex !== -1) ALL_PERMISSIONS.splice(allIndex, 1)
+  delete PERMISSION_LABEL_KEYS[key]
+}
+
+/**
+ * @returns {{ key: string, group: string, labelKey: string, locked: boolean }[]}
+ */
+export function getPermissionCatalog() {
+  return ALL_PERMISSIONS.map((key) => ({
+    key,
+    group: PERMISSION_GROUPS.find((g) => g.array.includes(key))?.id,
+    labelKey: PERMISSION_LABEL_KEYS[key],
+    locked: CORE_PERMISSIONS.includes(key),
+  }))
 }
 
 /**

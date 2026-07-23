@@ -29,3 +29,55 @@ export const ROLE_LABEL_KEYS = {
   // the assignable ROLES, but UsersPage looks it up directly.
   'Client Service Management': 'auth.roleClientServiceManagement',
 }
+
+// CEO and Technology have hardcoded meaning elsewhere (CEO: permanent "*"
+// scope, see RolesPage/RoleScopesPage; Technology: the five bootstrap-locked
+// permissions in permissions.js) — the Role Catalog admin page can't be
+// allowed to delete either, or those guarantees stop meaning anything.
+export const LOCKED_ROLES = ['CEO', 'Technology']
+
+/**
+ * Role Catalog is UI-only for now — there's no `POST`/`DELETE
+ * /config/roles` in freshbrain-agreement's auth-contract.md (which
+ * explicitly documents the role list as a fixed set). This mutates the
+ * shared ROLES/ROLE_SCOPES/ROLE_LABEL_KEYS objects in place, so every
+ * existing consumer (login's resolveScopes, the Users role picker,
+ * RoleScopesPage) sees the change immediately without any refetch plumbing.
+ *
+ * @param {string} name
+ */
+export function addRoleToCatalog(name) {
+  const trimmed = name.trim()
+  if (!trimmed || ROLES.includes(trimmed)) return
+  ROLES.push(trimmed)
+  ROLE_SCOPES[trimmed] = []
+  // No real i18n copy for admin-created roles — the label key IS the raw
+  // name. useT's t() echoes back whatever it's given when the string isn't
+  // a resolvable translation path, so this just renders as plain text.
+  ROLE_LABEL_KEYS[trimmed] = trimmed
+}
+
+/**
+ * @param {string} name
+ */
+export function removeRoleFromCatalog(name) {
+  if (LOCKED_ROLES.includes(name)) {
+    throw new Error('This role cannot be deleted')
+  }
+  const index = ROLES.indexOf(name)
+  if (index === -1) return
+  ROLES.splice(index, 1)
+  delete ROLE_SCOPES[name]
+  delete ROLE_LABEL_KEYS[name]
+}
+
+/**
+ * @returns {{ name: string, allowedScopes: string[], locked: boolean }[]}
+ */
+export function getRoleCatalog() {
+  return ROLES.map((name) => ({
+    name,
+    allowedScopes: ROLE_SCOPES[name] ?? [],
+    locked: LOCKED_ROLES.includes(name),
+  }))
+}

@@ -2,7 +2,9 @@ import { useEffect } from 'react'
 import ConfigLayout from './ConfigLayout.jsx'
 import ConfigHome from './ConfigHome.jsx'
 import ScopesPage from './ScopesPage.jsx'
-import RolesPage from './RolesPage.jsx'
+import RoleCatalogPage from './RoleCatalogPage.jsx'
+import RoleScopesPage from './RoleScopesPage.jsx'
+import PermissionCatalogPage from './PermissionCatalogPage.jsx'
 import UsersPage from './UsersPage.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useRoute } from '../../hooks/useRoute.js'
@@ -10,10 +12,16 @@ import { canAccessConfigSection, canViewRoles, canViewUsers } from '../../config
 
 // Per-path reachability — independent booleans now, not a collapsed
 // 'edit'/'view'/'hidden' tri-state, since the new model has independent
-// view/edit permissions rather than one combined level.
+// view/edit permissions rather than one combined level. Role Catalog,
+// Role Scopes, and Permission Catalog all share the config_roles_view/edit
+// gate — there's no dedicated permission for the catalog split yet (see
+// roles.js/permissions.js's addRoleToCatalog/addPermissionToCatalog
+// comments on why these three stay UI-only for now).
 const PAGE_VISIBLE_BY_PATH = {
   '/config/scopes': (session) => Boolean(session?.config_scopes_view),
-  '/config/roles': (session) => canViewRoles(session),
+  '/config/role-catalog': (session) => canViewRoles(session),
+  '/config/role-scopes': (session) => canViewRoles(session),
+  '/config/permission-catalog': (session) => canViewRoles(session),
   '/config/users': (session) => canViewUsers(session),
 }
 
@@ -39,8 +47,12 @@ export default function ConfigSection() {
     <ConfigLayout navigate={navigate}>
       {path === '/config/scopes' ? (
         <ScopesPage />
-      ) : path === '/config/roles' ? (
-        <RolesPage session={session} />
+      ) : path === '/config/role-catalog' ? (
+        <RoleCatalogPage session={session} />
+      ) : path === '/config/role-scopes' ? (
+        <RoleScopesPage session={session} />
+      ) : path === '/config/permission-catalog' ? (
+        <PermissionCatalogPage session={session} />
       ) : path === '/config/users' ? (
         <UsersPage />
       ) : (

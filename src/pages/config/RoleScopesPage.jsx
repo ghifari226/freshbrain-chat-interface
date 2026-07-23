@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Tooltip } from '@mui/material'
 import { getScopeCatalog } from '../../config/scopeCatalog.js'
 import { ROLES, ROLE_LABEL_KEYS, ROLE_SCOPES } from '../../config/roles.js'
+import { updateRoleScopes } from '../../services/roleScopes.js'
 import { useT } from '../../hooks/useT.js'
 
 function seedRoleScopes() {
@@ -51,7 +52,7 @@ function SystemCheckbox({ state, onChange, disabled }) {
   )
 }
 
-export default function RolesPage({ session }) {
+export default function RoleScopesPage({ session }) {
   const t = useT()
   const canEdit = Boolean(session?.config_roles_edit)
   const [catalog, setCatalog] = useState([])
@@ -67,11 +68,13 @@ export default function RolesPage({ session }) {
   // expanded at a time. Default: everything collapsed.
   const [expandedSystemByRole, setExpandedSystemByRole] = useState({})
 
-  // No backend to call yet — this just advances the committed baseline so
-  // the dirty indicator clears. Wire the real persistence call in here once
-  // a bridge endpoint exists.
-  function handleSaveRole(role) {
-    setSavedRoleScopes((prev) => ({ ...prev, [role]: [...(roleScopes[role] ?? [])] }))
+  // Tries PATCH /config/roles/{name} first (see auth-contract.md), same
+  // try-then-mock-fallback shape as authService.js — falls back to
+  // ROLE_SCOPES[role] = scopes locally since chat-gateway doesn't exist yet.
+  async function handleSaveRole(role) {
+    const scopes = [...(roleScopes[role] ?? [])]
+    await updateRoleScopes(role, scopes)
+    setSavedRoleScopes((prev) => ({ ...prev, [role]: scopes }))
   }
 
   // Discards the draft back to the last-saved baseline — the inverse of
@@ -151,8 +154,8 @@ export default function RolesPage({ session }) {
   return (
     <div className="config-section">
       <div className="config-section__title-row">
-        <h2 className="config-section__title">{t('config.rolesTitle')}</h2>
-        <Tooltip title={t('config.rolesDesc')} placement="right">
+        <h2 className="config-section__title">{t('config.roleScopesTitle')}</h2>
+        <Tooltip title={t('config.roleScopesDesc')} placement="right">
           <i className="fa-solid fa-circle-info config-section__info-icon" />
         </Tooltip>
       </div>
@@ -168,7 +171,7 @@ export default function RolesPage({ session }) {
           return (
             <div className="role-card" key={role}>
               <div className="role-card__header">
-                <span className="role-card__name">{t(ROLE_LABEL_KEYS[role])}</span>
+                <span className="role-card__name">{t(ROLE_LABEL_KEYS[role] ?? role)}</span>
                 {isDirty && (
                   <div className="role-card__header-actions">
                     <button

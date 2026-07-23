@@ -18,10 +18,26 @@ export default function ConfigHome({ navigate, session }) {
         )}
 
         {canViewRoles(session) && (
-          <button className="config-card" onClick={() => navigate('/config/roles')}>
+          <button className="config-card" onClick={() => navigate('/config/role-catalog')}>
+            <i className="fa-solid fa-people-group config-card__icon" />
+            <span className="config-card__title">{t('config.roleCatalogCardTitle')}</span>
+            <span className="config-card__desc">{t('config.roleCatalogCardDesc')}</span>
+          </button>
+        )}
+
+        {canViewRoles(session) && (
+          <button className="config-card" onClick={() => navigate('/config/role-scopes')}>
             <i className="fa-solid fa-users-gear config-card__icon" />
-            <span className="config-card__title">{t('config.rolesCardTitle')}</span>
-            <span className="config-card__desc">{t('config.rolesCardDesc')}</span>
+            <span className="config-card__title">{t('config.roleScopesCardTitle')}</span>
+            <span className="config-card__desc">{t('config.roleScopesCardDesc')}</span>
+          </button>
+        )}
+
+        {canViewRoles(session) && (
+          <button className="config-card" onClick={() => navigate('/config/permission-catalog')}>
+            <i className="fa-solid fa-shield-halved config-card__icon" />
+            <span className="config-card__title">{t('config.permissionCatalogCardTitle')}</span>
+            <span className="config-card__desc">{t('config.permissionCatalogCardDesc')}</span>
           </button>
         )}
 
