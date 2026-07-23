@@ -17,7 +17,7 @@ const PAGE_VISIBLE_BY_PATH = {
   '/config/users': (session) => canViewUsers(session),
 }
 
-export default function ConfigSection({ language, setLanguage }) {
+export default function ConfigSection() {
   const { session } = useAuth()
   const [path, navigate] = useRoute()
   const isAuthorized = canAccessConfigSection(session)
@@ -36,7 +36,7 @@ export default function ConfigSection({ language, setLanguage }) {
   if (!isAuthorized || !pageVisible) return null
 
   return (
-    <ConfigLayout path={path} navigate={navigate} language={language} setLanguage={setLanguage} session={session}>
+    <ConfigLayout navigate={navigate}>
       {path === '/config/scopes' ? (
         <ScopesPage />
       ) : path === '/config/roles' ? (

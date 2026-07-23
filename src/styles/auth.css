@@ -135,14 +135,19 @@
   gap: 6px;
 }
 
-.form-field__label {
+/* .form-field__label/__input/__select/__error are shared with Config/
+   Freshpedia/Tool Catalog's forms (see config.css for the theme-aware
+   versions of these same classes) — scoped to .auth-page here so login/
+   register's pin doesn't leak its literal colors onto pages that are
+   supposed to follow [data-theme]/[data-tone]. */
+.auth-page .form-field__label {
   font-size: 13px;
   font-weight: 500;
   color: #0d0d0d;
 }
 
-.form-field__input,
-.form-field__select {
+.auth-page .form-field__input,
+.auth-page .form-field__select {
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   background: #ffffff;
@@ -153,12 +158,12 @@
   outline: none;
 }
 
-.form-field__input:focus,
-.form-field__select:focus {
+.auth-page .form-field__input:focus,
+.auth-page .form-field__select:focus {
   border-color: #419ad2;
 }
 
-.form-field__error {
+.auth-page .form-field__error {
   font-size: 12px;
   color: #d93636;
 }

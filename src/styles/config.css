@@ -1,18 +1,13 @@
-/* Access config is an admin surface, not a chat/appearance moment — pin it
-   to Light/Cool always, regardless of any theme the user saved elsewhere.
-   Re-declaring the tokens here (rather than hardcoding every property)
-   keeps the muted-text/border/accent hierarchy intact while overriding the
-   [data-theme]/[data-tone] values inherited from <html>. See auth.css for
-   the same pattern on login/register. */
+/* Config/Freshpedia/Tool Catalog render as a flex sibling of the app's
+   persistent Sidebar (see App.jsx), same pattern as .chat-panel in
+   chat.css — flex:1 to fill the remaining width, own scroll region. No
+   variable overrides here: it inherits whatever [data-theme]/[data-tone]
+   variables.css put on <html>, so appearance settings apply the same way
+   they do in chat. */
 .config-page {
-  --surface-chat: #fcfcfc;
-  --surface-response: #f3f3f3;
-  --text-chat: #0d0d0d;
-  --text-muted: #6e6e6e;
-  --border: #e5e5e5;
-  --accent: #419ad2;
-
-  height: 100vh;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
   overflow-y: auto;
   background: var(--surface-chat);
   color: var(--text-chat);
@@ -26,32 +21,6 @@
   border-bottom: 1px solid var(--border);
 }
 
-.config-lang-toggle {
-  display: flex;
-  gap: 4px;
-  background: var(--surface-response);
-  border-radius: 8px;
-  padding: 3px;
-  margin-left: auto;
-}
-
-.config-lang-toggle__option {
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  padding: 6px 12px;
-  border-radius: 6px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.config-lang-toggle__option--active {
-  background: #ffffff;
-  color: var(--text-chat);
-}
-
 .config-page__title {
   border: none;
   background: transparent;
@@ -59,33 +28,6 @@
   font: inherit;
   font-size: 16px;
   font-weight: 600;
-}
-
-.config-page__nav {
-  display: flex;
-  gap: 4px;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 12px 24px 0;
-}
-
-.config-page__nav-item {
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  padding: 8px 14px;
-  border-radius: 8px 8px 0 0;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.config-page__nav-item:hover {
-  background: var(--surface-response);
-}
-
-.config-page__nav-item--active {
-  color: var(--text-chat);
-  background: var(--surface-response);
 }
 
 .config-page__body {
@@ -420,6 +362,39 @@
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 16px;
+}
+
+/* Theme-aware counterparts of auth.css's .form-field__label/__input/
+   __select/__error, which are pinned to light/cool but scoped to
+   .auth-page there — these same class names are reused for every form
+   field and the search box across Freshpedia/Tool Catalog/Users, so they
+   need to follow [data-theme]/[data-tone] instead. */
+.form-field__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-chat);
+}
+
+.form-field__input,
+.form-field__select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-input);
+  color: var(--text-chat);
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.form-field__input:focus,
+.form-field__select:focus {
+  border-color: var(--accent);
+}
+
+.form-field__error {
+  font-size: 12px;
+  color: var(--danger);
 }
 
 .user-card__header {

@@ -19,7 +19,7 @@ export default function UserMenu({
 }) {
   const t = useT()
   const { session, logout } = useAuth()
-  const [, navigate] = useRoute()
+  const [path, navigate] = useRoute()
   const [isOpen, setIsOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -54,6 +54,21 @@ export default function UserMenu({
             <span className="menu__profile-name">{session?.name}</span>
           </button>
           <div className="menu__divider" />
+          {path !== '/' && (
+            <>
+              <button
+                className="menu__item"
+                onClick={() => {
+                  navigate('/')
+                  setIsOpen(false)
+                }}
+              >
+                <i className="fa-solid fa-arrow-left menu__item-icon" />
+                {t('config.backToChat')}
+              </button>
+              <div className="menu__divider" />
+            </>
+          )}
           <button
             className="menu__item"
             onClick={() => {

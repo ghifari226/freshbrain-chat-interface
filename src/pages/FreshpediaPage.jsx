@@ -190,7 +190,7 @@ function EntryForm({ form, setForm, existingEntries, t }) {
   )
 }
 
-export default function FreshpediaPage({ language, setLanguage }) {
+export default function FreshpediaPage({ language }) {
   const t = useT()
   const { session } = useAuth()
   const [, navigate] = useRoute()
@@ -347,7 +347,7 @@ export default function FreshpediaPage({ language, setLanguage }) {
   }
 
   return (
-    <StandalonePageLayout titleKey="freshpedia.title" language={language} setLanguage={setLanguage}>
+    <StandalonePageLayout titleKey="freshpedia.title">
       <div className="config-section">
         {availableStatusFilters.length > 1 && (
           <div className="filter-bar">

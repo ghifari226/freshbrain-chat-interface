@@ -118,7 +118,7 @@ function EntryForm({ form, setForm, systems, t }) {
   )
 }
 
-export default function ToolCatalogPage({ language, setLanguage }) {
+export default function ToolCatalogPage() {
   const t = useT()
   const { session } = useAuth()
   const [, navigate] = useRoute()
@@ -311,7 +311,7 @@ export default function ToolCatalogPage({ language, setLanguage }) {
   }
 
   return (
-    <StandalonePageLayout titleKey="toolCatalog.title" language={language} setLanguage={setLanguage}>
+    <StandalonePageLayout titleKey="toolCatalog.title">
       <div className="config-section">
         {availableStatusFilters.length > 1 && (
           <div className="filter-bar">
