@@ -9,7 +9,7 @@ const SCOPE_CATALOG = [
   {
     system: 'wms',
     label: 'Warehouse Management System',
-    subScopes: ['inventory', 'inbound', 'fulfillment'],
+    subScopes: ['inbound', 'inventory', 'fulfillment'],
   },
   {
     system: 'tms',

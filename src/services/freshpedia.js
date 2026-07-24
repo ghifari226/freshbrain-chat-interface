@@ -113,8 +113,8 @@ const MOCK_ENTRIES = [
     type: 'definition',
     status: 'request',
     updatedAt: '2026-07-19T16:40:00Z',
-    submittedBy: 'Gesi Kautzar',
-    submittedByEmail: 'gesikautzar@gmail.com',
+    submittedBy: 'Ghifari',
+    submittedByEmail: 'ghifari@freshfactory.id',
     content: {
       en: 'The system that plans and tracks outbound shipments across carriers and routes.',
       id: 'Sistem yang merencanakan dan melacak pengiriman keluar di berbagai kurir dan rute.',
@@ -126,8 +126,8 @@ const MOCK_ENTRIES = [
     type: 'alias',
     status: 'request',
     updatedAt: '2026-07-19T16:45:00Z',
-    submittedBy: 'Gesi Kautzar',
-    submittedByEmail: 'gesikautzar@gmail.com',
+    submittedBy: 'Ghifari',
+    submittedByEmail: 'ghifari@freshfactory.id',
     aliasTargetId: 'e8',
     aliasPhrase: 'Singkatan umum untuk Transport Management System.',
   },
@@ -185,14 +185,14 @@ export async function createFreshpediaEntry(input, actor) {
 }
 
 /**
- * Editable by anyone holding freshpedia.request while still pending,
- * or by a superadmin (user.assign_permissions) at any status — not
- * restricted to the entry's own submitter, any contributor can edit any
- * pending entry.
+ * Editable by anyone holding freshpedia.request while still pending, or by
+ * anyone holding freshpedia.change_status at any status — not restricted
+ * to the entry's own submitter, any contributor can edit any pending
+ * entry.
  *
  * @param {string} id
  * @param {{ title?: string, content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} updates
- * @param {{ email: string, 'freshpedia.request'?: boolean, 'user.assign_permissions'?: boolean }} actor
+ * @param {{ email: string, 'freshpedia.request'?: boolean, 'freshpedia.change_status'?: boolean }} actor
  */
 export async function updateFreshpediaEntry(id, updates, actor) {
   try {
@@ -211,8 +211,8 @@ export async function updateFreshpediaEntry(id, updates, actor) {
   const entry = MOCK_ENTRIES.find((e) => e.id === id)
   if (!entry) throw new Error('Entry not found')
 
-  const isSuperadmin = Boolean(actor?.['user.assign_permissions'])
-  if (!isSuperadmin && !(actor?.['freshpedia.request'] && entry.status === 'request')) {
+  const canChangeStatus = Boolean(actor?.['freshpedia.change_status'])
+  if (!canChangeStatus && !(actor?.['freshpedia.request'] && entry.status === 'request')) {
     throw new Error('You do not have permission to edit this entry')
   }
   if (updates.status !== undefined) {
@@ -230,12 +230,12 @@ export async function updateFreshpediaEntry(id, updates, actor) {
 }
 
 /**
- * Superadmin-only status move: request→staging, staging→production, or
- * production→staging (demote).
+ * freshpedia.change_status-only status move: request→staging,
+ * staging→production, or production→staging (demote).
  *
  * @param {string} id
  * @param {'staging'|'production'} status
- * @param {{ 'user.assign_permissions'?: boolean }} actor
+ * @param {{ 'freshpedia.change_status'?: boolean }} actor
  */
 export async function setFreshpediaEntryStatus(id, status, actor) {
   try {
@@ -251,7 +251,7 @@ export async function setFreshpediaEntryStatus(id, status, actor) {
 
   await delay()
 
-  if (!actor?.['user.assign_permissions']) {
+  if (!actor?.['freshpedia.change_status']) {
     throw new Error('You do not have permission to change entry status')
   }
 

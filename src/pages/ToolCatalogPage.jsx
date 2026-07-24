@@ -199,7 +199,13 @@ export default function ToolCatalogPage() {
 
   function toggleStatusFilter(status) {
     if (status === 'request') {
-      setIsRequestActive((prev) => !prev)
+      const next = !isRequestActive
+      setIsRequestActive(next)
+      // Turning Request off clears the filter entirely rather than
+      // restoring whatever Production/Staging selection was sitting there
+      // from before Request was activated — that stale state is confusing
+      // to land back on.
+      if (!next) setSelectedStatuses(new Set())
       return
     }
     if (isRequestActive) {
@@ -300,7 +306,12 @@ export default function ToolCatalogPage() {
 
   if (!isAuthorized) return null
 
+  // The button lives outside the Request filter now (see render below), so
+  // clicking it also switches into the Request view — otherwise you'd open
+  // the dialog, submit, and land back on a filter that doesn't show what
+  // you just created.
   function openAddEntryDialog() {
+    setIsRequestActive(true)
     setForm(EMPTY_FORM)
     setFormError('')
     setEntryFormTarget('new')
@@ -347,6 +358,19 @@ export default function ToolCatalogPage() {
   return (
     <StandalonePageLayout titleKey="toolCatalog.title">
       <div className="config-section">
+        {canViewRequest && (
+          <div className="config-section__title-row">
+            <Button
+              className="config-section__title-action"
+              variant="contained"
+              size="small"
+              onClick={openAddEntryDialog}
+            >
+              {t('toolCatalog.addEntry')}
+            </Button>
+          </div>
+        )}
+
         {availableStatusFilters.length > 1 && (
           <div className="filter-bar">
             <div
@@ -403,19 +427,6 @@ export default function ToolCatalogPage() {
               placeholder={t('toolCatalog.searchPlaceholder')}
               aria-label={t('toolCatalog.searchPlaceholder')}
             />
-          </div>
-        )}
-
-        {isRequestFilterActive && canViewRequest && (
-          <div className="config-section__title-row">
-            <Button
-              className="config-section__title-action"
-              variant="contained"
-              size="small"
-              onClick={openAddEntryDialog}
-            >
-              {t('toolCatalog.addEntry')}
-            </Button>
           </div>
         )}
 

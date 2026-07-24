@@ -18,7 +18,7 @@ import {
   SYSTEM_ACCESS_PERMISSIONS,
   CHAT_ACCESS_PERMISSIONS,
   PERMISSION_LABEL_KEYS,
-  TECHNOLOGY_LOCKED_PERMISSIONS,
+  SUPERADMIN_LOCKED_PERMISSIONS,
   canAssignPermissions,
 } from '../../config/permissions.js'
 import { useT } from '../../hooks/useT.js'
@@ -48,7 +48,7 @@ function phoneMatches(phoneDigits, queryDigits) {
 }
 
 // One group of checkboxes in the Shield dialog (System Access / Chat
-// Access — just two now). isFieldLocked marks Technology's hardcoded
+// Access — just two now). isFieldLocked marks Superadmin's hardcoded
 // fields (checked+disabled, never editable); isFieldDisabled marks fields
 // blocked by the self-escalation guard (actor editing their own row,
 // doesn't already hold this field). The header checkbox bulk-selects every
@@ -106,11 +106,11 @@ export default function UsersPage() {
   const canEdit = Boolean(session?.['user.edit'])
   const canDelete = Boolean(session?.['user.delete'])
   const canAssign = canAssignPermissions(session)
-  const canReassignToTechnology = TECHNOLOGY_LOCKED_PERMISSIONS.every((field) =>
+  const canReassignToSuperadmin = SUPERADMIN_LOCKED_PERMISSIONS.every((field) =>
     Boolean(session?.[field]),
   )
   const actorForUpdate = useMemo(() => ({ email: session?.email }), [session?.email])
-  const roleOptions = canReassignToTechnology ? ROLES : ROLES.filter((r) => r !== 'Technology')
+  const roleOptions = canReassignToSuperadmin ? ROLES : ROLES.filter((r) => r !== 'Superadmin')
 
   // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
@@ -146,8 +146,8 @@ export default function UsersPage() {
     ? !permissionsEqual(dialogPermissions, permissionsDialogUser)
     : false
 
-  function isTechnologyLockedField(field) {
-    return permissionsDialogUser?.role === 'Technology' && TECHNOLOGY_LOCKED_PERMISSIONS.includes(field)
+  function isSuperadminLockedField(field) {
+    return permissionsDialogUser?.role === 'Superadmin' && SUPERADMIN_LOCKED_PERMISSIONS.includes(field)
   }
 
   // Mirrors updateUser's runtime guard for immediate feedback — the actor
@@ -159,9 +159,10 @@ export default function UsersPage() {
     return permissionsDialogEmail === session?.email && !session?.[field]
   }
 
-  // Built from the actual data rather than ROLES — MOCK_USERS carries a few
-  // job titles (e.g. "Human Resource") that aren't in the assignable ROLES
-  // list, and those users still need to be filterable by their real role.
+  // Built from the actual data rather than ROLES — every MOCK_USERS role
+  // happens to be a real ROLES entry right now, but this stays
+  // data-derived rather than ROLES-derived so a user stored with some
+  // other job title would still be filterable by their real role.
   const availableRoles = useMemo(
     () => Array.from(new Set(users.map((u) => u.role))).sort(),
     [users],
@@ -356,8 +357,9 @@ export default function UsersPage() {
             actions.push(
               <GridActionsCellItem
                 key="edit"
-                icon={<i className="fa-solid fa-pen" />}
+                icon={<i className="fa-solid fa-pen grid-action-icon icon-button--edit" />}
                 label={t('config.editUser')}
+                size="small"
                 onClick={() => openEditUserDialog(row)}
               />,
             )
@@ -366,8 +368,9 @@ export default function UsersPage() {
             actions.push(
               <GridActionsCellItem
                 key="permissions"
-                icon={<i className="fa-solid fa-shield-halved" />}
+                icon={<i className="fa-solid fa-shield-halved grid-action-icon" />}
                 label={t('permissions.sectionLabel')}
+                size="small"
                 onClick={() => setPermissionsDialogEmail(row.email)}
               />,
             )
@@ -376,8 +379,9 @@ export default function UsersPage() {
             actions.push(
               <GridActionsCellItem
                 key="delete"
-                icon={<i className="fa-solid fa-trash" />}
+                icon={<i className="fa-solid fa-trash grid-action-icon icon-button--danger" />}
                 label={t('config.deleteUser')}
+                size="small"
                 disabled={row.email === session?.email}
                 onClick={() => setDeleteTarget(row)}
               />,
@@ -576,7 +580,7 @@ export default function UsersPage() {
               titleKey="permissions.chatAccessSectionLabel"
               fields={CHAT_ACCESS_PERMISSIONS}
               dialogPermissions={dialogPermissions}
-              isFieldLocked={isTechnologyLockedField}
+              isFieldLocked={isSuperadminLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
               onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
               onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogEmail, fields, next)}
@@ -586,7 +590,7 @@ export default function UsersPage() {
               titleKey="permissions.systemAccessSectionLabel"
               fields={SYSTEM_ACCESS_PERMISSIONS}
               dialogPermissions={dialogPermissions}
-              isFieldLocked={isTechnologyLockedField}
+              isFieldLocked={isSuperadminLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
               onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
               onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogEmail, fields, next)}

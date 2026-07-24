@@ -14,21 +14,21 @@
 
 import { CHAT_GATEWAY_BASE_URL } from '../config/appConfig.js'
 import { ROLE_SCOPES } from '../config/roles.js'
-import {
-  ALL_PERMISSIONS,
-  TECHNOLOGY_LOCKED_PERMISSIONS,
-  TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS,
-} from '../config/permissions.js'
+import { ALL_PERMISSIONS, SUPERADMIN_LOCKED_PERMISSIONS } from '../config/permissions.js'
 
 function allFalsePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, false]))
 }
 
-function technologyPermissions() {
-  const perms = allFalsePermissions()
-  for (const field of TECHNOLOGY_LOCKED_PERMISSIONS) perms[field] = true
-  for (const field of TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS) perms[field] = true
-  return perms
+// Seeds every permission true — used for Superadmin (the "gets everything"
+// role now, both wildcard data scope and every admin permission) and for
+// the two pre-existing Technology mock rows below, which keep their
+// already-checked state as a static fact even though Technology itself is
+// no longer role-conditional anywhere in this file (see createUser() —
+// there's no Technology branch left, new Technology users default false
+// like any other ordinary role, same as Finance/Human Resource/etc).
+function allTruePermissions() {
+  return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, true]))
 }
 
 const MOCK_USERS = [
@@ -37,38 +37,30 @@ const MOCK_USERS = [
     password: 'freshbrain',
     name: 'Larry Ridwan',
     phone: '+62 811-1000-0001',
-    role: 'CEO',
-    ...allFalsePermissions(),
-  },
-  {
-    email: 'delapramuwidia@gmail.com',
-    password: 'freshbrain',
-    name: 'Delanda Pramuwidia',
-    phone: '+62 811-1000-0002',
-    role: 'Client Service Management',
-    ...allFalsePermissions(),
-  },
-  {
-    email: 'gesikautzar@gmail.com',
-    password: 'freshbrain',
-    name: 'Gesi Kautzar',
-    phone: '+62 811-1000-0003',
-    role: 'Human Resource',
-    ...allFalsePermissions(),
+    role: 'Superadmin',
+    ...allTruePermissions(),
   },
   {
     email: 'ghifari@freshfactory.id',
     password: 'freshbrain',
     name: 'Ghifari',
-    phone: '+62 811-1000-0004',
-    role: 'Technology',
-    ...technologyPermissions(),
+    phone: '+62 811-1000-0002',
+    role: 'Superadmin',
+    ...allTruePermissions(),
+  },
+  {
+    email: 'delapramuwidia@gmail.com',
+    password: 'freshbrain',
+    name: 'Delanda Pramuwidia',
+    phone: '+62 811-1000-0003',
+    role: 'Client Service Management',
+    ...allFalsePermissions(),
   },
   {
     email: 'shabrinanisayulianti@gmail.com',
     password: 'freshbrain',
     name: 'Shabrina Nisa Yulianti',
-    phone: '+62 811-1000-0005',
+    phone: '+62 811-1000-0004',
     role: 'Finance',
     ...allFalsePermissions(),
   },
@@ -76,15 +68,15 @@ const MOCK_USERS = [
     email: 'admin',
     password: 'admin',
     name: 'Admin',
-    phone: '+62 811-1000-0006',
-    role: 'Technology',
-    ...technologyPermissions(),
+    phone: '+62 811-1000-0005',
+    role: 'Superadmin',
+    ...allTruePermissions(),
   },
   {
     email: 'user',
     password: 'user',
     name: 'User',
-    phone: '+62 811-1000-0007',
+    phone: '+62 811-1000-0006',
     role: 'Client Service Management',
     ...allFalsePermissions(),
   },
@@ -103,15 +95,20 @@ function makeResetToken() {
 }
 
 // Re-derives the 17 boolean fields from a stored MOCK_USERS row, forcing
-// Technology's 3 locked fields to match role regardless of what's stored
-// (true for Technology, false otherwise — defense in depth, not just a
-// creation-time seed). Called from every read path (toSession,
-// toDirectoryEntry) so the locks can never drift even from a bad write.
+// Superadmin's 3 locked fields to true regardless of what's stored —
+// defense in depth, not just a creation-time seed. Only forces them TRUE
+// for Superadmin; every other role's copies of these same 3 fields are
+// ordinary stored booleans (this is what lets Technology hold them true
+// too, without being locked — "true because it's stored true", not "true
+// because of a role override"). Called from every read path (toSession,
+// toDirectoryEntry) so the Superadmin lock can never drift even from a bad
+// write.
 function shapeUserPermissions(user) {
   const perms = {}
   for (const field of ALL_PERMISSIONS) perms[field] = Boolean(user[field])
-  const isTechnology = user.role === 'Technology'
-  for (const field of TECHNOLOGY_LOCKED_PERMISSIONS) perms[field] = isTechnology
+  if (user.role === 'Superadmin') {
+    for (const field of SUPERADMIN_LOCKED_PERMISSIONS) perms[field] = true
+  }
   return perms
 }
 
@@ -196,10 +193,12 @@ export async function listUsers() {
  * listUsers().
  *
  * All 17 permission booleans start false, except when `role` is
- * 'Technology': the 3 locked fields plus the 14 default-editable fields all
- * start true, per permission-catalog.md's creation-time rule. This is
- * purely a function of `role` — never something the request body can ask
- * for directly.
+ * 'Superadmin' (all 17 start true — the "gets everything" role). Technology
+ * has no special-cased default anymore, it starts false like any other
+ * role; the two pre-existing Technology mock accounts (Ghifari, Admin)
+ * keep their already-true state as static seed data, not because of a
+ * role branch here. This is purely a function of `role` — never something
+ * the request body can ask for directly.
  *
  * `email` is captured but not verified or used to actually send anything —
  * real delivery is a chat-gateway/email-provider decision for later.
@@ -232,7 +231,7 @@ export async function createUser({ name, email, phone, role }) {
     email,
     phone,
     role,
-    ...(role === 'Technology' ? technologyPermissions() : allFalsePermissions()),
+    ...(role === 'Superadmin' ? allTruePermissions() : allFalsePermissions()),
   }
   MOCK_USERS.push(user)
   return { ...toDirectoryEntry(user), resetToken }
@@ -289,25 +288,31 @@ export async function updateUser(email, updates, actor) {
     throw new Error('You do not have permission to edit this field')
   }
 
-  // Technology-lock write protection: unconditional, regardless of actor —
-  // these 5 only ever flip as a side effect of a role change, never a
-  // direct boolean write by anyone.
-  for (const field of TECHNOLOGY_LOCKED_PERMISSIONS) {
-    if (updates[field] !== undefined) {
-      throw new Error(`${field} cannot be set directly — it follows role`)
+  // Superadmin-lock write protection — only for a Superadmin target
+  // (current role, since a role-change update hasn't been applied yet at
+  // this point): these 3 only ever flip as a side effect of a role change
+  // for Superadmin, never a direct boolean write by anyone. Every other
+  // role's copies of these same 3 fields are ordinary editable booleans —
+  // this is exactly what "don't lock anything to Technology" means in
+  // practice.
+  if (user.role === 'Superadmin') {
+    for (const field of SUPERADMIN_LOCKED_PERMISSIONS) {
+      if (updates[field] !== undefined) {
+        throw new Error(`${field} cannot be set directly — it follows role`)
+      }
     }
   }
 
-  // Reassigning ANY user to Technology requires the actor to already hold
+  // Reassigning ANY user to Superadmin requires the actor to already hold
   // all 3 locked permissions themselves — not just user.edit. Applies
   // regardless of whether the target is the actor's own row. Gated on an
-  // actual transition (user.role !== 'Technology' already) so a no-op edit
-  // that merely leaves an existing Technology user's role field unchanged
+  // actual transition (user.role !== 'Superadmin' already) so a no-op edit
+  // that merely leaves an existing Superadmin user's role field unchanged
   // (e.g. editing just their phone number) never trips this guard.
-  if (updates.role === 'Technology' && user.role !== 'Technology') {
-    const actorHasAllLocks = TECHNOLOGY_LOCKED_PERMISSIONS.every((field) => actorPermissions[field])
+  if (updates.role === 'Superadmin' && user.role !== 'Superadmin') {
+    const actorHasAllLocks = SUPERADMIN_LOCKED_PERMISSIONS.every((field) => actorPermissions[field])
     if (!actorHasAllLocks) {
-      throw new Error('Reassigning to Technology requires holding all Technology access permissions')
+      throw new Error('Reassigning to Superadmin requires holding all Superadmin access permissions')
     }
   }
 

@@ -62,9 +62,9 @@ function SystemCheckbox({ state, onChange, disabled }) {
 // independent of every other card's state.
 export default function RolesPage({ session }) {
   const t = useT()
-  const canAdd = Boolean(session?.['role.add'])
-  const canEditName = Boolean(session?.['role.edit'])
-  const canAssignScopes = Boolean(session?.['role.assign_scopes'])
+  const canAdd = Boolean(session?.['role_scope.add_role'])
+  const canEditName = Boolean(session?.['role_scope.edit_role'])
+  const canAssignScopes = Boolean(session?.['role_scope.assign_scopes'])
   const canEditAnything = canAdd || canEditName || canAssignScopes
 
   const [catalog, setCatalog] = useState([])
@@ -133,6 +133,17 @@ export default function RolesPage({ session }) {
     setRoleScopes((prev) => ({ ...prev, [role]: [...(savedRoleScopes[role] ?? [])] }))
   }
 
+  // One-way — only ever adds, never removes. Distinct from
+  // toggleSystemExpanded (the chevron), which flips both ways.
+  function expandSystem(role, system) {
+    setExpandedByRole((prev) => {
+      if (prev[role]?.has(system)) return prev
+      const current = new Set(prev[role] ?? [])
+      current.add(system)
+      return { ...prev, [role]: current }
+    })
+  }
+
   function toggleSystem(role, entry) {
     setRoleScopes((prev) => {
       const scopes = prev[role] ?? []
@@ -142,6 +153,12 @@ export default function RolesPage({ session }) {
       const next = state === 'full' ? cleared : [...cleared, entry.system]
       return { ...prev, [role]: next }
     })
+    // Clicking the parent checkbox reveals what it just granted/cleared —
+    // expands once if collapsed, but never re-collapses an already-open
+    // one (that would undo a manual expand for no reason).
+    if (entry.subScopes.length > 0) {
+      expandSystem(role, entry.system)
+    }
   }
 
   function toggleSubScope(role, entry, sub) {
@@ -312,9 +329,9 @@ export default function RolesPage({ session }) {
       <div className="role-grid">
         {visibleRoles.map((role) => {
           const isLocked = LOCKED_ROLES.includes(role)
-          const isCeo = role === 'CEO'
+          const isSuperadmin = role === 'Superadmin'
           const scopes = roleScopes[role] ?? []
-          const isDirty = canAssignScopes && !isCeo && !scopesEqual(scopes, savedRoleScopes[role] ?? [])
+          const isDirty = canAssignScopes && !isSuperadmin && !scopesEqual(scopes, savedRoleScopes[role] ?? [])
           const isRenaming = renamingRole === role
           // Systems with nothing to expand (no sub-scopes, e.g. dwh) don't
           // count toward the master toggle — there's nothing for it to do
@@ -392,7 +409,7 @@ export default function RolesPage({ session }) {
                           </button>
                         </Tooltip>
                       )}
-                      {!isCeo && expandableSystems.length > 0 && (
+                      {!isSuperadmin && expandableSystems.length > 0 && (
                         <Tooltip
                           title={t(
                             isFilteredMode
@@ -421,7 +438,7 @@ export default function RolesPage({ session }) {
               </div>
               {isRenaming && renameError && <span className="form-field__error">{renameError}</span>}
 
-              {isCeo ? (
+              {isSuperadmin ? (
                 <div className="role-card__fixed">
                   <span className="scope-pill scope-pill--fixed">
                     <i className="fa-solid fa-lock" /> {t('config.allAccess')}

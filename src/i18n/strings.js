@@ -85,10 +85,9 @@ export const strings = {
     passwordPlaceholder: { en: 'Enter your password', id: 'Masukkan kata sandi' },
     forgotPassword: { en: 'Forgot password?', id: 'Lupa kata sandi?' },
     roleLabel: { en: 'Role', id: 'Peran' },
-    roleCeo: { en: 'CEO', id: 'CEO' },
-    roleOpsManager: { en: 'Ops Manager', id: 'Ops Manager' },
+    roleSuperadmin: { en: 'Superadmin', id: 'Superadmin' },
+    roleLogisticManager: { en: 'Logistic Manager', id: 'Logistic Manager' },
     roleFinance: { en: 'Finance', id: 'Finance' },
-    roleWarehouseStaff: { en: 'Warehouse Staff', id: 'Warehouse Staff' },
     roleTechnology: { en: 'Technology', id: 'Technology' },
     roleClientServiceManagement: {
       en: 'Client Service Management',
@@ -108,14 +107,14 @@ export const strings = {
   config: {
     backToChat: { en: 'Back to chat', id: 'Kembali ke obrolan' },
     title: { en: 'Access Configuration', id: 'Konfigurasi Akses' },
-    navRoles: { en: 'Chat roles', id: 'Peran obrolan' },
+    navRoles: { en: 'Role Scopes', id: 'Cakupan peran' },
     navPermissions: { en: 'System permissions', id: 'Hak akses sistem' },
     navUsers: { en: 'Users', id: 'Pengguna' },
     homeIntro: {
       en: "Manage which of FreshBrain's internal systems each role can query. This page only controls access — it has nothing to do with defining the tools or capabilities themselves.",
       id: 'Kelola sistem internal FreshBrain mana yang dapat diakses oleh setiap peran. Halaman ini hanya mengatur akses — tidak ada hubungannya dengan mendefinisikan tools atau kapabilitas itu sendiri.',
     },
-    rolesCardTitle: { en: 'Chat roles', id: 'Peran obrolan' },
+    rolesCardTitle: { en: 'Role Scopes', id: 'Cakupan peran' },
     rolesCardDesc: {
       en: 'Add, rename, or remove roles, and assign which scopes each one can access.',
       id: 'Tambah, ubah nama, atau hapus peran, dan atur scope yang dapat diakses tiap peran.',
@@ -125,7 +124,7 @@ export const strings = {
       en: 'Add or edit the admin/UI permissions that can be assigned to a user.',
       id: 'Tambah atau ubah hak akses admin/UI yang dapat diberikan ke pengguna.',
     },
-    rolesTitle: { en: 'Chat roles', id: 'Peran obrolan' },
+    rolesTitle: { en: 'Role Scopes', id: 'Cakupan peran' },
     permissionsTitle: { en: 'System permissions', id: 'Hak akses sistem' },
     addRole: { en: 'Add role', id: 'Tambah peran' },
     editRole: { en: 'Rename role', id: 'Ubah nama peran' },
@@ -208,10 +207,10 @@ export const strings = {
     chatAccessSectionLabel: { en: 'Chat capability access', id: 'Akses kapabilitas chat' },
     selectAllToggle: { en: 'Select/deselect all in this group', id: 'Pilih/batalkan semua di grup ini' },
 
-    roleView: { en: 'Role — View', id: 'Role — View' },
-    roleAdd: { en: 'Role — Add', id: 'Role — Add' },
-    roleEdit: { en: 'Role — Edit', id: 'Role — Edit' },
-    roleAssignScopes: { en: 'Role — Assign Scopes', id: 'Role — Assign Scopes' },
+    roleScopeView: { en: 'Role Scope — View', id: 'Role Scope — View' },
+    roleScopeAddRole: { en: 'Role Scope — Add Role', id: 'Role Scope — Add Role' },
+    roleScopeEditRole: { en: 'Role Scope — Edit Role', id: 'Role Scope — Edit Role' },
+    roleScopeAssignScopes: { en: 'Role Scope — Assign Scopes', id: 'Role Scope — Assign Scopes' },
 
     permissionView: { en: 'Permission — View', id: 'Permission — View' },
     permissionAdd: { en: 'Permission — Add', id: 'Permission — Add' },
@@ -227,6 +226,7 @@ export const strings = {
     toolRequest: { en: 'Tool Catalog — Request', id: 'Tool Catalog — Request' },
     freshpediaView: { en: 'Freshpedia — View', id: 'Freshpedia — View' },
     freshpediaRequest: { en: 'Freshpedia — Request', id: 'Freshpedia — Request' },
+    freshpediaChangeStatus: { en: 'Freshpedia — Change Status', id: 'Freshpedia — Change Status' },
     stagingTest: { en: 'Staging Preview', id: 'Staging Preview' },
   },
   freshpedia: {
@@ -245,7 +245,7 @@ export const strings = {
 
     noEntriesNotice: { en: 'No entries here yet.', id: 'Belum ada entri di sini.' },
 
-    addEntry: { en: 'New entry', id: 'Entri baru' },
+    addEntry: { en: 'New request', id: 'Request baru' },
     addEntrySubmit: { en: 'Submit', id: 'Ajukan' },
     saveEntry: { en: 'Save', id: 'Simpan' },
     cancelEntry: { en: 'Cancel', id: 'Batal' },

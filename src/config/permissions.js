@@ -2,7 +2,7 @@
 // on the `users` row (or the equivalent shape once chat-gateway exists),
 // fully separate from allowed_scopes (roles.js's ROLE_SCOPES), which gates
 // chat-time data/tool access, not any of this. Keys contain dots, so they're
-// always read/written via bracket notation (`session?.['role.view']`), never
+// always read/written via bracket notation (`session?.['role_scope.view']`), never
 // dot access.
 //
 // Two display groups only now — "Chat capability access" (the three
@@ -13,10 +13,10 @@
 // permissions at all, for both groups.
 
 export const SYSTEM_ACCESS_PERMISSIONS = [
-  'role.view',
-  'role.add',
-  'role.edit',
-  'role.assign_scopes',
+  'role_scope.view',
+  'role_scope.add_role',
+  'role_scope.edit_role',
+  'role_scope.assign_scopes',
   'permission.view',
   'permission.add',
   'permission.edit',
@@ -32,37 +32,24 @@ export const CHAT_ACCESS_PERMISSIONS = [
   'tool.request',
   'freshpedia.view',
   'freshpedia.request',
+  'freshpedia.change_status',
   'staging.test',
 ]
 
-// All 17, stable order — used to seed/iterate full permission objects.
+// All 18, stable order — used to seed/iterate full permission objects.
 export const ALL_PERMISSIONS = [...SYSTEM_ACCESS_PERMISSIONS, ...CHAT_ACCESS_PERMISSIONS]
 
-// Technology's hardcoded locks/defaults — single source of truth, imported
-// by both authService.js's shaping functions and UsersPage's UI-disable
-// logic so the two can never drift apart. These three are the minimum
-// needed to avoid a chicken-and-egg lockout: see role reachability, and
-// grant permissions to un-stick anyone else (including another Technology
-// user) — replaces the old config_access_permission_edit/
-// chat_access_permission_edit pair, now merged into one flag.
-export const TECHNOLOGY_LOCKED_PERMISSIONS = ['role.view', 'role.assign_scopes', 'user.assign_permissions']
-
-export const TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS = [
-  'role.add',
-  'role.edit',
-  'permission.view',
-  'permission.add',
-  'permission.edit',
-  'user.view',
-  'user.add',
-  'user.edit',
-  'user.delete',
-  'tool.view',
-  'tool.request',
-  'freshpedia.view',
-  'freshpedia.request',
-  'staging.test',
-]
+// Superadmin's hardcoded locks — single source of truth, imported by both
+// authService.js's shaping functions and UsersPage's UI-disable logic so
+// the two can never drift apart. These three are the minimum needed to
+// avoid a chicken-and-egg lockout: see role reachability, and grant
+// permissions to un-stick anyone else (including another Superadmin) —
+// replaces the old config_access_permission_edit/chat_access_permission_edit
+// pair, now merged into one flag. (Technology used to hold this lock;
+// nothing is hardcoded to Technology anymore — see authService.js's
+// technologyPermissions(), which now just defaults everything to true,
+// editable like any other role's permissions.)
+export const SUPERADMIN_LOCKED_PERMISSIONS = ['role_scope.view', 'role_scope.assign_scopes', 'user.assign_permissions']
 
 export const PERMISSION_GROUPS = [
   { id: 'chat_access', array: CHAT_ACCESS_PERMISSIONS, labelKey: 'permissions.chatAccessSectionLabel' },
@@ -70,10 +57,10 @@ export const PERMISSION_GROUPS = [
 ]
 
 export const PERMISSION_LABEL_KEYS = {
-  'role.view': 'permissions.roleView',
-  'role.add': 'permissions.roleAdd',
-  'role.edit': 'permissions.roleEdit',
-  'role.assign_scopes': 'permissions.roleAssignScopes',
+  'role_scope.view': 'permissions.roleScopeView',
+  'role_scope.add_role': 'permissions.roleScopeAddRole',
+  'role_scope.edit_role': 'permissions.roleScopeEditRole',
+  'role_scope.assign_scopes': 'permissions.roleScopeAssignScopes',
   'permission.view': 'permissions.permissionView',
   'permission.add': 'permissions.permissionAdd',
   'permission.edit': 'permissions.permissionEdit',
@@ -86,11 +73,12 @@ export const PERMISSION_LABEL_KEYS = {
   'tool.request': 'permissions.toolRequest',
   'freshpedia.view': 'permissions.freshpediaView',
   'freshpedia.request': 'permissions.freshpediaRequest',
+  'freshpedia.change_status': 'permissions.freshpediaChangeStatus',
   'staging.test': 'permissions.stagingTest',
 }
 
 /**
- * Permission catalog entries beyond these 17 are UI-only, same caveat noted
+ * Permission catalog entries beyond these 18 are UI-only, same caveat noted
  * throughout this session — there's no contract for an open permission set
  * yet. Mutates PERMISSION_GROUPS' arrays + ALL_PERMISSIONS + LABEL_KEYS in
  * place, so a new permission immediately shows up as a real togglable
@@ -167,7 +155,9 @@ export function canViewUsers(permissions) {
  */
 export function canViewRoles(permissions) {
   const p = permissions ?? {}
-  return Boolean(p['role.view'] || p['role.add'] || p['role.edit'] || p['role.assign_scopes'])
+  return Boolean(
+    p['role_scope.view'] || p['role_scope.add_role'] || p['role_scope.edit_role'] || p['role_scope.assign_scopes'],
+  )
 }
 
 /**
@@ -178,7 +168,7 @@ export function canViewPermissions(permissions) {
   return Boolean(p['permission.view'] || p['permission.add'] || p['permission.edit'])
 }
 
-// Any of the 17 true => can reach /config at all (nav-menu gate).
+// Any of the 18 true => can reach /config at all (nav-menu gate).
 /**
  * @param {Record<string, boolean> | undefined} permissions
  */
@@ -190,10 +180,7 @@ export function canAccessConfigSection(permissions) {
 /**
  * Gates the Shield icon and everything inside it — both display groups at
  * once, there's no more per-group split now that config_access_permission_edit
- * and chat_access_permission_edit have merged into this one flag. Also
- * reused as the "superadmin" gate for Freshpedia's promote/demote actions
- * (see FreshpediaPage.jsx), same dual role chat_access_permission_edit used
- * to play.
+ * and chat_access_permission_edit have merged into this one flag.
  *
  * @param {Record<string, boolean> | undefined} actorPermissions
  */
@@ -207,6 +194,20 @@ export function canAssignPermissions(actorPermissions) {
 export function canAccessFreshpedia(permissions) {
   const p = permissions ?? {}
   return Boolean(p['freshpedia.view'] || p['staging.test'] || p['freshpedia.request'])
+}
+
+/**
+ * Gates Freshpedia's promote/demote transition actions and full edit
+ * access to any entry regardless of status — a dedicated permission now
+ * (used to be a reuse of user.assign_permissions, which was really about
+ * editing other users' Shield permissions, an unrelated concern). Checked
+ * in both FreshpediaPage.jsx (UI) and services/freshpedia.js (mock
+ * write-path enforcement), same shape as canAssignPermissions.
+ *
+ * @param {Record<string, boolean> | undefined} permissions
+ */
+export function canChangeFreshpediaStatus(permissions) {
+  return Boolean(permissions?.['freshpedia.change_status'])
 }
 
 /**

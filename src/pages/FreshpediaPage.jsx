@@ -14,7 +14,7 @@ import StandalonePageLayout from './StandalonePageLayout.jsx'
 import { useAuth } from '../hooks/useAuth.js'
 import { useRoute } from '../hooks/useRoute.js'
 import { useT } from '../hooks/useT.js'
-import { canAccessFreshpedia } from '../config/permissions.js'
+import { canAccessFreshpedia, canChangeFreshpediaStatus } from '../config/permissions.js'
 import {
   listFreshpediaEntries,
   createFreshpediaEntry,
@@ -199,7 +199,7 @@ export default function FreshpediaPage({ language }) {
   const canViewProduction = Boolean(session?.['freshpedia.view'])
   const canViewStaging = Boolean(session?.['staging.test'])
   const canViewRequest = Boolean(session?.['freshpedia.request'])
-  const isSuperadmin = Boolean(session?.['user.assign_permissions'])
+  const canChangeStatus = canChangeFreshpediaStatus(session)
 
   const availableStatusFilters = useMemo(
     () =>
@@ -264,7 +264,13 @@ export default function FreshpediaPage({ language }) {
 
   function toggleStatusFilter(status) {
     if (status === 'request') {
-      setIsRequestActive((prev) => !prev)
+      const next = !isRequestActive
+      setIsRequestActive(next)
+      // Turning Request off clears the filter entirely rather than
+      // restoring whatever Production/Staging selection was sitting there
+      // from before Request was activated — that stale state is confusing
+      // to land back on.
+      if (!next) setSelectedStatuses(new Set())
       return
     }
     if (isRequestActive) {
@@ -325,7 +331,12 @@ export default function FreshpediaPage({ language }) {
 
   if (!isAuthorized) return null
 
+  // The button lives outside the Request filter now (see render below), so
+  // clicking it also switches into the Request view — otherwise you'd open
+  // the dialog, submit, and land back on a filter that doesn't show what
+  // you just created.
   function openAddEntryDialog() {
+    setIsRequestActive(true)
     setForm(EMPTY_FORM)
     setFormError('')
     setEntryFormTarget('new')
@@ -379,6 +390,19 @@ export default function FreshpediaPage({ language }) {
   return (
     <StandalonePageLayout titleKey="freshpedia.title">
       <div className="config-section">
+        {canViewRequest && (
+          <div className="config-section__title-row">
+            <Button
+              className="config-section__title-action"
+              variant="contained"
+              size="small"
+              onClick={openAddEntryDialog}
+            >
+              {t('freshpedia.addEntry')}
+            </Button>
+          </div>
+        )}
+
         {availableStatusFilters.length > 1 && (
           <div className="filter-bar">
             <div
@@ -432,23 +456,10 @@ export default function FreshpediaPage({ language }) {
           />
         </div>
 
-        {isRequestFilterActive && canViewRequest && (
-          <div className="config-section__title-row">
-            <Button
-              className="config-section__title-action"
-              variant="contained"
-              size="small"
-              onClick={openAddEntryDialog}
-            >
-              {t('freshpedia.addEntry')}
-            </Button>
-          </div>
-        )}
-
         {entriesLoaded && (
           <ul className="entry-index">
             {visibleEntries.map((entry) => {
-              const canEdit = isSuperadmin || (canViewRequest && entry.status === 'request')
+              const canEdit = canChangeStatus || (canViewRequest && entry.status === 'request')
               const transition = TRANSITION_BY_STATUS[entry.status]
               return (
                 <li className="entry-index__entry" key={entry.id}>
@@ -466,7 +477,7 @@ export default function FreshpediaPage({ language }) {
                         color={STATUS_COLOR[entry.status]}
                         variant={entry.status === 'production' ? 'filled' : 'outlined'}
                       />
-                      {isSuperadmin && (
+                      {canChangeStatus && (
                         <Tooltip title={t(transition.labelKey)}>
                           <button
                             type="button"

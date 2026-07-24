@@ -16,7 +16,7 @@ const EMPTY_FORM = { key: '', group: PERMISSION_GROUPS[0].id, label: '' }
 // capability access" matches that group 1:1 (tool/freshpedia/staging).
 const FILTER_CHIPS = [
   { id: 'chat_capability', labelKey: 'permissions.chatAccessSectionLabel', match: (key) => key.startsWith('tool.') || key.startsWith('freshpedia.') || key.startsWith('staging.') },
-  { id: 'role', labelKey: 'config.filterChipRole', match: (key) => key.startsWith('role.') },
+  { id: 'role', labelKey: 'config.filterChipRole', match: (key) => key.startsWith('role_scope.') },
   { id: 'permission', labelKey: 'config.filterChipPermission', match: (key) => key.startsWith('permission.') },
   { id: 'user', labelKey: 'config.filterChipUser', match: (key) => key.startsWith('user.') },
 ]

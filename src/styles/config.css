@@ -737,6 +737,19 @@
   color: var(--accent);
 }
 
+.icon-button--danger {
+  color: var(--danger);
+}
+
+/* GridActionsCellItem (MUI DataGrid row actions, only used in UsersPage's
+   grid) doesn't render through our .icon-button component at all, so its
+   icons don't pick up that class's font-size — they render at MUI's
+   larger IconButton default instead. This brings them back in line with
+   every other icon-button in the app. */
+.grid-action-icon {
+  font-size: 14px;
+}
+
 /* Dynamic example-question list rows inside the Tool Catalog form. */
 .form-field__list-row {
   display: flex;
