@@ -141,6 +141,11 @@ export default function ToolCatalogPage() {
 
   const [entries, setEntries] = useState([])
   const [systems, setSystems] = useState([])
+  // Independent of the status filter — narrows by system (wms/tms/...)
+  // regardless of which status chips are active. Empty = every system.
+  // This is also where the old standalone Scope Catalog page's "grouped by
+  // system" concept lives now that that page is gone.
+  const [selectedSystems, setSelectedSystems] = useState(new Set())
   // Production/Staging are independent multi-select (either, both, or
   // neither — neither and both both mean "show everything accessible").
   // Request is a separate exclusive toggle: activating it shows only
@@ -156,6 +161,7 @@ export default function ToolCatalogPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (!isAuthorized) navigate('/')
@@ -181,6 +187,15 @@ export default function ToolCatalogPage() {
       cancelled = true
     }
   }, [])
+
+  function toggleSystemFilter(system) {
+    setSelectedSystems((prev) => {
+      const next = new Set(prev)
+      if (next.has(system)) next.delete(system)
+      else next.add(system)
+      return next
+    })
+  }
 
   function toggleStatusFilter(status) {
     if (status === 'request') {
@@ -220,12 +235,26 @@ export default function ToolCatalogPage() {
         return true
       })
     }
+    if (selectedSystems.size > 0) {
+      filtered = filtered.filter((entry) => selectedSystems.has(entry.system))
+    }
+    const query = searchQuery.trim().toLowerCase()
+    if (query) filtered = filtered.filter((entry) => entry.name.toLowerCase().includes(query))
     return filtered.map((entry) => ({ ...entry, displayName: `${entry.system}.${entry.name}` }))
-  }, [entries, canViewProduction, canViewStaging, selectedStatuses, isRequestFilterActive])
+  }, [
+    entries,
+    canViewProduction,
+    canViewStaging,
+    selectedStatuses,
+    selectedSystems,
+    isRequestFilterActive,
+    searchQuery,
+  ])
   const isEditMode = Boolean(entryFormTarget) && entryFormTarget !== 'new'
 
   const columns = useMemo(() => {
     const base = [
+      { field: 'system', headerName: t('toolCatalog.systemLabel'), flex: 0.6 },
       { field: 'displayName', headerName: t('toolCatalog.toolColumn'), flex: 1 },
       {
         field: 'status',
@@ -336,6 +365,39 @@ export default function ToolCatalogPage() {
                 )
               })}
             </div>
+          </div>
+        )}
+
+        {systems.length > 0 && (
+          <div className="filter-bar">
+            <div
+              className="filter-bar__chips"
+              role="group"
+              aria-label={t('toolCatalog.filterBySystemLabel')}
+            >
+              {systems.map(({ system }) => {
+                const isActive = selectedSystems.has(system)
+                return (
+                  <Chip
+                    key={system}
+                    label={system}
+                    size="small"
+                    clickable
+                    onClick={() => toggleSystemFilter(system)}
+                    variant={isActive ? 'filled' : 'outlined'}
+                    className={isActive ? 'chip--system-active' : undefined}
+                  />
+                )
+              })}
+            </div>
+            <input
+              type="search"
+              className="form-field__input filter-bar__search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={t('toolCatalog.searchPlaceholder')}
+              aria-label={t('toolCatalog.searchPlaceholder')}
+            />
           </div>
         )}
 

@@ -46,7 +46,6 @@ export default function Sidebar({
   const canSeeFreshpedia = canAccessFreshpedia(session)
   const canSeeToolCatalog = canAccessToolCatalog(session)
   const canSeeConfig = canAccessConfigSection(session)
-  const canSeeScopes = Boolean(session?.['scope.view'])
   const canSeeRoles = canViewRoles(session)
   const canSeePermissions = canViewPermissions(session)
   const canSeeUsers = canViewUsers(session)
@@ -195,14 +194,6 @@ export default function Sidebar({
 
                   {isConfigFlyoutOpen && (
                     <div className="menu menu--recents">
-                      {canSeeScopes && (
-                        <button
-                          className="menu__item"
-                          onClick={() => navigateFromFlyout('/config/scopes')}
-                        >
-                          <span className="menu__item-text">{t('config.navScopeCatalog')}</span>
-                        </button>
-                      )}
                       {canSeeRoles && (
                         <button
                           className="menu__item"
@@ -379,17 +370,6 @@ export default function Sidebar({
 
                       {isConfigNavOpen && (
                         <div className="sidebar-nav__children">
-                          {canSeeScopes && (
-                            <button
-                              className={
-                                'sidebar-nav__child-item' +
-                                (path === '/config/scopes' ? ' sidebar-nav__child-item--active' : '')
-                              }
-                              onClick={() => navigate('/config/scopes')}
-                            >
-                              {t('config.navScopeCatalog')}
-                            </button>
-                          )}
                           {canSeeRoles && (
                             <button
                               className={

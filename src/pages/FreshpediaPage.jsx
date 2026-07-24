@@ -229,6 +229,7 @@ export default function FreshpediaPage({ language }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (!isAuthorized) navigate('/')
@@ -278,19 +279,24 @@ export default function FreshpediaPage({ language }) {
   )
   const isRequestFilterActive = isRequestActive
   const visibleEntries = useMemo(() => {
+    let filtered
     if (isRequestFilterActive) {
-      return sortedEntries.filter((entry) => entry.status === 'request')
+      filtered = sortedEntries.filter((entry) => entry.status === 'request')
+    } else {
+      // Empty or both-selected read the same: show everything accessible.
+      const effective = selectedStatuses.size === 0 ? new Set(['production', 'staging']) : selectedStatuses
+      filtered = sortedEntries.filter((entry) => {
+        if (entry.status === 'production' && !canViewProduction) return false
+        if (entry.status === 'staging' && !canViewStaging) return false
+        if (entry.status === 'request') return false
+        if (!effective.has(entry.status)) return false
+        return true
+      })
     }
-    // Empty or both-selected read the same: show everything accessible.
-    const effective = selectedStatuses.size === 0 ? new Set(['production', 'staging']) : selectedStatuses
-    return sortedEntries.filter((entry) => {
-      if (entry.status === 'production' && !canViewProduction) return false
-      if (entry.status === 'staging' && !canViewStaging) return false
-      if (entry.status === 'request') return false
-      if (!effective.has(entry.status)) return false
-      return true
-    })
-  }, [sortedEntries, canViewProduction, canViewStaging, selectedStatuses, isRequestFilterActive])
+    const query = searchQuery.trim().toLowerCase()
+    if (query) filtered = filtered.filter((entry) => entry.title.toLowerCase().includes(query))
+    return filtered
+  }, [sortedEntries, canViewProduction, canViewStaging, selectedStatuses, isRequestFilterActive, searchQuery])
   const isEditMode = Boolean(entryFormTarget) && entryFormTarget !== 'new'
 
   if (!isAuthorized) return null
@@ -372,6 +378,14 @@ export default function FreshpediaPage({ language }) {
                 )
               })}
             </div>
+            <input
+              type="search"
+              className="form-field__input filter-bar__search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={t('freshpedia.searchPlaceholder')}
+              aria-label={t('freshpedia.searchPlaceholder')}
+            />
           </div>
         )}
 
@@ -397,7 +411,10 @@ export default function FreshpediaPage({ language }) {
                 <li className="entry-index__entry" key={entry.id}>
                   <div className="entry-index__entry-row">
                     <span className="entry-index__entry-label">
-                      {entry.title} — {entryDescriptor(entry, entries, t)}
+                      {entry.title}{' '}
+                      <span className="entry-index__entry-desc">
+                        — {entryDescriptor(entry, entries, t)}
+                      </span>
                     </span>
                     <div className="entry-index__actions">
                       <Chip

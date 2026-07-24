@@ -5,14 +5,14 @@
 // always read/written via bracket notation (`session?.['role.view']`), never
 // dot access.
 //
-// Two display groups only now — "System Access" (scope/role/permission/user
-// administration) and "Chat Access" (the three end-user chat surfaces). The
-// old per-group meta-permissions (config_access_permission_edit,
-// chat_access_permission_edit) are gone; a single `user.assign_permissions`
-// now gates editing anyone else's permissions at all, for both groups.
+// Two display groups only now — "Chat capability access" (the three
+// end-user chat surfaces, shown first) and "System Access" (role/
+// permission/user administration). The old per-group meta-permissions
+// (config_access_permission_edit, chat_access_permission_edit) are gone;
+// a single `user.assign_permissions` now gates editing anyone else's
+// permissions at all, for both groups.
 
 export const SYSTEM_ACCESS_PERMISSIONS = [
-  'scope.view',
   'role.view',
   'role.add',
   'role.edit',
@@ -36,22 +36,17 @@ export const CHAT_ACCESS_PERMISSIONS = [
   'staging.test',
 ]
 
-// All 19, stable order — used to seed/iterate full permission objects.
+// All 18, stable order — used to seed/iterate full permission objects.
 export const ALL_PERMISSIONS = [...SYSTEM_ACCESS_PERMISSIONS, ...CHAT_ACCESS_PERMISSIONS]
 
 // Technology's hardcoded locks/defaults — single source of truth, imported
 // by both authService.js's shaping functions and UsersPage's UI-disable
-// logic so the two can never drift apart. These four are the minimum needed
-// to avoid a chicken-and-egg lockout: see scope/role reachability, and
+// logic so the two can never drift apart. These three are the minimum
+// needed to avoid a chicken-and-egg lockout: see role reachability, and
 // grant permissions to un-stick anyone else (including another Technology
 // user) — replaces the old config_access_permission_edit/
 // chat_access_permission_edit pair, now merged into one flag.
-export const TECHNOLOGY_LOCKED_PERMISSIONS = [
-  'scope.view',
-  'role.view',
-  'role.assign_scopes',
-  'user.assign_permissions',
-]
+export const TECHNOLOGY_LOCKED_PERMISSIONS = ['role.view', 'role.assign_scopes', 'user.assign_permissions']
 
 export const TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS = [
   'role.add',
@@ -72,12 +67,11 @@ export const TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS = [
 ]
 
 export const PERMISSION_GROUPS = [
-  { id: 'system_access', array: SYSTEM_ACCESS_PERMISSIONS, labelKey: 'permissions.systemAccessSectionLabel' },
   { id: 'chat_access', array: CHAT_ACCESS_PERMISSIONS, labelKey: 'permissions.chatAccessSectionLabel' },
+  { id: 'system_access', array: SYSTEM_ACCESS_PERMISSIONS, labelKey: 'permissions.systemAccessSectionLabel' },
 ]
 
 export const PERMISSION_LABEL_KEYS = {
-  'scope.view': 'permissions.scopeView',
   'role.view': 'permissions.roleView',
   'role.add': 'permissions.roleAdd',
   'role.edit': 'permissions.roleEdit',
@@ -99,7 +93,7 @@ export const PERMISSION_LABEL_KEYS = {
 }
 
 /**
- * Permission catalog entries beyond these 19 are UI-only, same caveat noted
+ * Permission catalog entries beyond these 18 are UI-only, same caveat noted
  * throughout this session — there's no contract for an open permission set
  * yet. Mutates PERMISSION_GROUPS' arrays + ALL_PERMISSIONS + LABEL_KEYS in
  * place, so a new permission immediately shows up as a real togglable
@@ -189,7 +183,7 @@ export function canViewPermissions(permissions) {
   return Boolean(p['permission.view'] || p['permission.add'] || p['permission.edit'])
 }
 
-// Any of the 19 true => can reach /config at all (nav-menu gate).
+// Any of the 18 true => can reach /config at all (nav-menu gate).
 /**
  * @param {Record<string, boolean> | undefined} permissions
  */

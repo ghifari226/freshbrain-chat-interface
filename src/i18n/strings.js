@@ -108,43 +108,32 @@ export const strings = {
   config: {
     backToChat: { en: 'Back to chat', id: 'Kembali ke obrolan' },
     title: { en: 'Access Configuration', id: 'Konfigurasi Akses' },
-    navScopeCatalog: { en: 'Scope catalog', id: 'Katalog Scope' },
-    navRoles: { en: 'Roles', id: 'Peran' },
-    navPermissions: { en: 'Permissions', id: 'Hak Akses' },
+    navRoles: { en: 'Chat roles', id: 'Peran obrolan' },
+    navPermissions: { en: 'System permissions', id: 'Hak akses sistem' },
     navUsers: { en: 'Users', id: 'Pengguna' },
     homeIntro: {
       en: "Manage which of FreshBrain's internal systems each role can query. This page only controls access — it has nothing to do with defining the tools or capabilities themselves.",
       id: 'Kelola sistem internal FreshBrain mana yang dapat diakses oleh setiap peran. Halaman ini hanya mengatur akses — tidak ada hubungannya dengan mendefinisikan tools atau kapabilitas itu sendiri.',
     },
-    scopesCardTitle: { en: 'Scope catalog', id: 'Katalog Scope' },
-    scopesCardDesc: {
-      en: 'Browse the full list of assignable scopes, grouped by system.',
-      id: 'Telusuri daftar lengkap scope yang dapat diberikan, dikelompokkan per sistem.',
-    },
-    rolesCardTitle: { en: 'Roles', id: 'Peran' },
+    rolesCardTitle: { en: 'Chat roles', id: 'Peran obrolan' },
     rolesCardDesc: {
       en: 'Add, rename, or remove roles, and assign which scopes each one can access.',
       id: 'Tambah, ubah nama, atau hapus peran, dan atur scope yang dapat diakses tiap peran.',
     },
-    permissionsCardTitle: { en: 'Permissions', id: 'Hak Akses' },
+    permissionsCardTitle: { en: 'System permissions', id: 'Hak akses sistem' },
     permissionsCardDesc: {
       en: 'Add or edit the admin/UI permissions that can be assigned to a user.',
       id: 'Tambah atau ubah hak akses admin/UI yang dapat diberikan ke pengguna.',
     },
-    scopesTitle: { en: 'Scope catalog', id: 'Katalog Scope' },
-    scopesDesc: {
-      en: 'Read-only. The full set of scopes that can be assigned to a role, grouped by system.',
-      id: 'Hanya-baca. Kumpulan lengkap scope yang dapat diberikan ke suatu peran, dikelompokkan per sistem.',
-    },
-    rolesTitle: { en: 'Roles', id: 'Peran' },
+    rolesTitle: { en: 'Chat roles', id: 'Peran obrolan' },
     rolesDesc: {
       en: 'Add, rename, or remove roles, and toggle which scopes each one can access. UI-only for now — there is no create/delete/rename endpoint for roles in the real contract yet.',
       id: 'Tambah, ubah nama, atau hapus peran, dan aktifkan/nonaktifkan scope yang dapat diakses tiap peran. Untuk saat ini hanya di frontend — belum ada endpoint create/delete/rename peran di kontrak sungguhan.',
     },
-    permissionsTitle: { en: 'Permissions', id: 'Hak Akses' },
+    permissionsTitle: { en: 'System permissions', id: 'Hak akses sistem' },
     permissionsDesc: {
-      en: 'Add or edit the admin/UI permissions that can be assigned to a user via the Shield icon. UI-only for now — these 19 are a fixed set in the real contract, and only the label/group are ever editable.',
-      id: 'Tambah atau ubah hak akses admin/UI yang dapat diberikan ke pengguna lewat ikon Shield. Untuk saat ini hanya di frontend — 19 hak akses ini adalah kumpulan tetap di kontrak sungguhan, hanya label/grup yang bisa diubah.',
+      en: 'Add or edit the admin/UI permissions that can be assigned to a user via the Shield icon. UI-only for now — these 18 are a fixed set in the real contract, and only the label/group are ever editable.',
+      id: 'Tambah atau ubah hak akses admin/UI yang dapat diberikan ke pengguna lewat ikon Shield. Untuk saat ini hanya di frontend — 18 hak akses ini adalah kumpulan tetap di kontrak sungguhan, hanya label/grup yang bisa diubah.',
     },
     addRole: { en: 'Add role', id: 'Tambah peran' },
     editRole: { en: 'Rename role', id: 'Ubah nama peran' },
@@ -171,6 +160,11 @@ export const strings = {
       en: 'e.g. Reports — View',
       id: 'contoh: Reports — View',
     },
+    filterByPermissionGroupLabel: { en: 'Filter by group', id: 'Filter berdasarkan grup' },
+    searchPermissionsPlaceholder: { en: 'Search permissions…', id: 'Cari hak akses…' },
+    filterChipRole: { en: 'Role', id: 'Peran' },
+    filterChipPermission: { en: 'Permission', id: 'Hak Akses' },
+    filterChipUser: { en: 'User', id: 'Pengguna' },
     allAccess: { en: 'All access (*)', id: 'Akses penuh (*)' },
     noScopes: { en: 'No scopes assigned', id: 'Belum ada scope yang diberikan' },
     restricted: {
@@ -222,10 +216,8 @@ export const strings = {
   permissions: {
     sectionLabel: { en: 'Permissions', id: 'Izin' },
     systemAccessSectionLabel: { en: 'System Access', id: 'Akses Sistem' },
-    chatAccessSectionLabel: { en: 'Chat Access', id: 'Akses Chat' },
+    chatAccessSectionLabel: { en: 'Chat capability access', id: 'Akses kapabilitas chat' },
     selectAllToggle: { en: 'Select/deselect all in this group', id: 'Pilih/batalkan semua di grup ini' },
-
-    scopeView: { en: 'Scope — View', id: 'Scope — View' },
 
     roleView: { en: 'Role — View', id: 'Role — View' },
     roleAdd: { en: 'Role — Add', id: 'Role — Add' },
@@ -256,6 +248,7 @@ export const strings = {
     productionStatus: { en: 'Production', id: 'Production' },
 
     filterByStatusLabel: { en: 'Filter by status', id: 'Filter berdasarkan status' },
+    searchPlaceholder: { en: 'Search entries…', id: 'Cari entri…' },
 
     definitionType: { en: 'Definition', id: 'Definisi' },
     documentType: { en: 'Document', id: 'Dokumen' },
@@ -290,6 +283,8 @@ export const strings = {
     toolColumn: { en: 'Tool', id: 'Tool' },
     statusColumn: { en: 'Status', id: 'Status' },
     filterByStatusLabel: { en: 'Filter by status', id: 'Filter berdasarkan status' },
+    filterBySystemLabel: { en: 'Filter by system', id: 'Filter berdasarkan sistem' },
+    searchPlaceholder: { en: 'Search tools…', id: 'Cari tool…' },
     requestStatus: { en: 'Request', id: 'Request' },
     stagingStatus: { en: 'Staging', id: 'Staging' },
     productionStatus: { en: 'Production', id: 'Production' },

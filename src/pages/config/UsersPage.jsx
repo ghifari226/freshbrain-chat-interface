@@ -314,7 +314,7 @@ export default function UsersPage() {
   // The only thing that actually calls updateUser for permissions — see
   // handleTogglePermission above, which only ever touches the local draft.
   // Sends only the fields that actually differ from the target's
-  // last-synced row (not all 19), so a partial save never accidentally
+  // last-synced row (not all 18), so a partial save never accidentally
   // re-submits unchanged values.
   async function handleSavePermissions(email) {
     const next = pendingPermissions[email]
@@ -406,12 +406,8 @@ export default function UsersPage() {
 
   return (
     <div className="config-section">
-      <div className="config-section__title-row">
-        <h2 className="config-section__title">{t('config.usersTitle')}</h2>
-        <Tooltip title={t('config.usersDesc')} placement="right">
-          <i className="fa-solid fa-circle-info config-section__info-icon" />
-        </Tooltip>
-        {canAdd && (
+      {canAdd && (
+        <div className="config-section__title-row">
           <Button
             className="config-section__title-action"
             variant="contained"
@@ -420,8 +416,8 @@ export default function UsersPage() {
           >
             {t('config.addUser')}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {!canAdd && !canEdit && !canDelete && !canAssign && (
         <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>
@@ -577,8 +573,8 @@ export default function UsersPage() {
         <DialogContent>
           <div className="permission-group-list">
             <PermissionCheckboxGroup
-              titleKey="permissions.systemAccessSectionLabel"
-              fields={SYSTEM_ACCESS_PERMISSIONS}
+              titleKey="permissions.chatAccessSectionLabel"
+              fields={CHAT_ACCESS_PERMISSIONS}
               dialogPermissions={dialogPermissions}
               isFieldLocked={isTechnologyLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
@@ -587,8 +583,8 @@ export default function UsersPage() {
               t={t}
             />
             <PermissionCheckboxGroup
-              titleKey="permissions.chatAccessSectionLabel"
-              fields={CHAT_ACCESS_PERMISSIONS}
+              titleKey="permissions.systemAccessSectionLabel"
+              fields={SYSTEM_ACCESS_PERMISSIONS}
               dialogPermissions={dialogPermissions}
               isFieldLocked={isTechnologyLockedField}
               isFieldDisabled={isSelfEscalationBlocked}

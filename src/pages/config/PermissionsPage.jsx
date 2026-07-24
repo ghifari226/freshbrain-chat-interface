@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Tooltip } from '@mui/material'
+import { Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Tooltip } from '@mui/material'
 import {
   PERMISSION_GROUPS,
   getPermissionCatalog,
@@ -10,14 +10,26 @@ import { useT } from '../../hooks/useT.js'
 
 const EMPTY_FORM = { key: '', group: PERMISSION_GROUPS[0].id, label: '' }
 
-// Permission add/edit are UI-only — there's no way to add a 20th boolean
-// column, or rename one of these 19, via any real endpoint yet
+// Hardcoded for now, per the request — not derived from PERMISSION_GROUPS,
+// since "Role"/"Permission"/"User" are a finer split than the two display
+// groups (all three currently live inside "System Access"). "Chat
+// capability access" matches that group 1:1 (tool/freshpedia/staging).
+const FILTER_CHIPS = [
+  { id: 'chat_capability', labelKey: 'permissions.chatAccessSectionLabel', match: (key) => key.startsWith('tool.') || key.startsWith('freshpedia.') || key.startsWith('staging.') },
+  { id: 'role', labelKey: 'config.filterChipRole', match: (key) => key.startsWith('role.') },
+  { id: 'permission', labelKey: 'config.filterChipPermission', match: (key) => key.startsWith('permission.') },
+  { id: 'user', labelKey: 'config.filterChipUser', match: (key) => key.startsWith('user.') },
+]
+
+// Permission add/edit are UI-only — there's no way to add a 19th boolean
+// column, or rename one of these 18, via any real endpoint yet
 // (permission-catalog.md documents a fixed set). New/edited entries mutate
 // the shared group arrays + ALL_PERMISSIONS + PERMISSION_LABEL_KEYS in
 // permissions.js in place, so they show up as real togglable checkboxes in
 // UsersPage's Shield dialog immediately. No delete at all, for anything —
-// only the label and group are ever editable, the key is permanent once
-// created since gating logic elsewhere references it as a literal string.
+// editing only ever touches the label (key and group are fixed once
+// created, since gating logic elsewhere references the key as a literal
+// string, and the group is what the add form put it in).
 export default function PermissionsPage({ session }) {
   const t = useT()
   const canAdd = Boolean(session?.['permission.add'])
@@ -26,15 +38,42 @@ export default function PermissionsPage({ session }) {
   const [formTarget, setFormTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedChips, setSelectedChips] = useState(new Set())
   const isEditMode = Boolean(formTarget) && formTarget !== 'new'
+
+  function toggleChip(id) {
+    setSelectedChips((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const visiblePermissions = useMemo(() => {
+    let filtered = permissions
+    if (selectedChips.size > 0) {
+      const activeChips = FILTER_CHIPS.filter((chip) => selectedChips.has(chip.id))
+      filtered = filtered.filter((entry) => activeChips.some((chip) => chip.match(entry.key)))
+    }
+    const query = searchQuery.trim().toLowerCase()
+    if (query) {
+      filtered = filtered.filter(
+        (entry) => entry.key.toLowerCase().includes(query) || t(entry.labelKey).toLowerCase().includes(query),
+      )
+    }
+    return filtered
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissions, selectedChips, searchQuery])
 
   const groupedRows = useMemo(
     () =>
       PERMISSION_GROUPS.map((group) => ({
         ...group,
-        entries: permissions.filter((p) => p.group === group.id),
-      })),
-    [permissions],
+        entries: visiblePermissions.filter((p) => p.group === group.id),
+      })).filter((group) => group.entries.length > 0),
+    [visiblePermissions],
   )
 
   function openAddForm() {
@@ -58,7 +97,7 @@ export default function PermissionsPage({ session }) {
     if (!form.label.trim()) return
     try {
       if (isEditMode) {
-        updatePermissionInCatalog(formTarget, { group: form.group, label: form.label })
+        updatePermissionInCatalog(formTarget, { label: form.label })
       } else {
         if (!form.key.trim()) return
         addPermissionToCatalog(form)
@@ -72,12 +111,8 @@ export default function PermissionsPage({ session }) {
 
   return (
     <div className="config-section">
-      <div className="config-section__title-row">
-        <h2 className="config-section__title">{t('config.permissionsTitle')}</h2>
-        <Tooltip title={t('config.permissionsDesc')} placement="right">
-          <i className="fa-solid fa-circle-info config-section__info-icon" />
-        </Tooltip>
-        {canAdd && (
+      {canAdd && (
+        <div className="config-section__title-row">
           <Button
             className="config-section__title-action"
             variant="contained"
@@ -86,10 +121,37 @@ export default function PermissionsPage({ session }) {
           >
             {t('config.addPermission')}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {!canAdd && !canEdit && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
+
+      <div className="filter-bar">
+        <div className="filter-bar__chips" role="group" aria-label={t('config.filterByPermissionGroupLabel')}>
+          {FILTER_CHIPS.map((chip) => {
+            const isActive = selectedChips.has(chip.id)
+            return (
+              <Chip
+                key={chip.id}
+                label={t(chip.labelKey)}
+                size="small"
+                clickable
+                onClick={() => toggleChip(chip.id)}
+                color={isActive ? 'primary' : 'default'}
+                variant={isActive ? 'filled' : 'outlined'}
+              />
+            )
+          })}
+        </div>
+        <input
+          type="search"
+          className="form-field__input filter-bar__search"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder={t('config.searchPermissionsPlaceholder')}
+          aria-label={t('config.searchPermissionsPlaceholder')}
+        />
+      </div>
 
       <div className="permission-group-list">
         {groupedRows.map((group) => (
@@ -128,40 +190,51 @@ export default function PermissionsPage({ session }) {
         <DialogTitle>{isEditMode ? form.key : t('config.addPermission')}</DialogTitle>
         <DialogContent>
           <form id="permission-form" className="auth-form config-add-form" onSubmit={handleSubmit}>
-            {!isEditMode && (
+            {isEditMode ? (
               <div className="form-field">
                 <label className="form-field__label" htmlFor="permission-key">
                   {t('config.permissionKeyLabel')}
                 </label>
-                <input
-                  id="permission-key"
-                  className="form-field__input"
-                  type="text"
-                  value={form.key}
-                  onChange={(event) => setForm((prev) => ({ ...prev, key: event.target.value.trim() }))}
-                  placeholder={t('config.permissionKeyPlaceholder')}
-                />
+                <span id="permission-key" className="form-field__static">
+                  {form.key}
+                </span>
               </div>
-            )}
+            ) : (
+              <>
+                <div className="form-field">
+                  <label className="form-field__label" htmlFor="permission-group">
+                    {t('config.permissionGroupLabel')}
+                  </label>
+                  <TextField
+                    id="permission-group"
+                    select
+                    size="small"
+                    value={form.group}
+                    onChange={(event) => setForm((prev) => ({ ...prev, group: event.target.value }))}
+                  >
+                    {PERMISSION_GROUPS.map((group) => (
+                      <MenuItem key={group.id} value={group.id}>
+                        {t(group.labelKey)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </div>
 
-            <div className="form-field">
-              <label className="form-field__label" htmlFor="permission-group">
-                {t('config.permissionGroupLabel')}
-              </label>
-              <TextField
-                id="permission-group"
-                select
-                size="small"
-                value={form.group}
-                onChange={(event) => setForm((prev) => ({ ...prev, group: event.target.value }))}
-              >
-                {PERMISSION_GROUPS.map((group) => (
-                  <MenuItem key={group.id} value={group.id}>
-                    {t(group.labelKey)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </div>
+                <div className="form-field">
+                  <label className="form-field__label" htmlFor="permission-key">
+                    {t('config.permissionKeyLabel')}
+                  </label>
+                  <input
+                    id="permission-key"
+                    className="form-field__input"
+                    type="text"
+                    value={form.key}
+                    onChange={(event) => setForm((prev) => ({ ...prev, key: event.target.value.trim() }))}
+                    placeholder={t('config.permissionKeyPlaceholder')}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="form-field">
               <label className="form-field__label" htmlFor="permission-label">

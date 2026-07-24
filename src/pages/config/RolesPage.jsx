@@ -228,12 +228,8 @@ export default function RolesPage({ session }) {
 
   return (
     <div className="config-section">
-      <div className="config-section__title-row">
-        <h2 className="config-section__title">{t('config.rolesTitle')}</h2>
-        <Tooltip title={t('config.rolesDesc')} placement="right">
-          <i className="fa-solid fa-circle-info config-section__info-icon" />
-        </Tooltip>
-        {canAdd && (
+      {canAdd && (
+        <div className="config-section__title-row">
           <Button
             className="config-section__title-action"
             variant="contained"
@@ -242,8 +238,8 @@ export default function RolesPage({ session }) {
           >
             {t('config.addRole')}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {!canEditAnything && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
 

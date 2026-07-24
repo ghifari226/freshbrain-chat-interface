@@ -30,6 +30,24 @@
   font-weight: 600;
 }
 
+/* Breadcrumb: "Access Configuration" de-emphasizes to this once a sub-page
+   is active — still clickable (it's the way back), just no longer reads as
+   the current page. Weight stays the same as the active segment on
+   purpose; color is what signals "not here right now", not boldness. */
+.config-page__title--muted {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.config-page__title--active {
+  color: var(--text-chat);
+}
+
+.config-page__breadcrumb-sep {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
 /* Widened from a 720px cap — the Roles page's 4-per-row card grid needs
    real horizontal room. 90% rather than a flat 100% so there's still a
    sliver of breathing room against the viewport edge on wide monitors. */
@@ -442,6 +460,17 @@
   border-color: var(--accent);
 }
 
+/* Read-only stand-in for .form-field__input — Permissions' edit dialog
+   shows the key as fixed text (it can't be changed once created) rather
+   than a disabled input, so it doesn't visually invite editing. */
+.form-field__static {
+  display: block;
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 10px 0;
+}
+
 .form-field__error {
   font-size: 12px;
   color: var(--danger);
@@ -554,6 +583,16 @@
   width: 100%;
 }
 
+/* Tool Catalog's system filter chips (wms/tms/...) — brand lime rather than
+   MUI's default primary blue, so they read as a distinct filter axis from
+   the status chips next to them. Dark text is required here, not a style
+   choice — white-on-#c9e047 fails contrast, this color is too light/bright
+   for MUI's default light-on-filled chip text. */
+.chip--system-active {
+  background-color: #c9e047 !important;
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
 .role-edit-cell {
   width: 100%;
 }
@@ -584,6 +623,12 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+/* The "— Definition"/"— Document"/"— Alias (...)" part of a Freshpedia
+   entry row — de-emphasized against the entry's own title. */
+.entry-index__entry-desc {
+  color: var(--text-muted);
 }
 
 /* Transition-icon and edit-icon colors on entry-index rows — green for a
