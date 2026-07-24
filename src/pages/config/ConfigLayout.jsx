@@ -1,4 +1,3 @@
-import { Tooltip } from '@mui/material'
 import { useT } from '../../hooks/useT.js'
 
 // No in-page Scopes/Roles/Users switcher here anymore — that navigation
@@ -7,9 +6,10 @@ import { useT } from '../../hooks/useT.js'
 //
 // Breadcrumb: when a sub-page is active (`subTitle` set by ConfigSection),
 // "Access Configuration" is de-emphasized (still the click target to go
-// back) and the active sub-page's own title/info-tooltip render to its
-// right instead of inside the page body — this replaces the <h2> each
-// page used to render itself.
+// back) and the active sub-page's own title renders to its right instead
+// of inside the page body — this replaces the <h2> each page used to
+// render itself. No info-tooltip here (removed) — that description copy
+// no longer surfaces anywhere.
 export default function ConfigLayout({ navigate, subTitle, children }) {
   const t = useT()
 
@@ -25,12 +25,7 @@ export default function ConfigLayout({ navigate, subTitle, children }) {
         {subTitle && (
           <>
             <span className="config-page__breadcrumb-sep">/</span>
-            <span className="config-page__title config-page__title--active">
-              {t(subTitle.titleKey)}
-            </span>
-            <Tooltip title={t(subTitle.descKey)} placement="right">
-              <i className="fa-solid fa-circle-info config-section__info-icon" />
-            </Tooltip>
+            <span className="config-page__title config-page__title--active">{t(subTitle)}</span>
           </>
         )}
       </header>

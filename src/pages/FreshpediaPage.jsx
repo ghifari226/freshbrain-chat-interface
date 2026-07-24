@@ -230,6 +230,10 @@ export default function FreshpediaPage({ language }) {
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  // Independent of the status filter — narrows by entry type (definition/
+  // document/alias) regardless of which status chips are active. Empty =
+  // every type.
+  const [selectedTypes, setSelectedTypes] = useState(new Set())
 
   useEffect(() => {
     if (!isAuthorized) navigate('/')
@@ -248,6 +252,15 @@ export default function FreshpediaPage({ language }) {
       cancelled = true
     }
   }, [])
+
+  function toggleTypeFilter(type) {
+    setSelectedTypes((prev) => {
+      const next = new Set(prev)
+      if (next.has(type)) next.delete(type)
+      else next.add(type)
+      return next
+    })
+  }
 
   function toggleStatusFilter(status) {
     if (status === 'request') {
@@ -293,10 +306,21 @@ export default function FreshpediaPage({ language }) {
         return true
       })
     }
+    if (selectedTypes.size > 0) {
+      filtered = filtered.filter((entry) => selectedTypes.has(entry.type))
+    }
     const query = searchQuery.trim().toLowerCase()
     if (query) filtered = filtered.filter((entry) => entry.title.toLowerCase().includes(query))
     return filtered
-  }, [sortedEntries, canViewProduction, canViewStaging, selectedStatuses, isRequestFilterActive, searchQuery])
+  }, [
+    sortedEntries,
+    canViewProduction,
+    canViewStaging,
+    selectedStatuses,
+    selectedTypes,
+    isRequestFilterActive,
+    searchQuery,
+  ])
   const isEditMode = Boolean(entryFormTarget) && entryFormTarget !== 'new'
 
   if (!isAuthorized) return null
@@ -378,16 +402,35 @@ export default function FreshpediaPage({ language }) {
                 )
               })}
             </div>
-            <input
-              type="search"
-              className="form-field__input filter-bar__search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={t('freshpedia.searchPlaceholder')}
-              aria-label={t('freshpedia.searchPlaceholder')}
-            />
           </div>
         )}
+
+        <div className="filter-bar">
+          <div className="filter-bar__chips" role="group" aria-label={t('freshpedia.filterByTypeLabel')}>
+            {ENTRY_TYPES.map((type) => {
+              const isActive = selectedTypes.has(type)
+              return (
+                <Chip
+                  key={type}
+                  label={t(`freshpedia.${type}Type`)}
+                  size="small"
+                  clickable
+                  onClick={() => toggleTypeFilter(type)}
+                  variant={isActive ? 'filled' : 'outlined'}
+                  className={isActive ? 'chip--secondary-active' : undefined}
+                />
+              )
+            })}
+          </div>
+          <input
+            type="search"
+            className="form-field__input filter-bar__search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={t('freshpedia.searchPlaceholder')}
+            aria-label={t('freshpedia.searchPlaceholder')}
+          />
+        </div>
 
         {isRequestFilterActive && canViewRequest && (
           <div className="config-section__title-row">

@@ -21,8 +21,8 @@ const FILTER_CHIPS = [
   { id: 'user', labelKey: 'config.filterChipUser', match: (key) => key.startsWith('user.') },
 ]
 
-// Permission add/edit are UI-only — there's no way to add a 19th boolean
-// column, or rename one of these 18, via any real endpoint yet
+// Permission add/edit are UI-only — there's no way to add an 18th boolean
+// column, or rename one of these 17, via any real endpoint yet
 // (permission-catalog.md documents a fixed set). New/edited entries mutate
 // the shared group arrays + ALL_PERMISSIONS + PERMISSION_LABEL_KEYS in
 // permissions.js in place, so they show up as real togglable checkboxes in
@@ -162,7 +162,8 @@ export default function PermissionsPage({ session }) {
                 <li className="entry-index__entry" key={entry.key}>
                   <div className="entry-index__entry-row">
                     <span className="entry-index__entry-label">
-                      <code className="scope-checkbox__tag">{entry.key}</code> {t(entry.labelKey)}
+                      <span className="permission-entry__label">{t(entry.labelKey)}</span>
+                      <code className="permission-entry__key">{entry.key}</code>
                     </span>
                     <div className="entry-index__actions">
                       {canEdit && (

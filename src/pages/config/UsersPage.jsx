@@ -352,16 +352,6 @@ export default function UsersPage() {
         width: 28 + [canAssign, canEdit, canDelete].filter(Boolean).length * 36,
         getActions: ({ row }) => {
           const actions = []
-          if (canAssign) {
-            actions.push(
-              <GridActionsCellItem
-                key="permissions"
-                icon={<i className="fa-solid fa-shield-halved" />}
-                label={t('permissions.sectionLabel')}
-                onClick={() => setPermissionsDialogEmail(row.email)}
-              />,
-            )
-          }
           if (canEdit) {
             actions.push(
               <GridActionsCellItem
@@ -369,6 +359,16 @@ export default function UsersPage() {
                 icon={<i className="fa-solid fa-pen" />}
                 label={t('config.editUser')}
                 onClick={() => openEditUserDialog(row)}
+              />,
+            )
+          }
+          if (canAssign) {
+            actions.push(
+              <GridActionsCellItem
+                key="permissions"
+                icon={<i className="fa-solid fa-shield-halved" />}
+                label={t('permissions.sectionLabel')}
+                onClick={() => setPermissionsDialogEmail(row.email)}
               />,
             )
           }

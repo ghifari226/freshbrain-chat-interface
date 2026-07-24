@@ -18,13 +18,13 @@ const PAGE_VISIBLE_BY_PATH = {
   '/config/users': (session) => canViewUsers(session),
 }
 
-// Breadcrumb copy for each sub-page — the title/info-tooltip ConfigLayout
-// renders next to the (muted) "Access Configuration" parent. No entry for
-// '/config' itself, since that's the page the breadcrumb collapses to.
+// Breadcrumb copy for each sub-page — the title ConfigLayout renders next
+// to the (muted) "Access Configuration" parent. No entry for '/config'
+// itself, since that's the page the breadcrumb collapses to.
 const SUB_PAGE_TITLES = {
-  '/config/roles': { titleKey: 'config.rolesTitle', descKey: 'config.rolesDesc' },
-  '/config/permissions': { titleKey: 'config.permissionsTitle', descKey: 'config.permissionsDesc' },
-  '/config/users': { titleKey: 'config.usersTitle', descKey: 'config.usersDesc' },
+  '/config/roles': 'config.rolesTitle',
+  '/config/permissions': 'config.permissionsTitle',
+  '/config/users': 'config.usersTitle',
 }
 
 export default function ConfigSection() {

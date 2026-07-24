@@ -239,7 +239,12 @@ export default function ToolCatalogPage() {
       filtered = filtered.filter((entry) => selectedSystems.has(entry.system))
     }
     const query = searchQuery.trim().toLowerCase()
-    if (query) filtered = filtered.filter((entry) => entry.name.toLowerCase().includes(query))
+    if (query) {
+      // The whole chain, not just entry.name — searching "wms" should find
+      // every wms.* tool, not just one literally named "wms".
+      filtered = filtered.filter((entry) => `${entry.system}.${entry.name}`.toLowerCase().includes(query))
+    }
+    filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name))
     return filtered.map((entry) => ({ ...entry, displayName: `${entry.system}.${entry.name}` }))
   }, [
     entries,
@@ -385,7 +390,7 @@ export default function ToolCatalogPage() {
                     clickable
                     onClick={() => toggleSystemFilter(system)}
                     variant={isActive ? 'filled' : 'outlined'}
-                    className={isActive ? 'chip--system-active' : undefined}
+                    className={isActive ? 'chip--secondary-active' : undefined}
                   />
                 )
               })}

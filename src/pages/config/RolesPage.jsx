@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Tooltip, Button, Chip } from '@mui/material'
 import { getScopeCatalog } from '../../config/scopeCatalog.js'
-import { listUsers } from '../../services/authService.js'
 import {
   ROLES,
   ROLE_LABEL_KEYS,
   ROLE_SCOPES,
   LOCKED_ROLES,
   addRoleToCatalog,
-  removeRoleFromCatalog,
   renameRoleInCatalog,
 } from '../../config/roles.js'
 import { updateRoleScopes } from '../../services/roleScopes.js'
@@ -56,22 +54,22 @@ function SystemCheckbox({ state, onChange, disabled }) {
   )
 }
 
-// Roles = merged Role Catalog (add/rename/delete role rows) + Role Scopes
-// (assign which scopes each role gets) — one page, one card per role.
-// Expand/collapse is gone: every system + sub-scope renders inline, always;
-// the system filter chips below are what keeps a card manageable instead.
+// Roles = merged Role Catalog (add/rename role rows — no delete, removed
+// as a safety call) + Role Scopes (assign which scopes each role gets) —
+// one page, one card per role. Each system row collapses to just its
+// checkbox + abbreviation by default; the master chevron (rightmost in the
+// header) expands/collapses every system in that one card at once,
+// independent of every other card's state.
 export default function RolesPage({ session }) {
   const t = useT()
   const canAdd = Boolean(session?.['role.add'])
   const canEditName = Boolean(session?.['role.edit'])
-  const canDelete = Boolean(session?.['role.delete'])
   const canAssignScopes = Boolean(session?.['role.assign_scopes'])
-  const canEditAnything = canAdd || canEditName || canDelete || canAssignScopes
+  const canEditAnything = canAdd || canEditName || canAssignScopes
 
   const [catalog, setCatalog] = useState([])
-  const [usersByRole, setUsersByRole] = useState({})
-  // Mocked, in-memory only — no backend persistence yet for add/rename/
-  // delete (see roles.js); assign_scopes tries the real PATCH endpoint via
+  // Mocked, in-memory only — no backend persistence yet for add/rename
+  // (see roles.js); assign_scopes tries the real PATCH endpoint via
   // updateRoleScopes before falling back to local mock state.
   const [roleScopes, setRoleScopes] = useState(seedRoleScopes)
   const [savedRoleScopes, setSavedRoleScopes] = useState(seedRoleScopes)
@@ -85,6 +83,9 @@ export default function RolesPage({ session }) {
   const [renamingRole, setRenamingRole] = useState(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [renameError, setRenameError] = useState('')
+  // Which systems are expanded, per role — { [role]: Set<system> }. Not
+  // present/empty = collapsed, which is also the default for every card.
+  const [expandedByRole, setExpandedByRole] = useState({})
 
   useEffect(() => {
     let cancelled = false
@@ -95,19 +96,6 @@ export default function RolesPage({ session }) {
       cancelled = true
     }
   }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    listUsers().then((data) => {
-      if (cancelled) return
-      const counts = {}
-      for (const user of data) counts[user.role] = (counts[user.role] ?? 0) + 1
-      setUsersByRole(counts)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [roleVersion])
 
   function toggleSystemFilter(system) {
     setSelectedSystems((prev) => {
@@ -122,6 +110,11 @@ export default function RolesPage({ session }) {
     () => (selectedSystems.size === 0 ? catalog : catalog.filter((entry) => selectedSystems.has(entry.system))),
     [catalog, selectedSystems],
   )
+  // While filtering by system chip, every visible row auto-expands and the
+  // per-row chevron goes away — you already narrowed down to what you want
+  // to see, collapsing it back is just friction. The master toggle greys
+  // out to reflect that it has nothing left to do.
+  const isFilteredMode = selectedSystems.size > 0
 
   const visibleRoles = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
@@ -176,6 +169,35 @@ export default function RolesPage({ session }) {
     })
   }
 
+  function isSystemExpanded(role, system) {
+    return expandedByRole[role]?.has(system) ?? false
+  }
+
+  function toggleSystemExpanded(role, system) {
+    setExpandedByRole((prev) => {
+      const current = new Set(prev[role] ?? [])
+      if (current.has(system)) current.delete(system)
+      else current.add(system)
+      return { ...prev, [role]: current }
+    })
+  }
+
+  function areAllExpanded(role, systems) {
+    const current = expandedByRole[role]
+    return systems.length > 0 && systems.every((system) => current?.has(system))
+  }
+
+  // The master chevron: if every currently-visible system in this card is
+  // already expanded, collapse them all; otherwise expand them all — same
+  // "bulk toggle reflects whether everything is already on" shape as the
+  // Shield dialog's per-group select-all checkbox.
+  function toggleAllExpanded(role, systems) {
+    setExpandedByRole((prev) => {
+      const allExpanded = systems.length > 0 && systems.every((system) => prev[role]?.has(system))
+      return { ...prev, [role]: allExpanded ? new Set() : new Set(systems) }
+    })
+  }
+
   function openAddForm() {
     setNewRoleName('')
     setAddError('')
@@ -194,11 +216,6 @@ export default function RolesPage({ session }) {
     setSavedRoleScopes((prev) => ({ ...prev, [newRoleName.trim()]: [] }))
     setRoleVersion((v) => v + 1)
     setIsAdding(false)
-  }
-
-  function handleDeleteRole(role) {
-    removeRoleFromCatalog(role)
-    setRoleVersion((v) => v + 1)
   }
 
   function openRename(role) {
@@ -299,7 +316,13 @@ export default function RolesPage({ session }) {
           const scopes = roleScopes[role] ?? []
           const isDirty = canAssignScopes && !isCeo && !scopesEqual(scopes, savedRoleScopes[role] ?? [])
           const isRenaming = renamingRole === role
-          const inUseCount = usersByRole[role] ?? 0
+          // Systems with nothing to expand (no sub-scopes, e.g. dwh) don't
+          // count toward the master toggle — there's nothing for it to do
+          // to them, same reason they never get their own chevron below.
+          const expandableSystems = visibleCatalog
+            .filter((entry) => entry.subScopes.length > 0)
+            .map((entry) => entry.system)
+          const allExpanded = areAllExpanded(role, expandableSystems) || isFilteredMode
 
           return (
             <div className="role-card" key={role}>
@@ -353,7 +376,7 @@ export default function RolesPage({ session }) {
                             aria-label={t('config.saveUser')}
                             onClick={() => handleSaveRole(role)}
                           >
-                            <i className="fa-solid fa-upload" />
+                            <i className="fa-solid fa-floppy-disk" />
                           </button>
                         </>
                       )}
@@ -369,19 +392,25 @@ export default function RolesPage({ session }) {
                           </button>
                         </Tooltip>
                       )}
-                      {canDelete && !isLocked && (
+                      {!isCeo && expandableSystems.length > 0 && (
                         <Tooltip
-                          title={inUseCount > 0 ? t('config.roleInUseNotice') : t('config.deleteRole')}
+                          title={t(
+                            isFilteredMode
+                              ? 'config.expandCollapseDisabledFiltered'
+                              : allExpanded
+                                ? 'config.collapseAllSystems'
+                                : 'config.expandAllSystems',
+                          )}
                         >
                           <span>
                             <button
                               type="button"
-                              className="icon-button icon-button--danger"
-                              aria-label={t('config.deleteRole')}
-                              disabled={inUseCount > 0}
-                              onClick={() => handleDeleteRole(role)}
+                              className="icon-button"
+                              aria-label={t(allExpanded ? 'config.collapseAllSystems' : 'config.expandAllSystems')}
+                              disabled={isFilteredMode}
+                              onClick={() => toggleAllExpanded(role, expandableSystems)}
                             >
-                              <i className="fa-solid fa-trash" />
+                              <i className={`fa-solid fa-angles-${allExpanded ? 'up' : 'down'}`} />
                             </button>
                           </span>
                         </Tooltip>
@@ -402,33 +431,54 @@ export default function RolesPage({ session }) {
                 <div className="role-card__systems">
                   {visibleCatalog.map((entry) => {
                     const systemState = getSystemState(scopes, entry)
+                    const hasSubScopes = entry.subScopes.length > 0
+                    const isExpanded = hasSubScopes && (isFilteredMode || isSystemExpanded(role, entry.system))
                     return (
                       <div className="role-card__system" key={entry.system}>
-                        <label className="scope-checkbox scope-checkbox--system">
-                          <SystemCheckbox
-                            state={systemState}
-                            disabled={!canAssignScopes}
-                            onChange={() => toggleSystem(role, entry)}
-                          />
-                          <span className="scope-checkbox__tag">{entry.system}</span>
-                          <span className="scope-checkbox__label">{entry.label}</span>
-                        </label>
-                        <div className="role-card__sub-scopes">
-                          {entry.subScopes.map((sub) => {
-                            const fullScope = `${entry.system}.${sub}`
-                            return (
-                              <label className="scope-checkbox" key={fullScope}>
-                                <input
-                                  type="checkbox"
-                                  checked={systemState === 'full' || scopes.includes(fullScope)}
-                                  disabled={!canAssignScopes}
-                                  onChange={() => toggleSubScope(role, entry, sub)}
-                                />
-                                <span className="scope-checkbox__tag">{fullScope}</span>
-                              </label>
-                            )
-                          })}
+                        <div className="scope-checkbox scope-checkbox--system">
+                          <label className="scope-checkbox__control">
+                            <SystemCheckbox
+                              state={systemState}
+                              disabled={!canAssignScopes}
+                              onChange={() => toggleSystem(role, entry)}
+                            />
+                            <Tooltip title={entry.label}>
+                              <span className="scope-checkbox__tag">{entry.system}</span>
+                            </Tooltip>
+                          </label>
+                          {hasSubScopes && !isFilteredMode && (
+                            <button
+                              type="button"
+                              className="role-card__system-toggle"
+                              aria-expanded={isExpanded}
+                              aria-label={entry.label}
+                              onClick={() => toggleSystemExpanded(role, entry.system)}
+                            >
+                              <i className={`fa-solid fa-chevron-${isExpanded ? 'up' : 'down'}`} />
+                            </button>
+                          )}
                         </div>
+
+                        {isExpanded && (
+                          <ul className="role-card__sub-scopes">
+                            {entry.subScopes.map((sub) => {
+                              const fullScope = `${entry.system}.${sub}`
+                              return (
+                                <li className="role-card__sub-scope" key={fullScope}>
+                                  <label className="scope-checkbox">
+                                    <input
+                                      type="checkbox"
+                                      checked={systemState === 'full' || scopes.includes(fullScope)}
+                                      disabled={!canAssignScopes}
+                                      onChange={() => toggleSubScope(role, entry, sub)}
+                                    />
+                                    <span className="scope-checkbox__tag">{fullScope}</span>
+                                  </label>
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        )}
                       </div>
                     )
                   })}

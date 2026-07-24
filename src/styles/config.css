@@ -331,12 +331,46 @@
   padding-top: 10px;
 }
 
+/* Single column, foldering/lineage style — each row gets an elbow
+   connector down from the row above (::before) and, unless it's the last
+   sub-scope, a continuing trunk line down to the next row (::after). */
 .role-card__sub-scopes {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
+  flex-direction: column;
+  gap: 4px;
   margin-top: 6px;
   margin-left: 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.role-card__sub-scope {
+  position: relative;
+  padding-left: 20px;
+}
+
+.role-card__sub-scope::before,
+.role-card__sub-scope::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  border-left: 2px solid var(--text-muted);
+}
+
+.role-card__sub-scope::before {
+  top: 0;
+  height: 50%;
+  width: 12px;
+  border-bottom: 2px solid var(--text-muted);
+}
+
+.role-card__sub-scope::after {
+  top: 50%;
+  bottom: 0;
+}
+
+.role-card__sub-scope:last-child::after {
+  display: none;
 }
 
 .scope-checkbox {
@@ -349,9 +383,6 @@
 .scope-checkbox--system {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  cursor: pointer;
 }
 
 .scope-checkbox__control {
@@ -359,11 +390,38 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  cursor: pointer;
 }
 
 .scope-checkbox--system .scope-checkbox__tag {
   font-weight: 600;
-  color: var(--accent);
+  color: var(--text-chat);
+}
+
+/* Grows to fill the rest of the row — the whole empty stretch between the
+   abbreviation and the card's edge is clickable, not just the chevron
+   glyph. margin-left (not padding) is what creates the little dead zone
+   right after the checkbox/tag control, so it's genuinely unclickable
+   rather than just visually spaced — that's the boundary between "toggle
+   the checkbox" and "toggle expand/collapse". */
+/* No hover background — since this button now spans the whole trailing
+   stretch of the row (flex: 1), a highlight on hover would light up that
+   entire empty area, which reads as an odd oversized box rather than a
+   normal icon-button hover. The pointer cursor alone is enough of a
+   signal that it's clickable. */
+.role-card__system-toggle {
+  flex: 1;
+  margin-left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
 }
 
 /* Unsaved-change indicator — shown next to a role name (RolesPage) or a
@@ -576,19 +634,37 @@
 .filter-bar__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+}
+
+/* Every filter/status chip across Roles, Permissions, Users, Freshpedia,
+   and Tool Catalog uses MUI's size="small" Chip — bumped up globally here
+   rather than per-page, so it stays one source of truth. Landing between
+   the 24px stock small-chip height and the ~29px size="small" Button
+   height next to it, not all the way up to full button size. Radius is
+   999px (not a fixed px matched to the new height) so it self-adjusts to
+   a full stadium/pill shape regardless of exactly how tall this ends up. */
+.MuiChip-sizeSmall {
+  height: 28px !important;
+  border-radius: 999px !important;
+  font-size: 13px !important;
+}
+
+.MuiChip-labelSmall {
+  padding: 0 12px !important;
 }
 
 .filter-bar__search {
   width: 100%;
 }
 
-/* Tool Catalog's system filter chips (wms/tms/...) — brand lime rather than
-   MUI's default primary blue, so they read as a distinct filter axis from
-   the status chips next to them. Dark text is required here, not a style
-   choice — white-on-#c9e047 fails contrast, this color is too light/bright
-   for MUI's default light-on-filled chip text. */
-.chip--system-active {
+/* Secondary filter-chip rows (Tool Catalog's system chips, Freshpedia's
+   type chips) — brand lime rather than MUI's default primary blue, so they
+   read as a distinct filter axis from the status chips next to them. Dark
+   text is required here, not a style choice — white-on-#c9e047 fails
+   contrast, this color is too light/bright for MUI's default
+   light-on-filled chip text. */
+.chip--secondary-active {
   background-color: #c9e047 !important;
   color: rgba(0, 0, 0, 0.87) !important;
 }
@@ -631,6 +707,21 @@
   color: var(--text-muted);
 }
 
+/* Permissions page entry rows — label reads first and prominent (this is
+   what a human is scanning for), the technical key trails it in muted
+   monospace with deliberately generous spacing so it reads as secondary
+   metadata, not a continuation of the label. */
+.permission-entry__label {
+  color: var(--text-chat);
+  font-weight: 600;
+}
+
+.permission-entry__key {
+  font-family: monospace;
+  color: var(--text-muted);
+  margin-left: 24px;
+}
+
 /* Transition-icon and edit-icon colors on entry-index rows — green for a
    move that lands on Production, yellow for a move that lands on Staging
    (matches that status's own chip color), blue for edit. */
@@ -644,16 +735,6 @@
 
 .icon-button--edit {
   color: var(--accent);
-}
-
-.icon-button--danger {
-  color: var(--danger);
-}
-
-.icon-button--danger:disabled {
-  color: var(--text-muted);
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Dynamic example-question list rows inside the Tool Catalog form. */

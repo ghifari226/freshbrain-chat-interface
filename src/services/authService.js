@@ -102,8 +102,8 @@ function makeResetToken() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10)
 }
 
-// Re-derives the 18 boolean fields from a stored MOCK_USERS row, forcing
-// Technology's 4 locked fields to match role regardless of what's stored
+// Re-derives the 17 boolean fields from a stored MOCK_USERS row, forcing
+// Technology's 3 locked fields to match role regardless of what's stored
 // (true for Technology, false otherwise — defense in depth, not just a
 // creation-time seed). Called from every read path (toSession,
 // toDirectoryEntry) so the locks can never drift even from a bad write.
@@ -195,8 +195,8 @@ export async function listUsers() {
  * once, for the caller to display; it isn't retrievable again from
  * listUsers().
  *
- * All 18 permission booleans start false, except when `role` is
- * 'Technology': the 4 locked fields plus the 15 default-editable fields all
+ * All 17 permission booleans start false, except when `role` is
+ * 'Technology': the 3 locked fields plus the 14 default-editable fields all
  * start true, per permission-catalog.md's creation-time rule. This is
  * purely a function of `role` — never something the request body can ask
  * for directly.
@@ -279,7 +279,7 @@ export async function updateUser(email, updates, actor) {
   const touchesProfileOrRole =
     updates.name !== undefined || updates.phone !== undefined || updates.role !== undefined
 
-  // Field-level gate: any of the 18 permission booleans need
+  // Field-level gate: any of the 17 permission booleans need
   // user.assign_permissions (single flag now, both groups); name/phone/role
   // need user.edit — see permission-catalog.md's "who can edit" column.
   if (touchedPermissionFields.length > 0 && !actorPermissions['user.assign_permissions']) {
@@ -299,7 +299,7 @@ export async function updateUser(email, updates, actor) {
   }
 
   // Reassigning ANY user to Technology requires the actor to already hold
-  // all 4 locked permissions themselves — not just user.edit. Applies
+  // all 3 locked permissions themselves — not just user.edit. Applies
   // regardless of whether the target is the actor's own row. Gated on an
   // actual transition (user.role !== 'Technology' already) so a no-op edit
   // that merely leaves an existing Technology user's role field unchanged

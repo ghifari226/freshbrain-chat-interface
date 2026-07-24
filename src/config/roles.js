@@ -31,18 +31,19 @@ export const ROLE_LABEL_KEYS = {
 }
 
 // CEO and Technology have hardcoded meaning elsewhere (CEO: permanent "*"
-// scope, see RolesPage; Technology: the four bootstrap-locked permissions
-// in permissions.js) — the Roles admin page can't be allowed to delete or
-// rename either, or those guarantees stop meaning anything.
+// scope, see RolesPage; Technology: the three bootstrap-locked permissions
+// in permissions.js) — the Roles admin page can't be allowed to rename
+// either, or those guarantees stop meaning anything. (There's no delete
+// feature at all anymore — removed as a safety call, see RolesPage.jsx.)
 export const LOCKED_ROLES = ['CEO', 'Technology']
 
 /**
- * Role add/delete/rename are UI-only for now — there's no `POST`/`DELETE
- * /config/roles` in freshbrain-agreement's auth-contract.md (which
- * explicitly documents the role list as a fixed set). This mutates the
- * shared ROLES/ROLE_SCOPES/ROLE_LABEL_KEYS objects in place, so every
- * existing consumer (login's resolveScopes, the Users role picker,
- * RolesPage) sees the change immediately without any refetch plumbing.
+ * Role add/rename are UI-only for now — there's no `POST /config/roles`
+ * in freshbrain-agreement's auth-contract.md (which explicitly documents
+ * the role list as a fixed set). This mutates the shared ROLES/
+ * ROLE_SCOPES/ROLE_LABEL_KEYS objects in place, so every existing
+ * consumer (login's resolveScopes, the Users role picker, RolesPage) sees
+ * the change immediately without any refetch plumbing.
  *
  * @param {string} name
  */
@@ -59,12 +60,11 @@ export function addRoleToCatalog(name) {
 
 /**
  * Renames a role in place — scopes carry over unchanged, only the key
- * changes. Blocked for LOCKED_ROLES same as delete (renaming "CEO"/
- * "Technology" would silently break every hardcoded `role === 'CEO'` check
- * elsewhere). Callers are expected to also block this when the role is
- * still assigned to any user, same guard as delete — renaming doesn't
- * cascade-update MOCK_USERS' `role` field, so an in-use role would be left
- * orphaned otherwise.
+ * changes. Blocked for LOCKED_ROLES (renaming "CEO"/"Technology" would
+ * silently break every hardcoded `role === 'CEO'` check elsewhere).
+ * Callers are expected to also block this when the role is still assigned
+ * to any user — renaming doesn't cascade-update MOCK_USERS' `role` field,
+ * so an in-use role would be left orphaned otherwise.
  *
  * @param {string} oldName
  * @param {string} newName
@@ -86,20 +86,6 @@ export function renameRoleInCatalog(oldName, newName) {
   delete ROLE_SCOPES[oldName]
   ROLE_LABEL_KEYS[trimmed] = trimmed
   delete ROLE_LABEL_KEYS[oldName]
-}
-
-/**
- * @param {string} name
- */
-export function removeRoleFromCatalog(name) {
-  if (LOCKED_ROLES.includes(name)) {
-    throw new Error('This role cannot be deleted')
-  }
-  const index = ROLES.indexOf(name)
-  if (index === -1) return
-  ROLES.splice(index, 1)
-  delete ROLE_SCOPES[name]
-  delete ROLE_LABEL_KEYS[name]
 }
 
 /**

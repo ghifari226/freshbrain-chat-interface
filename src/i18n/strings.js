@@ -126,27 +126,20 @@ export const strings = {
       id: 'Tambah atau ubah hak akses admin/UI yang dapat diberikan ke pengguna.',
     },
     rolesTitle: { en: 'Chat roles', id: 'Peran obrolan' },
-    rolesDesc: {
-      en: 'Add, rename, or remove roles, and toggle which scopes each one can access. UI-only for now — there is no create/delete/rename endpoint for roles in the real contract yet.',
-      id: 'Tambah, ubah nama, atau hapus peran, dan aktifkan/nonaktifkan scope yang dapat diakses tiap peran. Untuk saat ini hanya di frontend — belum ada endpoint create/delete/rename peran di kontrak sungguhan.',
-    },
     permissionsTitle: { en: 'System permissions', id: 'Hak akses sistem' },
-    permissionsDesc: {
-      en: 'Add or edit the admin/UI permissions that can be assigned to a user via the Shield icon. UI-only for now — these 18 are a fixed set in the real contract, and only the label/group are ever editable.',
-      id: 'Tambah atau ubah hak akses admin/UI yang dapat diberikan ke pengguna lewat ikon Shield. Untuk saat ini hanya di frontend — 18 hak akses ini adalah kumpulan tetap di kontrak sungguhan, hanya label/grup yang bisa diubah.',
-    },
     addRole: { en: 'Add role', id: 'Tambah peran' },
     editRole: { en: 'Rename role', id: 'Ubah nama peran' },
     roleNamePlaceholder: { en: 'e.g. Regional Manager', id: 'contoh: Regional Manager' },
     roleNameTaken: { en: 'A role with this name already exists', id: 'Peran dengan nama ini sudah ada' },
-    deleteRole: { en: 'Delete role', id: 'Hapus peran' },
     roleLockedNotice: {
-      en: 'This role is required by the system and cannot be renamed or deleted.',
-      id: 'Peran ini dibutuhkan sistem dan tidak dapat diubah nama atau dihapus.',
+      en: 'This role is required by the system and cannot be renamed.',
+      id: 'Peran ini dibutuhkan sistem dan tidak dapat diubah nama.',
     },
-    roleInUseNotice: {
-      en: 'This role is still assigned to at least one user.',
-      id: 'Peran ini masih digunakan oleh setidaknya satu pengguna.',
+    expandAllSystems: { en: 'Expand all systems', id: 'Buka semua sistem' },
+    collapseAllSystems: { en: 'Collapse all systems', id: 'Tutup semua sistem' },
+    expandCollapseDisabledFiltered: {
+      en: 'All systems are shown expanded while filtering by system',
+      id: 'Semua sistem ditampilkan terbuka saat sedang difilter berdasarkan sistem',
     },
     filterBySystemLabel: { en: 'Filter by system', id: 'Filter berdasarkan sistem' },
     searchRolesPlaceholder: { en: 'Search roles…', id: 'Cari peran…' },
@@ -177,10 +170,6 @@ export const strings = {
       id: 'Tambahkan pengguna dan kelola nama serta peran mereka.',
     },
     usersTitle: { en: 'Users', id: 'Pengguna' },
-    usersDesc: {
-      en: 'Add users and edit their name or role. Changes here are local to this session and are not saved to a backend yet.',
-      id: 'Tambahkan pengguna dan ubah nama atau peran mereka. Perubahan di sini hanya berlaku untuk sesi ini dan belum disimpan ke backend.',
-    },
     nameLabel: { en: 'Name', id: 'Nama' },
     namePlaceholder: { en: 'Full name', id: 'Nama lengkap' },
     searchUsersPlaceholder: {
@@ -222,7 +211,6 @@ export const strings = {
     roleView: { en: 'Role — View', id: 'Role — View' },
     roleAdd: { en: 'Role — Add', id: 'Role — Add' },
     roleEdit: { en: 'Role — Edit', id: 'Role — Edit' },
-    roleDelete: { en: 'Role — Delete', id: 'Role — Delete' },
     roleAssignScopes: { en: 'Role — Assign Scopes', id: 'Role — Assign Scopes' },
 
     permissionView: { en: 'Permission — View', id: 'Permission — View' },
@@ -248,6 +236,7 @@ export const strings = {
     productionStatus: { en: 'Production', id: 'Production' },
 
     filterByStatusLabel: { en: 'Filter by status', id: 'Filter berdasarkan status' },
+    filterByTypeLabel: { en: 'Filter by type', id: 'Filter berdasarkan jenis' },
     searchPlaceholder: { en: 'Search entries…', id: 'Cari entri…' },
 
     definitionType: { en: 'Definition', id: 'Definisi' },

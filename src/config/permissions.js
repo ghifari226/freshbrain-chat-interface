@@ -16,7 +16,6 @@ export const SYSTEM_ACCESS_PERMISSIONS = [
   'role.view',
   'role.add',
   'role.edit',
-  'role.delete',
   'role.assign_scopes',
   'permission.view',
   'permission.add',
@@ -36,7 +35,7 @@ export const CHAT_ACCESS_PERMISSIONS = [
   'staging.test',
 ]
 
-// All 18, stable order — used to seed/iterate full permission objects.
+// All 17, stable order — used to seed/iterate full permission objects.
 export const ALL_PERMISSIONS = [...SYSTEM_ACCESS_PERMISSIONS, ...CHAT_ACCESS_PERMISSIONS]
 
 // Technology's hardcoded locks/defaults — single source of truth, imported
@@ -51,7 +50,6 @@ export const TECHNOLOGY_LOCKED_PERMISSIONS = ['role.view', 'role.assign_scopes',
 export const TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS = [
   'role.add',
   'role.edit',
-  'role.delete',
   'permission.view',
   'permission.add',
   'permission.edit',
@@ -75,7 +73,6 @@ export const PERMISSION_LABEL_KEYS = {
   'role.view': 'permissions.roleView',
   'role.add': 'permissions.roleAdd',
   'role.edit': 'permissions.roleEdit',
-  'role.delete': 'permissions.roleDelete',
   'role.assign_scopes': 'permissions.roleAssignScopes',
   'permission.view': 'permissions.permissionView',
   'permission.add': 'permissions.permissionAdd',
@@ -93,7 +90,7 @@ export const PERMISSION_LABEL_KEYS = {
 }
 
 /**
- * Permission catalog entries beyond these 18 are UI-only, same caveat noted
+ * Permission catalog entries beyond these 17 are UI-only, same caveat noted
  * throughout this session — there's no contract for an open permission set
  * yet. Mutates PERMISSION_GROUPS' arrays + ALL_PERMISSIONS + LABEL_KEYS in
  * place, so a new permission immediately shows up as a real togglable
@@ -170,9 +167,7 @@ export function canViewUsers(permissions) {
  */
 export function canViewRoles(permissions) {
   const p = permissions ?? {}
-  return Boolean(
-    p['role.view'] || p['role.add'] || p['role.edit'] || p['role.delete'] || p['role.assign_scopes'],
-  )
+  return Boolean(p['role.view'] || p['role.add'] || p['role.edit'] || p['role.assign_scopes'])
 }
 
 /**
@@ -183,7 +178,7 @@ export function canViewPermissions(permissions) {
   return Boolean(p['permission.view'] || p['permission.add'] || p['permission.edit'])
 }
 
-// Any of the 18 true => can reach /config at all (nav-menu gate).
+// Any of the 17 true => can reach /config at all (nav-menu gate).
 /**
  * @param {Record<string, boolean> | undefined} permissions
  */
