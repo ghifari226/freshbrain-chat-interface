@@ -1,99 +1,109 @@
-// Family 2 (config_*) and Family 3 (chat_*) admin/UI permissions, plus the
-// two unprefixed users_* fields — see freshbrain-agreement's
-// permission-catalog.md for the full cross-team contract. Fully separate
-// from allowed_scopes (roles.js's ROLE_SCOPES), which gates chat-time
-// data/tool access, not any of this.
+// The full permission catalog, `resource.action` string keys — flat booleans
+// on the `users` row (or the equivalent shape once chat-gateway exists),
+// fully separate from allowed_scopes (roles.js's ROLE_SCOPES), which gates
+// chat-time data/tool access, not any of this. Keys contain dots, so they're
+// always read/written via bracket notation (`session?.['role.view']`), never
+// dot access.
+//
+// Two display groups only now — "System Access" (scope/role/permission/user
+// administration) and "Chat Access" (the three end-user chat surfaces). The
+// old per-group meta-permissions (config_access_permission_edit,
+// chat_access_permission_edit) are gone; a single `user.assign_permissions`
+// now gates editing anyone else's permissions at all, for both groups.
 
-// Shown as "User Management" in the Shield dialog — grouped separately
-// from Access Config for display, but gated by the same meta-permission
-// (config_access_permission_edit) since it doesn't cleanly belong to
-// either config_*/chat_* prefix. Also independently gates the pencil/Edit
-// icon's row-level edit capability via users_edit.
-export const USER_PERMISSIONS = ['users_view', 'users_edit']
-
-export const ACCESS_CONFIG_PERMISSIONS = [
-  'config_scopes_view',
-  'config_roles_view',
-  'config_roles_edit',
-  'config_access_permission_edit',
+export const SYSTEM_ACCESS_PERMISSIONS = [
+  'scope.view',
+  'role.view',
+  'role.add',
+  'role.edit',
+  'role.delete',
+  'role.assign_scopes',
+  'permission.view',
+  'permission.add',
+  'permission.edit',
+  'user.view',
+  'user.add',
+  'user.edit',
+  'user.delete',
+  'user.assign_permissions',
 ]
 
 export const CHAT_ACCESS_PERMISSIONS = [
-  'chat_tools_view',
-  'chat_tools_request',
-  'chat_freshpedia_view',
-  'chat_freshpedia_request',
-  'chat_staging_test',
-  'chat_access_permission_edit',
+  'tool.view',
+  'tool.request',
+  'freshpedia.view',
+  'freshpedia.request',
+  'staging.test',
 ]
 
-// All 12, stable order — used to seed/iterate full permission objects.
-export const ALL_PERMISSIONS = [
-  ...USER_PERMISSIONS,
-  ...ACCESS_CONFIG_PERMISSIONS,
-  ...CHAT_ACCESS_PERMISSIONS,
-]
-
-// Snapshot of the 12 at module load, before any Permission Catalog edits —
-// this is the fixed, contract-backed set (see freshbrain-agreement's
-// permission-catalog.md, "Kenapa boolean, bukan array"). Locked: can't be
-// deleted or renamed via the catalog UI, since gating logic elsewhere
-// references these exact field names as literal strings.
-export const CORE_PERMISSIONS = [...ALL_PERMISSIONS]
+// All 19, stable order — used to seed/iterate full permission objects.
+export const ALL_PERMISSIONS = [...SYSTEM_ACCESS_PERMISSIONS, ...CHAT_ACCESS_PERMISSIONS]
 
 // Technology's hardcoded locks/defaults — single source of truth, imported
-// by both auth.js's shaping functions and UsersPage's UI-disable logic so
-// the two can never drift apart.
+// by both authService.js's shaping functions and UsersPage's UI-disable
+// logic so the two can never drift apart. These four are the minimum needed
+// to avoid a chicken-and-egg lockout: see scope/role reachability, and
+// grant permissions to un-stick anyone else (including another Technology
+// user) — replaces the old config_access_permission_edit/
+// chat_access_permission_edit pair, now merged into one flag.
 export const TECHNOLOGY_LOCKED_PERMISSIONS = [
-  'config_scopes_view',
-  'config_roles_view',
-  'config_roles_edit',
-  'config_access_permission_edit',
-  'chat_access_permission_edit',
+  'scope.view',
+  'role.view',
+  'role.assign_scopes',
+  'user.assign_permissions',
 ]
 
 export const TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS = [
-  'users_view',
-  'users_edit',
-  'chat_tools_view',
-  'chat_tools_request',
-  'chat_freshpedia_view',
-  'chat_freshpedia_request',
-  'chat_staging_test',
+  'role.add',
+  'role.edit',
+  'role.delete',
+  'permission.view',
+  'permission.add',
+  'permission.edit',
+  'user.view',
+  'user.add',
+  'user.edit',
+  'user.delete',
+  'tool.view',
+  'tool.request',
+  'freshpedia.view',
+  'freshpedia.request',
+  'staging.test',
 ]
 
-// Which existing group array a new permission joins, plus the Shield
-// dialog's section label for display in the Permission Catalog list —
-// reusing the same three groupings PermissionCheckboxGroup already renders.
 export const PERMISSION_GROUPS = [
-  { id: 'access_config', array: ACCESS_CONFIG_PERMISSIONS, labelKey: 'permissions.accessConfigSectionLabel' },
-  { id: 'user_management', array: USER_PERMISSIONS, labelKey: 'permissions.userManagementSectionLabel' },
+  { id: 'system_access', array: SYSTEM_ACCESS_PERMISSIONS, labelKey: 'permissions.systemAccessSectionLabel' },
   { id: 'chat_access', array: CHAT_ACCESS_PERMISSIONS, labelKey: 'permissions.chatAccessSectionLabel' },
 ]
 
 export const PERMISSION_LABEL_KEYS = {
-  users_view: 'permissions.usersView',
-  users_edit: 'permissions.usersEdit',
-  config_scopes_view: 'permissions.configScopesView',
-  config_roles_view: 'permissions.configRolesView',
-  config_roles_edit: 'permissions.configRolesEdit',
-  config_access_permission_edit: 'permissions.configAccessPermissionEdit',
-  chat_tools_view: 'permissions.chatToolsView',
-  chat_tools_request: 'permissions.chatToolsRequest',
-  chat_freshpedia_view: 'permissions.chatFreshpediaView',
-  chat_freshpedia_request: 'permissions.chatFreshpediaRequest',
-  chat_staging_test: 'permissions.chatStagingTest',
-  chat_access_permission_edit: 'permissions.chatAccessPermissionEdit',
+  'scope.view': 'permissions.scopeView',
+  'role.view': 'permissions.roleView',
+  'role.add': 'permissions.roleAdd',
+  'role.edit': 'permissions.roleEdit',
+  'role.delete': 'permissions.roleDelete',
+  'role.assign_scopes': 'permissions.roleAssignScopes',
+  'permission.view': 'permissions.permissionView',
+  'permission.add': 'permissions.permissionAdd',
+  'permission.edit': 'permissions.permissionEdit',
+  'user.view': 'permissions.userView',
+  'user.add': 'permissions.userAdd',
+  'user.edit': 'permissions.userEdit',
+  'user.delete': 'permissions.userDelete',
+  'user.assign_permissions': 'permissions.userAssignPermissions',
+  'tool.view': 'permissions.toolView',
+  'tool.request': 'permissions.toolRequest',
+  'freshpedia.view': 'permissions.freshpediaView',
+  'freshpedia.request': 'permissions.freshpediaRequest',
+  'staging.test': 'permissions.stagingTest',
 }
 
 /**
- * Permission Catalog is UI-only for now, same caveat as Role Catalog's
- * addRoleToCatalog in roles.js — there's no contract for adding a 13th
- * permission (permission-catalog.md documents 12 fixed DB columns, not an
- * open set). Mutates the shared group array + ALL_PERMISSIONS +
- * PERMISSION_LABEL_KEYS in place, so a new permission immediately shows up
- * as a real togglable checkbox in UsersPage's Shield dialog (which reads
- * those same arrays), defaulting to false for every existing user.
+ * Permission catalog entries beyond these 19 are UI-only, same caveat noted
+ * throughout this session — there's no contract for an open permission set
+ * yet. Mutates PERMISSION_GROUPS' arrays + ALL_PERMISSIONS + LABEL_KEYS in
+ * place, so a new permission immediately shows up as a real togglable
+ * checkbox in UsersPage's Shield dialog, defaulting to false for everyone.
  *
  * @param {{ key: string, group: string, label: string }} input
  */
@@ -107,36 +117,47 @@ export function addPermissionToCatalog({ key, group, label }) {
 
   groupEntry.array.push(trimmedKey)
   ALL_PERMISSIONS.push(trimmedKey)
-  // Same echo-back trick as ROLE_LABEL_KEYS — t() renders this as plain
-  // text since it won't resolve as a translation path.
+  // Same echo-back trick as ROLE_LABEL_KEYS in roles.js — t() renders this
+  // as plain text since it won't resolve as a translation path.
   PERMISSION_LABEL_KEYS[trimmedKey] = label.trim() || trimmedKey
 }
 
 /**
+ * Edits only the display label and which group a permission belongs to —
+ * the key itself is immutable once created (every gating check in this
+ * codebase references these exact strings; renaming one live would silently
+ * break whatever it gates). No delete at all, for any permission, built-in
+ * or custom.
+ *
  * @param {string} key
+ * @param {{ group?: string, label?: string }} updates
  */
-export function removePermissionFromCatalog(key) {
-  if (CORE_PERMISSIONS.includes(key)) {
-    throw new Error('This permission cannot be deleted')
+export function updatePermissionInCatalog(key, { group, label }) {
+  if (!ALL_PERMISSIONS.includes(key)) throw new Error('Permission not found')
+
+  if (group !== undefined) {
+    const groupEntry = PERMISSION_GROUPS.find((g) => g.id === group)
+    if (!groupEntry) throw new Error('Unknown permission group')
+    for (const g of PERMISSION_GROUPS) {
+      const index = g.array.indexOf(key)
+      if (index !== -1) g.array.splice(index, 1)
+    }
+    groupEntry.array.push(key)
   }
-  for (const group of PERMISSION_GROUPS) {
-    const index = group.array.indexOf(key)
-    if (index !== -1) group.array.splice(index, 1)
+
+  if (label !== undefined) {
+    PERMISSION_LABEL_KEYS[key] = label.trim() || key
   }
-  const allIndex = ALL_PERMISSIONS.indexOf(key)
-  if (allIndex !== -1) ALL_PERMISSIONS.splice(allIndex, 1)
-  delete PERMISSION_LABEL_KEYS[key]
 }
 
 /**
- * @returns {{ key: string, group: string, labelKey: string, locked: boolean }[]}
+ * @returns {{ key: string, group: string, labelKey: string }[]}
  */
 export function getPermissionCatalog() {
   return ALL_PERMISSIONS.map((key) => ({
     key,
     group: PERMISSION_GROUPS.find((g) => g.array.includes(key))?.id,
     labelKey: PERMISSION_LABEL_KEYS[key],
-    locked: CORE_PERMISSIONS.includes(key),
   }))
 }
 
@@ -145,7 +166,9 @@ export function getPermissionCatalog() {
  */
 export function canViewUsers(permissions) {
   const p = permissions ?? {}
-  return Boolean(p.users_view || p.users_edit)
+  return Boolean(
+    p['user.view'] || p['user.add'] || p['user.edit'] || p['user.delete'] || p['user.assign_permissions'],
+  )
 }
 
 /**
@@ -153,10 +176,20 @@ export function canViewUsers(permissions) {
  */
 export function canViewRoles(permissions) {
   const p = permissions ?? {}
-  return Boolean(p.config_roles_view || p.config_roles_edit)
+  return Boolean(
+    p['role.view'] || p['role.add'] || p['role.edit'] || p['role.delete'] || p['role.assign_scopes'],
+  )
 }
 
-// Any of the 12 true => can reach /config at all (nav-menu gate).
+/**
+ * @param {Record<string, boolean> | undefined} permissions
+ */
+export function canViewPermissions(permissions) {
+  const p = permissions ?? {}
+  return Boolean(p['permission.view'] || p['permission.add'] || p['permission.edit'])
+}
+
+// Any of the 19 true => can reach /config at all (nav-menu gate).
 /**
  * @param {Record<string, boolean> | undefined} permissions
  */
@@ -165,28 +198,18 @@ export function canAccessConfigSection(permissions) {
   return ALL_PERMISSIONS.some((field) => Boolean(p[field]))
 }
 
-// Shield-icon section visibility is about the ACTOR's own permissions, not
-// the target row being viewed/edited. Also gates User Management, per
-// permission-catalog.md — not a separate meta-permission.
 /**
+ * Gates the Shield icon and everything inside it — both display groups at
+ * once, there's no more per-group split now that config_access_permission_edit
+ * and chat_access_permission_edit have merged into this one flag. Also
+ * reused as the "superadmin" gate for Freshpedia's promote/demote actions
+ * (see FreshpediaPage.jsx), same dual role chat_access_permission_edit used
+ * to play.
+ *
  * @param {Record<string, boolean> | undefined} actorPermissions
  */
-export function canEditAccessConfigGroup(actorPermissions) {
-  return Boolean(actorPermissions?.config_access_permission_edit)
-}
-
-/**
- * @param {Record<string, boolean> | undefined} actorPermissions
- */
-export function canEditChatAccessGroup(actorPermissions) {
-  return Boolean(actorPermissions?.chat_access_permission_edit)
-}
-
-/**
- * @param {Record<string, boolean> | undefined} actorPermissions
- */
-export function canShowShieldIcon(actorPermissions) {
-  return canEditAccessConfigGroup(actorPermissions) || canEditChatAccessGroup(actorPermissions)
+export function canAssignPermissions(actorPermissions) {
+  return Boolean(actorPermissions?.['user.assign_permissions'])
 }
 
 /**
@@ -194,7 +217,7 @@ export function canShowShieldIcon(actorPermissions) {
  */
 export function canAccessFreshpedia(permissions) {
   const p = permissions ?? {}
-  return Boolean(p.chat_freshpedia_view || p.chat_staging_test || p.chat_freshpedia_request)
+  return Boolean(p['freshpedia.view'] || p['staging.test'] || p['freshpedia.request'])
 }
 
 /**
@@ -202,5 +225,5 @@ export function canAccessFreshpedia(permissions) {
  */
 export function canAccessToolCatalog(permissions) {
   const p = permissions ?? {}
-  return Boolean(p.chat_tools_view || p.chat_staging_test || p.chat_tools_request)
+  return Boolean(p['tool.view'] || p['staging.test'] || p['tool.request'])
 }

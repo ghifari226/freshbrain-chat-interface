@@ -196,10 +196,10 @@ export default function FreshpediaPage({ language }) {
   const [, navigate] = useRoute()
 
   const isAuthorized = canAccessFreshpedia(session)
-  const canViewProduction = Boolean(session?.chat_freshpedia_view)
-  const canViewStaging = Boolean(session?.chat_staging_test)
-  const canViewRequest = Boolean(session?.chat_freshpedia_request)
-  const isSuperadmin = Boolean(session?.chat_access_permission_edit)
+  const canViewProduction = Boolean(session?.['freshpedia.view'])
+  const canViewStaging = Boolean(session?.['staging.test'])
+  const canViewRequest = Boolean(session?.['freshpedia.request'])
+  const isSuperadmin = Boolean(session?.['user.assign_permissions'])
 
   const availableStatusFilters = useMemo(
     () =>

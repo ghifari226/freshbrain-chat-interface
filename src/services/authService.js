@@ -16,9 +16,6 @@ import { CHAT_GATEWAY_BASE_URL } from '../config/appConfig.js'
 import { ROLE_SCOPES } from '../config/roles.js'
 import {
   ALL_PERMISSIONS,
-  ACCESS_CONFIG_PERMISSIONS,
-  CHAT_ACCESS_PERMISSIONS,
-  USER_PERMISSIONS,
   TECHNOLOGY_LOCKED_PERMISSIONS,
   TECHNOLOGY_DEFAULT_EDITABLE_PERMISSIONS,
 } from '../config/permissions.js'
@@ -105,8 +102,8 @@ function makeResetToken() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10)
 }
 
-// Re-derives the 12 boolean fields from a stored MOCK_USERS row, forcing
-// Technology's 5 locked fields to match role regardless of what's stored
+// Re-derives the 19 boolean fields from a stored MOCK_USERS row, forcing
+// Technology's 4 locked fields to match role regardless of what's stored
 // (true for Technology, false otherwise — defense in depth, not just a
 // creation-time seed). Called from every read path (toSession,
 // toDirectoryEntry) so the locks can never drift even from a bad write.
@@ -198,8 +195,8 @@ export async function listUsers() {
  * once, for the caller to display; it isn't retrievable again from
  * listUsers().
  *
- * All 12 permission booleans start false, except when `role` is
- * 'Technology': the 5 locked fields plus the 7 default-editable fields all
+ * All 19 permission booleans start false, except when `role` is
+ * 'Technology': the 4 locked fields plus the 15 default-editable fields all
  * start true, per permission-catalog.md's creation-time rule. This is
  * purely a function of `role` — never something the request body can ask
  * for directly.
@@ -279,25 +276,16 @@ export async function updateUser(email, updates, actor) {
   const actorPermissions = shapeUserPermissions(actorUser)
 
   const touchedPermissionFields = ALL_PERMISSIONS.filter((field) => updates[field] !== undefined)
-  const touchesConfigOrUsersGroup = touchedPermissionFields.some(
-    (field) => ACCESS_CONFIG_PERMISSIONS.includes(field) || USER_PERMISSIONS.includes(field),
-  )
-  const touchesChatGroup = touchedPermissionFields.some((field) =>
-    CHAT_ACCESS_PERMISSIONS.includes(field),
-  )
   const touchesProfileOrRole =
     updates.name !== undefined || updates.phone !== undefined || updates.role !== undefined
 
-  // Field-level gate: config_*/users_* need config_access_permission_edit,
-  // chat_* need chat_access_permission_edit, name/phone/role need users_edit
-  // — see permission-catalog.md's "who can edit" column.
-  if (touchesConfigOrUsersGroup && !actorPermissions.config_access_permission_edit) {
+  // Field-level gate: any of the 19 permission booleans need
+  // user.assign_permissions (single flag now, both groups); name/phone/role
+  // need user.edit — see permission-catalog.md's "who can edit" column.
+  if (touchedPermissionFields.length > 0 && !actorPermissions['user.assign_permissions']) {
     throw new Error('You do not have permission to edit this field')
   }
-  if (touchesChatGroup && !actorPermissions.chat_access_permission_edit) {
-    throw new Error('You do not have permission to edit this field')
-  }
-  if (touchesProfileOrRole && !actorPermissions.users_edit) {
+  if (touchesProfileOrRole && !actorPermissions['user.edit']) {
     throw new Error('You do not have permission to edit this field')
   }
 
@@ -311,7 +299,7 @@ export async function updateUser(email, updates, actor) {
   }
 
   // Reassigning ANY user to Technology requires the actor to already hold
-  // all 5 locked permissions themselves — not just users_edit. Applies
+  // all 4 locked permissions themselves — not just user.edit. Applies
   // regardless of whether the target is the actor's own row. Gated on an
   // actual transition (user.role !== 'Technology' already) so a no-op edit
   // that merely leaves an existing Technology user's role field unchanged
@@ -342,4 +330,43 @@ export async function updateUser(email, updates, actor) {
   }
 
   return toDirectoryEntry(user)
+}
+
+/**
+ * No `DELETE /config/users/{email}` documented in auth-contract.md yet —
+ * same "try the real endpoint, fall through" shape as everything else here,
+ * new territory once chat-gateway actually exists. Gated by `user.delete`,
+ * re-validated live like updateUser's writes. An actor can never delete
+ * their own row (self-lockout guard, mirrors the self-escalation guard
+ * above) — there's no cascade to reassign a self-deleted admin's work.
+ *
+ * @param {string} email
+ * @param {{ email: string }} actor
+ */
+export async function deleteUser(email, actor) {
+  try {
+    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    })
+    if (res.ok) return
+  } catch {
+    // no real chat-gateway yet — fall through to the mock below
+  }
+
+  await delay()
+
+  if (email === actor?.email) {
+    throw new Error('You cannot delete your own account')
+  }
+
+  const actorUser = MOCK_USERS.find((u) => u.email === actor?.email)
+  if (!actorUser || !shapeUserPermissions(actorUser)['user.delete']) {
+    throw new Error('You do not have permission to delete users')
+  }
+
+  const index = MOCK_USERS.findIndex((u) => u.email === email)
+  if (index === -1) {
+    throw new Error('User not found')
+  }
+  MOCK_USERS.splice(index, 1)
 }

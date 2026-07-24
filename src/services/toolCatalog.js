@@ -149,7 +149,7 @@ export async function listToolCatalogEntries() {
 
 /**
  * @param {{ system: string, name: string, description: string, exampleQuestions: string[] }} input
- * @param {{ email: string, name: string, chat_tools_request?: boolean }} actor
+ * @param {{ email: string, name: string, 'tool.request'?: boolean }} actor
  */
 export async function createToolCatalogEntry(input, actor) {
   try {
@@ -165,7 +165,7 @@ export async function createToolCatalogEntry(input, actor) {
 
   await delay()
 
-  if (!actor?.chat_tools_request) {
+  if (!actor?.['tool.request']) {
     throw new Error('You do not have permission to submit tool requests')
   }
 
@@ -186,14 +186,14 @@ export async function createToolCatalogEntry(input, actor) {
 }
 
 /**
- * Editable by anyone holding chat_tools_request, while still pending —
+ * Editable by anyone holding tool.request, while still pending —
  * not restricted to the entry's own submitter, any contributor can edit
  * any pending request. No promote/demote/superadmin path here, "Edit
  * Request" is a personal action, not a review step.
  *
  * @param {string} id
  * @param {{ system?: string, name?: string, description?: string, exampleQuestions?: string[] }} updates
- * @param {{ email: string, chat_tools_request?: boolean }} actor
+ * @param {{ email: string, 'tool.request'?: boolean }} actor
  */
 export async function updateToolCatalogEntry(id, updates, actor) {
   try {
@@ -212,7 +212,7 @@ export async function updateToolCatalogEntry(id, updates, actor) {
   const entry = MOCK_TOOLS.find((e) => e.id === id)
   if (!entry) throw new Error('Entry not found')
 
-  if (!actor?.chat_tools_request || entry.status !== 'request') {
+  if (!actor?.['tool.request'] || entry.status !== 'request') {
     throw new Error('You do not have permission to edit this entry')
   }
   if (updates.status !== undefined) {

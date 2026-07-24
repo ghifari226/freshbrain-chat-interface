@@ -1,29 +1,32 @@
 import { useMemo, useState } from 'react'
-import { Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material'
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Tooltip } from '@mui/material'
 import {
   PERMISSION_GROUPS,
   getPermissionCatalog,
   addPermissionToCatalog,
-  removePermissionFromCatalog,
+  updatePermissionInCatalog,
 } from '../../config/permissions.js'
 import { useT } from '../../hooks/useT.js'
 
 const EMPTY_FORM = { key: '', group: PERMISSION_GROUPS[0].id, label: '' }
 
-// Permission Catalog is UI-only — there's no way to add a 13th boolean
-// column via any real endpoint (permission-catalog.md documents the 12 as
-// fixed DB columns). New entries here mutate the shared group array +
-// ALL_PERMISSIONS + PERMISSION_LABEL_KEYS in permissions.js in place, so
-// they show up as real togglable checkboxes in UsersPage's Shield dialog
-// immediately (defaulting to false for every existing user) — but nothing
-// in the real backend contract enforces them yet.
-export default function PermissionCatalogPage({ session }) {
+// Permission add/edit are UI-only — there's no way to add a 20th boolean
+// column, or rename one of these 19, via any real endpoint yet
+// (permission-catalog.md documents a fixed set). New/edited entries mutate
+// the shared group arrays + ALL_PERMISSIONS + PERMISSION_LABEL_KEYS in
+// permissions.js in place, so they show up as real togglable checkboxes in
+// UsersPage's Shield dialog immediately. No delete at all, for anything —
+// only the label and group are ever editable, the key is permanent once
+// created since gating logic elsewhere references it as a literal string.
+export default function PermissionsPage({ session }) {
   const t = useT()
-  const canEdit = Boolean(session?.config_roles_edit)
+  const canAdd = Boolean(session?.['permission.add'])
+  const canEdit = Boolean(session?.['permission.edit'])
   const [permissions, setPermissions] = useState(getPermissionCatalog)
   const [formTarget, setFormTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
+  const isEditMode = Boolean(formTarget) && formTarget !== 'new'
 
   const groupedRows = useMemo(
     () =>
@@ -40,15 +43,26 @@ export default function PermissionCatalogPage({ session }) {
     setFormTarget('new')
   }
 
+  function openEditForm(entry) {
+    setForm({ key: entry.key, group: entry.group, label: t(entry.labelKey) })
+    setFormError('')
+    setFormTarget(entry.key)
+  }
+
   function closeForm() {
     setFormTarget(null)
   }
 
   function handleSubmit(event) {
     event.preventDefault()
-    if (!form.key.trim() || !form.label.trim()) return
+    if (!form.label.trim()) return
     try {
-      addPermissionToCatalog(form)
+      if (isEditMode) {
+        updatePermissionInCatalog(formTarget, { group: form.group, label: form.label })
+      } else {
+        if (!form.key.trim()) return
+        addPermissionToCatalog(form)
+      }
       setPermissions(getPermissionCatalog())
       setFormTarget(null)
     } catch (error) {
@@ -56,19 +70,14 @@ export default function PermissionCatalogPage({ session }) {
     }
   }
 
-  function handleDelete(key) {
-    removePermissionFromCatalog(key)
-    setPermissions(getPermissionCatalog())
-  }
-
   return (
     <div className="config-section">
       <div className="config-section__title-row">
-        <h2 className="config-section__title">{t('config.permissionCatalogTitle')}</h2>
-        <Tooltip title={t('config.permissionCatalogDesc')} placement="right">
+        <h2 className="config-section__title">{t('config.permissionsTitle')}</h2>
+        <Tooltip title={t('config.permissionsDesc')} placement="right">
           <i className="fa-solid fa-circle-info config-section__info-icon" />
         </Tooltip>
-        {canEdit && (
+        {canAdd && (
           <Button
             className="config-section__title-action"
             variant="contained"
@@ -80,7 +89,7 @@ export default function PermissionCatalogPage({ session }) {
         )}
       </div>
 
-      {!canEdit && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
+      {!canAdd && !canEdit && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
 
       <div className="permission-group-list">
         {groupedRows.map((group) => (
@@ -94,20 +103,15 @@ export default function PermissionCatalogPage({ session }) {
                       <code className="scope-checkbox__tag">{entry.key}</code> {t(entry.labelKey)}
                     </span>
                     <div className="entry-index__actions">
-                      {entry.locked && (
-                        <Tooltip title={t('config.permissionLockedNotice')}>
-                          <i className="fa-solid fa-lock" />
-                        </Tooltip>
-                      )}
-                      {canEdit && !entry.locked && (
-                        <Tooltip title={t('config.deletePermission')}>
+                      {canEdit && (
+                        <Tooltip title={t('config.editPermission')}>
                           <button
                             type="button"
-                            className="icon-button icon-button--danger"
-                            aria-label={t('config.deletePermission')}
-                            onClick={() => handleDelete(entry.key)}
+                            className="icon-button icon-button--edit"
+                            aria-label={t('config.editPermission')}
+                            onClick={() => openEditForm(entry)}
                           >
-                            <i className="fa-solid fa-trash" />
+                            <i className="fa-solid fa-pen" />
                           </button>
                         </Tooltip>
                       )}
@@ -121,22 +125,24 @@ export default function PermissionCatalogPage({ session }) {
       </div>
 
       <Dialog open={Boolean(formTarget)} onClose={closeForm}>
-        <DialogTitle>{t('config.addPermission')}</DialogTitle>
+        <DialogTitle>{isEditMode ? form.key : t('config.addPermission')}</DialogTitle>
         <DialogContent>
           <form id="permission-form" className="auth-form config-add-form" onSubmit={handleSubmit}>
-            <div className="form-field">
-              <label className="form-field__label" htmlFor="permission-key">
-                {t('config.permissionKeyLabel')}
-              </label>
-              <input
-                id="permission-key"
-                className="form-field__input"
-                type="text"
-                value={form.key}
-                onChange={(event) => setForm((prev) => ({ ...prev, key: event.target.value.trim() }))}
-                placeholder={t('config.permissionKeyPlaceholder')}
-              />
-            </div>
+            {!isEditMode && (
+              <div className="form-field">
+                <label className="form-field__label" htmlFor="permission-key">
+                  {t('config.permissionKeyLabel')}
+                </label>
+                <input
+                  id="permission-key"
+                  className="form-field__input"
+                  type="text"
+                  value={form.key}
+                  onChange={(event) => setForm((prev) => ({ ...prev, key: event.target.value.trim() }))}
+                  placeholder={t('config.permissionKeyPlaceholder')}
+                />
+              </div>
+            )}
 
             <div className="form-field">
               <label className="form-field__label" htmlFor="permission-group">
@@ -177,7 +183,7 @@ export default function PermissionCatalogPage({ session }) {
         <DialogActions>
           <Button onClick={closeForm}>{t('config.cancelEdit')}</Button>
           <Button type="submit" form="permission-form" variant="contained">
-            {t('config.addPermission')}
+            {t(isEditMode ? 'config.saveUser' : 'config.addPermission')}
           </Button>
         </DialogActions>
       </Dialog>

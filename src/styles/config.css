@@ -30,8 +30,12 @@
   font-weight: 600;
 }
 
+/* Widened from a 720px cap — the Roles page's 4-per-row card grid needs
+   real horizontal room. 90% rather than a flat 100% so there's still a
+   sliver of breathing room against the viewport edge on wide monitors. */
 .config-page__body {
-  max-width: 720px;
+  width: 90%;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -209,18 +213,38 @@
   font-size: 13px;
 }
 
-/* Role assignments (editable) */
+/* Roles — merged catalog (add/rename/delete) + scope assignment.
+   Fixed 4-per-row grid per the current design; drops to fewer columns only
+   when the viewport is too narrow for that many at a readable width. */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
 
-.role-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+@media (max-width: 1400px) {
+  .role-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1000px) {
+  .role-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .role-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .role-card {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
+  min-width: 0;
 }
 
 .role-card__header {
@@ -228,17 +252,35 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
+  gap: 8px;
 }
 
 .role-card__name {
   font-size: 15px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .role-card__header-actions {
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0;
+}
+
+.role-card__rename-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.role-card__rename-form .form-field__input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
 }
 
 .role-card__fixed {
@@ -304,20 +346,6 @@
 .scope-checkbox--system .scope-checkbox__tag {
   font-weight: 600;
   color: var(--accent);
-}
-
-.role-card__system-toggle {
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  padding: 4px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.role-card__system-toggle:hover {
-  background: var(--surface-response);
 }
 
 /* Unsaved-change indicator — shown next to a role name (RolesPage) or a
@@ -476,6 +504,19 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+}
+
+/* Wraps the group label + its bulk select-all/deselect-all checkbox
+   (Shield dialog only — Permissions page renders __label standalone). */
+.permission-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.permission-group__select-all {
+  margin: 0;
 }
 
 /* Permission Catalog reuses .permission-group as a section wrapper around a

@@ -6,7 +6,7 @@ import SettingsModal from '../modals/SettingsModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useRoute } from '../../hooks/useRoute.js'
-import { canAccessFreshpedia, canAccessToolCatalog, canAccessConfigSection, canViewRoles, canViewUsers } from '../../config/permissions.js'
+import { canAccessFreshpedia, canAccessToolCatalog, canAccessConfigSection, canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
 
 export default function Sidebar({
   variant = 'chat',
@@ -46,8 +46,9 @@ export default function Sidebar({
   const canSeeFreshpedia = canAccessFreshpedia(session)
   const canSeeToolCatalog = canAccessToolCatalog(session)
   const canSeeConfig = canAccessConfigSection(session)
-  const canSeeScopes = Boolean(session?.config_scopes_view)
+  const canSeeScopes = Boolean(session?.['scope.view'])
   const canSeeRoles = canViewRoles(session)
+  const canSeePermissions = canViewPermissions(session)
   const canSeeUsers = canViewUsers(session)
 
   useEffect(() => {
@@ -205,25 +206,17 @@ export default function Sidebar({
                       {canSeeRoles && (
                         <button
                           className="menu__item"
-                          onClick={() => navigateFromFlyout('/config/role-catalog')}
+                          onClick={() => navigateFromFlyout('/config/roles')}
                         >
-                          <span className="menu__item-text">{t('config.navRoleCatalog')}</span>
+                          <span className="menu__item-text">{t('config.navRoles')}</span>
                         </button>
                       )}
-                      {canSeeRoles && (
+                      {canSeePermissions && (
                         <button
                           className="menu__item"
-                          onClick={() => navigateFromFlyout('/config/role-scopes')}
+                          onClick={() => navigateFromFlyout('/config/permissions')}
                         >
-                          <span className="menu__item-text">{t('config.navRoleScopes')}</span>
-                        </button>
-                      )}
-                      {canSeeRoles && (
-                        <button
-                          className="menu__item"
-                          onClick={() => navigateFromFlyout('/config/permission-catalog')}
-                        >
-                          <span className="menu__item-text">{t('config.navPermissionCatalog')}</span>
+                          <span className="menu__item-text">{t('config.navPermissions')}</span>
                         </button>
                       )}
                       {canSeeUsers && (
@@ -401,35 +394,22 @@ export default function Sidebar({
                             <button
                               className={
                                 'sidebar-nav__child-item' +
-                                (path === '/config/role-catalog' ? ' sidebar-nav__child-item--active' : '')
+                                (path === '/config/roles' ? ' sidebar-nav__child-item--active' : '')
                               }
-                              onClick={() => navigate('/config/role-catalog')}
+                              onClick={() => navigate('/config/roles')}
                             >
-                              {t('config.navRoleCatalog')}
+                              {t('config.navRoles')}
                             </button>
                           )}
-                          {canSeeRoles && (
+                          {canSeePermissions && (
                             <button
                               className={
                                 'sidebar-nav__child-item' +
-                                (path === '/config/role-scopes' ? ' sidebar-nav__child-item--active' : '')
+                                (path === '/config/permissions' ? ' sidebar-nav__child-item--active' : '')
                               }
-                              onClick={() => navigate('/config/role-scopes')}
+                              onClick={() => navigate('/config/permissions')}
                             >
-                              {t('config.navRoleScopes')}
-                            </button>
-                          )}
-                          {canSeeRoles && (
-                            <button
-                              className={
-                                'sidebar-nav__child-item' +
-                                (path === '/config/permission-catalog'
-                                  ? ' sidebar-nav__child-item--active'
-                                  : '')
-                              }
-                              onClick={() => navigate('/config/permission-catalog')}
-                            >
-                              {t('config.navPermissionCatalog')}
+                              {t('config.navPermissions')}
                             </button>
                           )}
                           {canSeeUsers && (

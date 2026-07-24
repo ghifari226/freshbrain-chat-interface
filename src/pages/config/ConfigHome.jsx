@@ -1,5 +1,5 @@
 import { useT } from '../../hooks/useT.js'
-import { canViewRoles, canViewUsers } from '../../config/permissions.js'
+import { canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
 
 export default function ConfigHome({ navigate, session }) {
   const t = useT()
@@ -9,7 +9,7 @@ export default function ConfigHome({ navigate, session }) {
       <p className="config-home__intro">{t('config.homeIntro')}</p>
 
       <div className="config-home__cards">
-        {session?.config_scopes_view && (
+        {session?.['scope.view'] && (
           <button className="config-card" onClick={() => navigate('/config/scopes')}>
             <i className="fa-solid fa-list-check config-card__icon" />
             <span className="config-card__title">{t('config.scopesCardTitle')}</span>
@@ -18,26 +18,18 @@ export default function ConfigHome({ navigate, session }) {
         )}
 
         {canViewRoles(session) && (
-          <button className="config-card" onClick={() => navigate('/config/role-catalog')}>
-            <i className="fa-solid fa-people-group config-card__icon" />
-            <span className="config-card__title">{t('config.roleCatalogCardTitle')}</span>
-            <span className="config-card__desc">{t('config.roleCatalogCardDesc')}</span>
-          </button>
-        )}
-
-        {canViewRoles(session) && (
-          <button className="config-card" onClick={() => navigate('/config/role-scopes')}>
+          <button className="config-card" onClick={() => navigate('/config/roles')}>
             <i className="fa-solid fa-users-gear config-card__icon" />
-            <span className="config-card__title">{t('config.roleScopesCardTitle')}</span>
-            <span className="config-card__desc">{t('config.roleScopesCardDesc')}</span>
+            <span className="config-card__title">{t('config.rolesCardTitle')}</span>
+            <span className="config-card__desc">{t('config.rolesCardDesc')}</span>
           </button>
         )}
 
-        {canViewRoles(session) && (
-          <button className="config-card" onClick={() => navigate('/config/permission-catalog')}>
+        {canViewPermissions(session) && (
+          <button className="config-card" onClick={() => navigate('/config/permissions')}>
             <i className="fa-solid fa-shield-halved config-card__icon" />
-            <span className="config-card__title">{t('config.permissionCatalogCardTitle')}</span>
-            <span className="config-card__desc">{t('config.permissionCatalogCardDesc')}</span>
+            <span className="config-card__title">{t('config.permissionsCardTitle')}</span>
+            <span className="config-card__desc">{t('config.permissionsCardDesc')}</span>
           </button>
         )}
 

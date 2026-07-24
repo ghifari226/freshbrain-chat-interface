@@ -11,22 +11,22 @@ import {
   TextField,
   Chip,
 } from '@mui/material'
-import { createUser, listUsers, updateUser } from '../../services/authService.js'
+import { createUser, listUsers, updateUser, deleteUser } from '../../services/authService.js'
 import { ROLES, ROLE_LABEL_KEYS } from '../../config/roles.js'
 import {
   ALL_PERMISSIONS,
-  ACCESS_CONFIG_PERMISSIONS,
-  USER_PERMISSIONS,
+  SYSTEM_ACCESS_PERMISSIONS,
   CHAT_ACCESS_PERMISSIONS,
   PERMISSION_LABEL_KEYS,
   TECHNOLOGY_LOCKED_PERMISSIONS,
+  canAssignPermissions,
 } from '../../config/permissions.js'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 
 const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES[0] }
 
-// Order-independent — see the identical concern in RoleScopesPage's scopesEqual.
+// Order-independent — see the identical concern in RolesPage's scopesEqual.
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
 }
@@ -47,16 +47,38 @@ function phoneMatches(phoneDigits, queryDigits) {
   return false
 }
 
-// One group of checkboxes in the Shield dialog (Access Config / User
-// Management / Chat Access), boxed off so the three groups read as distinct
-// sections rather than one long list. isFieldLocked marks Technology's
-// hardcoded fields (checked+disabled, never editable); isFieldDisabled
-// marks fields blocked by the self-escalation guard (actor editing their
-// own row, doesn't already hold this field).
-function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldLocked, isFieldDisabled, onToggle, t }) {
+// One group of checkboxes in the Shield dialog (System Access / Chat
+// Access — just two now). isFieldLocked marks Technology's hardcoded
+// fields (checked+disabled, never editable); isFieldDisabled marks fields
+// blocked by the self-escalation guard (actor editing their own row,
+// doesn't already hold this field). The header checkbox bulk-selects every
+// field in the group that isn't locked/disabled — purely a UI convenience,
+// not a stored permission of its own.
+function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldLocked, isFieldDisabled, onToggle, onToggleAll, t }) {
+  const toggleableFields = fields.filter((field) => !isFieldLocked(field) && !isFieldDisabled(field))
+  const checkedToggleableCount = toggleableFields.filter((field) => Boolean(dialogPermissions[field])).length
+  const allChecked = toggleableFields.length > 0 && checkedToggleableCount === toggleableFields.length
+  const someChecked = checkedToggleableCount > 0 && !allChecked
+
   return (
     <div className="permission-group">
-      <span className="permission-group__label">{t(titleKey)}</span>
+      <div className="permission-group__header">
+        <span className="permission-group__label">{t(titleKey)}</span>
+        {toggleableFields.length > 0 && (
+          <Tooltip title={t('permissions.selectAllToggle')}>
+            <input
+              type="checkbox"
+              className="permission-group__select-all"
+              aria-label={t('permissions.selectAllToggle')}
+              checked={allChecked}
+              ref={(el) => {
+                if (el) el.indeterminate = someChecked
+              }}
+              onChange={() => onToggleAll(toggleableFields, !allChecked)}
+            />
+          </Tooltip>
+        )}
+      </div>
       {fields.map((field) => {
         const locked = isFieldLocked(field)
         return (
@@ -80,13 +102,10 @@ function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldL
 export default function UsersPage() {
   const t = useT()
   const { session, updateSession } = useAuth()
-  // The role-string check (`role === 'Technology'`) this replaces is the
-  // one thing this whole refactor is about: gating is now per-individual
-  // permission, not per-role.
-  const canEdit = Boolean(session?.users_edit)
-  const canEditAccessConfigGroup = Boolean(session?.config_access_permission_edit)
-  const canEditChatAccessGroup = Boolean(session?.chat_access_permission_edit)
-  const showShieldIcon = canEditAccessConfigGroup || canEditChatAccessGroup
+  const canAdd = Boolean(session?.['user.add'])
+  const canEdit = Boolean(session?.['user.edit'])
+  const canDelete = Boolean(session?.['user.delete'])
+  const canAssign = canAssignPermissions(session)
   const canReassignToTechnology = TECHNOLOGY_LOCKED_PERMISSIONS.every((field) =>
     Boolean(session?.[field]),
   )
@@ -104,6 +123,7 @@ export default function UsersPage() {
   // of the row being edited — so both flows are the same UI/UX, not two
   // different code paths that could drift apart.
   const [userFormTarget, setUserFormTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [permissionsDialogEmail, setPermissionsDialogEmail] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   // Empty set = no role filter applied (show everyone). Chips are additive
@@ -133,8 +153,8 @@ export default function UsersPage() {
   // Mirrors updateUser's runtime guard for immediate feedback — the actor
   // can't check a box for a field they don't already hold themselves,
   // whether editing their own row or (structurally impossible here, since
-  // the dialog can't even open on someone else without the group's edit
-  // gate) anyone else's.
+  // the dialog can't even open on someone else without user.assign_permissions)
+  // anyone else's.
   function isSelfEscalationBlocked(field) {
     return permissionsDialogEmail === session?.email && !session?.[field]
   }
@@ -259,11 +279,28 @@ export default function UsersPage() {
     })
   }
 
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return
+    await deleteUser(deleteTarget.email, actorForUpdate)
+    setUsers((prev) => prev.filter((u) => u.email !== deleteTarget.email))
+    setDeleteTarget(null)
+  }
+
   function handleTogglePermission(email, field) {
     setPendingPermissions((prev) => {
       const user = users.find((u) => u.email === email)
       const current = prev[email] ?? user ?? {}
       return { ...prev, [email]: { ...current, [field]: !current[field] } }
+    })
+  }
+
+  function handleToggleAllPermissions(email, fields, nextValue) {
+    setPendingPermissions((prev) => {
+      const user = users.find((u) => u.email === email)
+      const current = prev[email] ?? user ?? {}
+      const next = { ...current }
+      for (const field of fields) next[field] = nextValue
+      return { ...prev, [email]: next }
     })
   }
 
@@ -277,9 +314,8 @@ export default function UsersPage() {
   // The only thing that actually calls updateUser for permissions — see
   // handleTogglePermission above, which only ever touches the local draft.
   // Sends only the fields that actually differ from the target's
-  // last-synced row (not the full 12), so a save from an actor who can only
-  // see one Shield group never accidentally re-submits the other group's
-  // unchanged values (which they may not hold the gate to touch at all).
+  // last-synced row (not all 19), so a partial save never accidentally
+  // re-submits unchanged values.
   async function handleSavePermissions(email) {
     const next = pendingPermissions[email]
     if (!next) return
@@ -308,15 +344,15 @@ export default function UsersPage() {
   const columns = useMemo(() => {
     const base = []
 
-    if (showShieldIcon || canEdit) {
+    if (canAssign || canEdit || canDelete) {
       base.push({
         field: 'rowActions',
         type: 'actions',
         headerName: '',
-        width: showShieldIcon && canEdit ? 84 : 48,
+        width: 28 + [canAssign, canEdit, canDelete].filter(Boolean).length * 36,
         getActions: ({ row }) => {
           const actions = []
-          if (showShieldIcon) {
+          if (canAssign) {
             actions.push(
               <GridActionsCellItem
                 key="permissions"
@@ -333,6 +369,17 @@ export default function UsersPage() {
                 icon={<i className="fa-solid fa-pen" />}
                 label={t('config.editUser')}
                 onClick={() => openEditUserDialog(row)}
+              />,
+            )
+          }
+          if (canDelete) {
+            actions.push(
+              <GridActionsCellItem
+                key="delete"
+                icon={<i className="fa-solid fa-trash" />}
+                label={t('config.deleteUser')}
+                disabled={row.email === session?.email}
+                onClick={() => setDeleteTarget(row)}
               />,
             )
           }
@@ -355,7 +402,7 @@ export default function UsersPage() {
 
     return base
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canEdit, showShieldIcon, t])
+  }, [canAssign, canEdit, canDelete, session?.email, t])
 
   return (
     <div className="config-section">
@@ -364,7 +411,7 @@ export default function UsersPage() {
         <Tooltip title={t('config.usersDesc')} placement="right">
           <i className="fa-solid fa-circle-info config-section__info-icon" />
         </Tooltip>
-        {canEdit && (
+        {canAdd && (
           <Button
             className="config-section__title-action"
             variant="contained"
@@ -376,7 +423,7 @@ export default function UsersPage() {
         )}
       </div>
 
-      {!canEdit && !showShieldIcon && (
+      {!canAdd && !canEdit && !canDelete && !canAssign && (
         <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>
       )}
 
@@ -512,43 +559,43 @@ export default function UsersPage() {
         </DialogActions>
       </Dialog>
 
+      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle>{t('config.deleteUser')}</DialogTitle>
+        <DialogContent>
+          <p>{t('config.deleteUserConfirm').replace('%s', deleteTarget?.name ?? '')}</p>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>{t('config.cancelEdit')}</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
+            {t('config.deleteUser')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={Boolean(permissionsDialogUser)} onClose={closePermissionsDialog}>
         <DialogTitle>{permissionsDialogUser?.name}</DialogTitle>
         <DialogContent>
           <div className="permission-group-list">
-            {canEditAccessConfigGroup && (
-              <>
-                <PermissionCheckboxGroup
-                  titleKey="permissions.accessConfigSectionLabel"
-                  fields={ACCESS_CONFIG_PERMISSIONS}
-                  dialogPermissions={dialogPermissions}
-                  isFieldLocked={isTechnologyLockedField}
-                  isFieldDisabled={isSelfEscalationBlocked}
-                  onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
-                  t={t}
-                />
-                <PermissionCheckboxGroup
-                  titleKey="permissions.userManagementSectionLabel"
-                  fields={USER_PERMISSIONS}
-                  dialogPermissions={dialogPermissions}
-                  isFieldLocked={isTechnologyLockedField}
-                  isFieldDisabled={isSelfEscalationBlocked}
-                  onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
-                  t={t}
-                />
-              </>
-            )}
-            {canEditChatAccessGroup && (
-              <PermissionCheckboxGroup
-                titleKey="permissions.chatAccessSectionLabel"
-                fields={CHAT_ACCESS_PERMISSIONS}
-                dialogPermissions={dialogPermissions}
-                isFieldLocked={isTechnologyLockedField}
-                isFieldDisabled={isSelfEscalationBlocked}
-                onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
-                t={t}
-              />
-            )}
+            <PermissionCheckboxGroup
+              titleKey="permissions.systemAccessSectionLabel"
+              fields={SYSTEM_ACCESS_PERMISSIONS}
+              dialogPermissions={dialogPermissions}
+              isFieldLocked={isTechnologyLockedField}
+              isFieldDisabled={isSelfEscalationBlocked}
+              onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
+              onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogEmail, fields, next)}
+              t={t}
+            />
+            <PermissionCheckboxGroup
+              titleKey="permissions.chatAccessSectionLabel"
+              fields={CHAT_ACCESS_PERMISSIONS}
+              dialogPermissions={dialogPermissions}
+              isFieldLocked={isTechnologyLockedField}
+              isFieldDisabled={isSelfEscalationBlocked}
+              onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
+              onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogEmail, fields, next)}
+              t={t}
+            />
           </div>
         </DialogContent>
         <DialogActions>

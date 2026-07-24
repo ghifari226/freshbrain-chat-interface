@@ -124,9 +124,9 @@ export default function ToolCatalogPage() {
   const [, navigate] = useRoute()
 
   const isAuthorized = canAccessToolCatalog(session)
-  const canViewProduction = Boolean(session?.chat_tools_view)
-  const canViewStaging = Boolean(session?.chat_staging_test)
-  const canViewRequest = Boolean(session?.chat_tools_request)
+  const canViewProduction = Boolean(session?.['tool.view'])
+  const canViewStaging = Boolean(session?.['staging.test'])
+  const canViewRequest = Boolean(session?.['tool.request'])
 
   const availableStatusFilters = useMemo(
     () =>
@@ -247,7 +247,7 @@ export default function ToolCatalogPage() {
         type: 'actions',
         headerName: '',
         width: 48,
-        // Anyone with chat_tools_request can edit any pending request, not
+        // Anyone with tool.request can edit any pending request, not
         // just their own — reaching this view already implies the
         // permission, so no per-row ownership check.
         getActions: ({ row }) => [

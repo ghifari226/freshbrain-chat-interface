@@ -2,26 +2,18 @@ import { useEffect } from 'react'
 import ConfigLayout from './ConfigLayout.jsx'
 import ConfigHome from './ConfigHome.jsx'
 import ScopesPage from './ScopesPage.jsx'
-import RoleCatalogPage from './RoleCatalogPage.jsx'
-import RoleScopesPage from './RoleScopesPage.jsx'
-import PermissionCatalogPage from './PermissionCatalogPage.jsx'
+import RolesPage from './RolesPage.jsx'
+import PermissionsPage from './PermissionsPage.jsx'
 import UsersPage from './UsersPage.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useRoute } from '../../hooks/useRoute.js'
-import { canAccessConfigSection, canViewRoles, canViewUsers } from '../../config/permissions.js'
+import { canAccessConfigSection, canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
 
-// Per-path reachability — independent booleans now, not a collapsed
-// 'edit'/'view'/'hidden' tri-state, since the new model has independent
-// view/edit permissions rather than one combined level. Role Catalog,
-// Role Scopes, and Permission Catalog all share the config_roles_view/edit
-// gate — there's no dedicated permission for the catalog split yet (see
-// roles.js/permissions.js's addRoleToCatalog/addPermissionToCatalog
-// comments on why these three stay UI-only for now).
+// Per-path reachability — independent booleans, one gate group per page.
 const PAGE_VISIBLE_BY_PATH = {
-  '/config/scopes': (session) => Boolean(session?.config_scopes_view),
-  '/config/role-catalog': (session) => canViewRoles(session),
-  '/config/role-scopes': (session) => canViewRoles(session),
-  '/config/permission-catalog': (session) => canViewRoles(session),
+  '/config/scopes': (session) => Boolean(session?.['scope.view']),
+  '/config/roles': (session) => canViewRoles(session),
+  '/config/permissions': (session) => canViewPermissions(session),
   '/config/users': (session) => canViewUsers(session),
 }
 
@@ -47,12 +39,10 @@ export default function ConfigSection() {
     <ConfigLayout navigate={navigate}>
       {path === '/config/scopes' ? (
         <ScopesPage />
-      ) : path === '/config/role-catalog' ? (
-        <RoleCatalogPage session={session} />
-      ) : path === '/config/role-scopes' ? (
-        <RoleScopesPage session={session} />
-      ) : path === '/config/permission-catalog' ? (
-        <PermissionCatalogPage session={session} />
+      ) : path === '/config/roles' ? (
+        <RolesPage session={session} />
+      ) : path === '/config/permissions' ? (
+        <PermissionsPage session={session} />
       ) : path === '/config/users' ? (
         <UsersPage />
       ) : (
