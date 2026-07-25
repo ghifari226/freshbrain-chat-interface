@@ -19,7 +19,9 @@
   flex-direction: column;
   align-items: center;
   padding: 112px 24px 24px 24px;
-  background: #fcfcfc;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(160deg, #0f2942 0%, #153a5c 45%, #1c6fb0 100%);
   color: #0d0d0d;
   font: 15px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
 }
@@ -111,7 +113,7 @@
   font-weight: 600;
   font-size: 34px;
   line-height: 1.2;
-  color: #0d0d0d;
+  color: #ffffff;
   text-align: center;
 }
 
@@ -120,7 +122,7 @@
 }
 
 .auth-slogan__accent {
-  color: #005e9b;
+  color: #7fd0ff;
 }
 
 .auth-box {
@@ -129,10 +131,10 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  border: 1px solid #e5e5e5;
   border-radius: 12px;
   background: #ffffff;
   padding: 28px;
+  box-shadow: 0 20px 40px -12px rgba(15, 41, 66, 0.45);
 }
 
 .auth-form {
@@ -197,7 +199,7 @@
 .auth-submit {
   border: none;
   border-radius: 8px;
-  background: #419ad2;
+  background: #1c6fb0;
   color: #ffffff;
   font: inherit;
   font-size: 14px;
@@ -236,7 +238,7 @@
 .auth-forgot__link {
   border: none;
   background: transparent;
-  color: #419ad2;
+  color: #1c6fb0;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -263,7 +265,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9a9a9a;
+  color: #8fb9d6;
 }
 
 .auth-family__logos {
@@ -272,11 +274,16 @@
   gap: 28px;
 }
 
+/* freshcommerce/freshfactory/frex have no inverse (light-on-dark) source
+   art, unlike the freshbrain marks — brightness(0) invert(1) forces them
+   to flat white so they read against the navy gradient instead of adding
+   inverse asset variants that don't exist yet. */
 .auth-family__logo {
   height: 36px;
   width: auto;
   object-fit: contain;
-  opacity: 0.85;
+  opacity: 0.9;
+  filter: brightness(0) invert(1);
 }
 
 /* English only regardless of the language toggle — legal/brand boilerplate,
@@ -287,6 +294,6 @@
   left: 50%;
   transform: translateX(-50%);
   font-size: 11px;
-  color: #6e6e6e;
+  color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
 }

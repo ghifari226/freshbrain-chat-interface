@@ -35,7 +35,7 @@ export default function LoginPage({ language, setLanguage }) {
   return (
     <div className="auth-page">
       <div className="auth-page__brand">
-        <img src="/assets/logos/freshbrain-horizontal.svg" alt="FreshBrain" className="auth-page__logo" />
+        <img src="/assets/logos/freshbrain-horizontal-inverse.svg" alt="FreshBrain" className="auth-page__logo" />
       </div>
 
       <div className="auth-card">
