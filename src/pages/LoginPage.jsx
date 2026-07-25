@@ -35,29 +35,7 @@ export default function LoginPage({ language, setLanguage }) {
   return (
     <div className="auth-page">
       <div className="auth-page__brand">
-        <img src="/logo.png" alt="FreshBrain" className="auth-page__logo" />
-        <span className="auth-wordmark">FreshBrain</span>
-      </div>
-
-      <div className="auth-lang-toggle">
-        <button
-          className={
-            'auth-lang-toggle__option' +
-            (language === 'en' ? ' auth-lang-toggle__option--active' : '')
-          }
-          onClick={() => setLanguage('en')}
-        >
-          EN
-        </button>
-        <button
-          className={
-            'auth-lang-toggle__option' +
-            (language === 'id' ? ' auth-lang-toggle__option--active' : '')
-          }
-          onClick={() => setLanguage('id')}
-        >
-          ID
-        </button>
+        <img src="/assets/logos/freshbrain-horizontal.svg" alt="FreshBrain" className="auth-page__logo" />
       </div>
 
       <div className="auth-card">
@@ -80,6 +58,29 @@ export default function LoginPage({ language, setLanguage }) {
         </div>
 
         <div className="auth-box">
+          <div className="auth-box__toolbar">
+            <div className="auth-lang-toggle auth-lang-toggle--compact">
+              <button
+                className={
+                  'auth-lang-toggle__option' +
+                  (language === 'id' ? ' auth-lang-toggle__option--active' : '')
+                }
+                onClick={() => setLanguage('id')}
+              >
+                ID
+              </button>
+              <button
+                className={
+                  'auth-lang-toggle__option' +
+                  (language === 'en' ? ' auth-lang-toggle__option--active' : '')
+                }
+                onClick={() => setLanguage('en')}
+              >
+                EN
+              </button>
+            </div>
+          </div>
+
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
             {formError && <div className="auth-form__error">{t('auth.' + formError)}</div>}
 
@@ -137,6 +138,17 @@ export default function LoginPage({ language, setLanguage }) {
           </form>
         </div>
       </div>
+
+      <div className="auth-family">
+        <span className="auth-family__caption">{t('auth.familyCaption')}</span>
+        <div className="auth-family__logos">
+          <img src="/assets/logos/freshfactory.svg" alt="FreshFactory" className="auth-family__logo" />
+          <img src="/assets/logos/freshcommerce.svg" alt="FreshCommerce" className="auth-family__logo" />
+          <img src="/assets/logos/frex.svg" alt="FreshExpress" className="auth-family__logo" />
+        </div>
+      </div>
+
+      <div className="auth-footer">© 2026 FreshBrain. All rights reserved.</div>
     </div>
   )
 }

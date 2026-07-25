@@ -8,9 +8,17 @@
   min-height: 100vh;
   width: 100%;
   display: flex;
+  /* Top-anchored, not vertically centered — matches dilema's login layout
+     and every viewport height reads the same way (no percentage-of-
+     viewport guessing at "eye level"). Fixed offset from the top, well
+     clear of the brand mark in the corner, instead of splitting leftover
+     space above/below. Column direction so .auth-card and .auth-family
+     stack (and re-flow together if the card's height ever changes, e.g.
+     a form error appearing) — .auth-footer stays absolutely positioned,
+     pinned to the true bottom independent of this flow. */
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
+  padding: 112px 24px 24px 24px;
   background: #fcfcfc;
   color: #0d0d0d;
   font: 15px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -25,16 +33,16 @@
   gap: 8px;
 }
 
+/* Horizontal lockup (icon+wordmark baked into one image) — no more manual
+   "FreshBrain" text span next to a square icon, width is intrinsic to the
+   image's own aspect ratio. */
 .auth-page__logo {
-  width: 24px;
-  height: 24px;
+  height: 28px;
+  width: auto;
   object-fit: contain;
 }
 
 .auth-lang-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
   display: flex;
   gap: 4px;
   background: #f3f3f3;
@@ -59,6 +67,26 @@
   color: #0d0d0d;
 }
 
+/* Lives inside .auth-box now (top-right of the card) instead of the page
+   corner — smaller footprint since it's competing with the form for space. */
+.auth-lang-toggle--compact {
+  gap: 2px;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.auth-lang-toggle--compact .auth-lang-toggle__option {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.auth-box__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -8px;
+}
+
 .auth-card {
   width: 100%;
   max-width: 360px;
@@ -66,13 +94,6 @@
   flex-direction: column;
   align-items: center;
   gap: 20px;
-}
-
-.auth-wordmark {
-  font-family: 'Quicksand', sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-  color: #0d0d0d;
 }
 
 .auth-heading {
@@ -221,4 +242,51 @@
   font-weight: 600;
   padding: 0;
   cursor: pointer;
+}
+
+/* In normal flow, directly under .auth-card — a caption above the icon row
+   is what keeps this from reading as SSO/"sign in with" buttons (the risk
+   with an unlabeled logo row right under a login form): the caption frames
+   it as a claim about the product ("understands your systems"), not a set
+   of clickable options, and there's no button chrome/hover/divider to
+   suggest otherwise. */
+.auth-family {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 40px;
+}
+
+.auth-family__caption {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.auth-family__logos {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.auth-family__logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.85;
+}
+
+/* English only regardless of the language toggle — legal/brand boilerplate,
+   not user-facing copy, so it isn't run through t()/strings.js. */
+.auth-footer {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #6e6e6e;
+  white-space: nowrap;
 }

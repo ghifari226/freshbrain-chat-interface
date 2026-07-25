@@ -7,6 +7,6 @@ export function useT() {
   return function t(path) {
     const entry = path.split('.').reduce((node, key) => node?.[key], strings)
     if (!entry) return path
-    return entry[language] ?? entry.en
+    return entry[language] ?? entry.id
   }
 }

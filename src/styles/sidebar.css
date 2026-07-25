@@ -37,7 +37,7 @@
 }
 
 .sidebar-header {
-  height: 48px;
+  min-height: 56px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -56,9 +56,12 @@
   text-align: left;
 }
 
+/* Horizontal lockup (icon+wordmark baked into one image) — no more manual
+   "FreshBrain" text span next to a square icon, width is intrinsic to the
+   image's own aspect ratio. */
 .sidebar-header__logo {
-  width: 24px;
-  height: 24px;
+  height: 26px;
+  width: auto;
   object-fit: contain;
 }
 
@@ -90,13 +93,6 @@
 
 :root[data-theme='dark'] .sidebar-header__logo--dark {
   display: block;
-}
-
-.sidebar-header__title {
-  font-family: var(--font-brand);
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--text-logo);
 }
 
 .sidebar-header__actions {

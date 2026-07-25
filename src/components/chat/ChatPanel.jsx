@@ -20,8 +20,8 @@ export default function ChatPanel({ conversation, isLoading, onSend, onFeedback,
         <StagingModeToggle />
         <div className="welcome">
           <div className="welcome__greeting">
-            <img src="/logo.png" alt="" className="welcome__logo welcome__logo--light" />
-            <img src="/logo-bright.png" alt="" className="welcome__logo welcome__logo--dark" />
+            <img src="/assets/logos/freshbrain-icon.svg" alt="" className="welcome__logo welcome__logo--light" />
+            <img src="/assets/logos/freshbrain-icon-inverse.svg" alt="" className="welcome__logo welcome__logo--dark" />
             <p className="welcome__caption">{t('chat.greeting')}</p>
           </div>
           <MessageInput

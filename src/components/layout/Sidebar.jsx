@@ -259,16 +259,15 @@ export default function Sidebar({
               }}
             >
               <img
-                src="/logo.png"
+                src="/assets/logos/freshbrain-horizontal.svg"
                 alt="FreshBrain"
                 className="sidebar-header__logo sidebar-header__logo--light"
               />
               <img
-                src="/logo-bright.png"
+                src="/assets/logos/freshbrain-horizontal-inverse.svg"
                 alt="FreshBrain"
                 className="sidebar-header__logo sidebar-header__logo--dark"
               />
-              <span className="sidebar-header__title">FreshBrain</span>
             </button>
             <div className="sidebar-header__actions">
               {isChat && (

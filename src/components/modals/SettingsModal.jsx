@@ -96,8 +96,8 @@ export default function SettingsModal({
             value={language}
             onChange={(event) => setLanguage(event.target.value)}
           >
-            <option value="en">{t('settings.languageEnglish')}</option>
             <option value="id">{t('settings.languageIndonesian')}</option>
+            <option value="en">{t('settings.languageEnglish')}</option>
           </select>
         </div>
       </div>

@@ -5,7 +5,7 @@ const STORAGE_KEY = 'freshbrain-language'
 function getPreferredLanguage() {
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored === 'en' || stored === 'id') return stored
-  return 'en'
+  return 'id'
 }
 
 export function useLanguage() {
