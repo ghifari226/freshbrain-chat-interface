@@ -34,15 +34,16 @@ export default function Sidebar({
   const [isRecentsOpen, setIsRecentsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isSettingsFromNav, setIsSettingsFromNav] = useState(false)
-  // Expanded nav variant's inline children list: no independent open/closed
-  // state, it's just whether you're currently in that section, so it stays
-  // visible as "where am I" context the whole time you're there — normal
-  // pushed-down layout, not an overlay. The collapsed rail's flyout is a
-  // floating overlay instead, so it gets a different model entirely (pure
-  // CSS :hover/:focus-within, no JS state — see sidebar.css): hover previews
-  // the children and closes the instant the mouse leaves, while a click on
-  // the icon itself always just navigates to /config, full stop.
-  const isConfigNavOpen = path.startsWith('/config')
+  // Expanded nav variant's inline children list: independent open/closed
+  // state (seeded from whether you're currently under /config, so landing
+  // directly on e.g. /config/users via URL still shows it expanded), not
+  // purely route-derived — see handleConfigNavClick below for why. The
+  // collapsed rail's flyout is a floating overlay instead, so it gets a
+  // different model entirely (pure CSS :hover/:focus-within, no JS state —
+  // see sidebar.css): hover previews the children and closes the instant the
+  // mouse leaves, while a click on the icon itself always just navigates to
+  // /config, full stop.
+  const [isConfigNavOpen, setIsConfigNavOpen] = useState(() => path.startsWith('/config'))
   // CSS :hover alone has no memory of a click — it'd stay open as long as
   // the mouse hasn't physically moved away, which reads as lingering after
   // a selection. This force-hides it the instant any item (or the icon
@@ -87,6 +88,21 @@ export default function Sidebar({
   function selectFromSearch(conversationId) {
     onSelectConversation(conversationId)
     setIsSearchOpen(false)
+  }
+
+  // Expanded nav's Access Config item is both a link and an accordion
+  // toggle: collapsed -> click opens the /config overview and expands the
+  // children; expanded -> click only collapses, it never re-navigates. That
+  // second half matters because navigate('/config') while already sitting
+  // on e.g. /config/users would otherwise bounce you back to the overview
+  // page just for collapsing the list — this way collapsing never moves you.
+  function handleConfigNavClick() {
+    if (isConfigNavOpen) {
+      setIsConfigNavOpen(false)
+      return
+    }
+    setIsConfigNavOpen(true)
+    navigate('/config')
   }
 
   function selectFromConfigFlyout(nextPath, event) {
@@ -393,7 +409,7 @@ export default function Sidebar({
                           'sidebar-nav__item' +
                           (path.startsWith('/config') ? ' sidebar-nav__item--active' : '')
                         }
-                        onClick={() => navigate('/config')}
+                        onClick={handleConfigNavClick}
                       >
                         <i className="fa-solid fa-shield-halved sidebar-nav__item-icon" />
                         <span className="sidebar-nav__item-label">{t('userMenu.accessConfig')}</span>
@@ -445,7 +461,10 @@ export default function Sidebar({
                     </div>
                   )}
 
-                  <button className="sidebar-nav__item" onClick={() => setIsSettingsFromNav(true)}>
+                  <button
+                    className="sidebar-nav__item sidebar-nav__item--settings"
+                    onClick={() => setIsSettingsFromNav(true)}
+                  >
                     <i className="fa-solid fa-gear sidebar-nav__item-icon" />
                     <span className="sidebar-nav__item-label">{t('userMenu.settings')}</span>
                   </button>

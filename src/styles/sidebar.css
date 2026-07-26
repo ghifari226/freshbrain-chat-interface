@@ -301,6 +301,13 @@
   color: var(--text-muted);
 }
 
+/* Sets Settings apart from Freshpedia/Tool Catalog/Access Config above it,
+   the same "lil bit of space" .conversation-item--new's margin-bottom
+   already gives Back to Chat above the nav list. */
+.sidebar-nav__item--settings {
+  margin-top: 8px;
+}
+
 .sidebar-nav__children {
   display: flex;
   flex-direction: column;

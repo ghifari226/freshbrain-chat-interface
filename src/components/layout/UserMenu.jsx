@@ -55,19 +55,16 @@ export default function UserMenu({
           </button>
           <div className="menu__divider" />
           {path !== '/' && (
-            <>
-              <button
-                className="menu__item"
-                onClick={() => {
-                  navigate('/')
-                  setIsOpen(false)
-                }}
-              >
-                <i className="fa-solid fa-arrow-left menu__item-icon" />
-                {t('config.backToChat')}
-              </button>
-              <div className="menu__divider" />
-            </>
+            <button
+              className="menu__item"
+              onClick={() => {
+                navigate('/')
+                setIsOpen(false)
+              }}
+            >
+              <i className="fa-solid fa-arrow-left menu__item-icon" />
+              {t('config.backToChat')}
+            </button>
           )}
           <button
             className="menu__item"
@@ -79,6 +76,7 @@ export default function UserMenu({
             <i className="fa-solid fa-gear menu__item-icon" />
             {t('userMenu.settings')}
           </button>
+          <div className="menu__divider" />
           {canAccessFreshpedia(session) && (
             <button
               className="menu__item"
