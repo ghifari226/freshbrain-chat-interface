@@ -137,6 +137,7 @@
 }
 
 .config-card__title {
+  color: var(--text-chat);
   font-size: 15px;
   font-weight: 600;
 }
@@ -637,6 +638,27 @@
   gap: 8px;
 }
 
+/* Status chips (Production/Staging/Request) and the secondary filter axis
+   (Tool Catalog's systems, Freshpedia's types) sit inline on one row with a
+   real divider between them, rather than stacked as two separate rows —
+   makes it visually obvious these are two different kinds of filter, not
+   one long chip list. */
+.filter-bar__chip-groups {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filter-bar__divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
 /* Every filter/status chip across Roles, Permissions, Users, Freshpedia,
    and Tool Catalog uses MUI's size="small" Chip — bumped up globally here
    rather than per-page, so it stays one source of truth. Landing between
@@ -719,7 +741,6 @@
 .permission-entry__key {
   font-family: monospace;
   color: var(--text-muted);
-  margin-left: 24px;
 }
 
 /* Transition-icon and edit-icon colors on entry-index rows — green for a

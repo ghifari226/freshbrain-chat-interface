@@ -403,48 +403,50 @@ export default function FreshpediaPage({ language }) {
           </div>
         )}
 
-        {availableStatusFilters.length > 1 && (
-          <div className="filter-bar">
-            <div
-              className="filter-bar__chips"
-              role="group"
-              aria-label={t('freshpedia.filterByStatusLabel')}
-            >
-              {availableStatusFilters.map((status) => {
-                const isActive =
-                  status === 'request' ? isRequestActive : !isRequestActive && selectedStatuses.has(status)
+        <div className="filter-bar">
+          <div className="filter-bar__chip-groups">
+            {availableStatusFilters.length > 1 && (
+              <div
+                className="filter-bar__chips"
+                role="group"
+                aria-label={t('freshpedia.filterByStatusLabel')}
+              >
+                {availableStatusFilters.map((status) => {
+                  const isActive =
+                    status === 'request' ? isRequestActive : !isRequestActive && selectedStatuses.has(status)
+                  return (
+                    <Chip
+                      key={status}
+                      label={t(`freshpedia.${status}Status`)}
+                      size="small"
+                      clickable
+                      onClick={() => toggleStatusFilter(status)}
+                      color={isActive ? 'primary' : 'default'}
+                      variant={isActive ? 'filled' : 'outlined'}
+                    />
+                  )
+                })}
+              </div>
+            )}
+
+            {availableStatusFilters.length > 1 && <span className="filter-bar__divider" />}
+
+            <div className="filter-bar__chips" role="group" aria-label={t('freshpedia.filterByTypeLabel')}>
+              {ENTRY_TYPES.map((type) => {
+                const isActive = selectedTypes.has(type)
                 return (
                   <Chip
-                    key={status}
-                    label={t(`freshpedia.${status}Status`)}
+                    key={type}
+                    label={t(`freshpedia.${type}Type`)}
                     size="small"
                     clickable
-                    onClick={() => toggleStatusFilter(status)}
-                    color={isActive ? 'primary' : 'default'}
+                    onClick={() => toggleTypeFilter(type)}
                     variant={isActive ? 'filled' : 'outlined'}
+                    className={isActive ? 'chip--secondary-active' : undefined}
                   />
                 )
               })}
             </div>
-          </div>
-        )}
-
-        <div className="filter-bar">
-          <div className="filter-bar__chips" role="group" aria-label={t('freshpedia.filterByTypeLabel')}>
-            {ENTRY_TYPES.map((type) => {
-              const isActive = selectedTypes.has(type)
-              return (
-                <Chip
-                  key={type}
-                  label={t(`freshpedia.${type}Type`)}
-                  size="small"
-                  clickable
-                  onClick={() => toggleTypeFilter(type)}
-                  variant={isActive ? 'filled' : 'outlined'}
-                  className={isActive ? 'chip--secondary-active' : undefined}
-                />
-              )
-            })}
           </div>
           <input
             type="search"
@@ -475,7 +477,7 @@ export default function FreshpediaPage({ language }) {
                         label={t(`freshpedia.${entry.status}Status`)}
                         size="small"
                         color={STATUS_COLOR[entry.status]}
-                        variant={entry.status === 'production' ? 'filled' : 'outlined'}
+                        variant={entry.status === 'request' ? 'outlined' : 'filled'}
                       />
                       {canChangeStatus && (
                         <Tooltip title={t(transition.labelKey)}>

@@ -9,7 +9,7 @@ export const strings = {
     newChat: { id: 'Obrolan baru', en: 'New chat' },
     recents: { id: 'Terkini', en: 'Recents' },
     search: { id: 'Cari', en: 'Search' },
-    expandSidebar: { id: 'Perluas sidebar', en: 'Expand sidebar' },
+    expandSidebar: { id: 'Buka sidebar', en: 'Open sidebar' },
     closeSidebar: { id: 'Tutup sidebar', en: 'Close sidebar' },
     recentChats: { id: 'Obrolan terkini', en: 'Recent chats' },
     noConversations: { id: 'Belum ada obrolan', en: 'No conversations yet' },
@@ -113,14 +113,10 @@ export const strings = {
     navRoles: { id: 'Cakupan peran', en: 'Role Scopes' },
     navPermissions: { id: 'Hak akses sistem', en: 'System permissions' },
     navUsers: { id: 'Pengguna', en: 'Users' },
-    homeIntro: {
-      id: 'Kelola sistem internal FreshBrain mana yang dapat diakses oleh setiap peran. Halaman ini hanya mengatur akses — tidak ada hubungannya dengan mendefinisikan tools atau kapabilitas itu sendiri.',
-      en: "Manage which of FreshBrain's internal systems each role can query. This page only controls access — it has nothing to do with defining the tools or capabilities themselves.",
-    },
     rolesCardTitle: { id: 'Cakupan peran', en: 'Role Scopes' },
     rolesCardDesc: {
-      id: 'Tambah, ubah nama, atau hapus peran, dan atur scope yang dapat diakses tiap peran.',
-      en: 'Add, rename, or remove roles, and assign which scopes each one can access.',
+      id: 'Tambah atau ubah nama peran, dan atur scope yang dapat diakses tiap peran.',
+      en: 'Add or rename roles, and assign which scopes each one can access.',
     },
     permissionsCardTitle: { id: 'Hak akses sistem', en: 'System permissions' },
     permissionsCardDesc: {

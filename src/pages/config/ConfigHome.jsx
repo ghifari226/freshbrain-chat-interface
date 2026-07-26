@@ -6,8 +6,6 @@ export default function ConfigHome({ navigate, session }) {
 
   return (
     <div className="config-home">
-      <p className="config-home__intro">{t('config.homeIntro')}</p>
-
       <div className="config-home__cards">
         {canViewRoles(session) && (
           <button className="config-card" onClick={() => navigate('/config/roles')}>

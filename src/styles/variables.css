@@ -52,8 +52,10 @@
 }
 
 /* Explicit theme/tone overrides win over the OS-preference defaults above.
-   Cool matches the original neutral palette; warm gives each area (chat,
-   sidebar, wordmark) its own tint. The tone-only warm rule below has higher
+   Cool matches the original neutral palette (pending a real FreshFactory-
+   brand "cool" — see variables-cool-reference.css, parked there until the
+   rest of the UI is finalized); warm gives each area (chat, sidebar,
+   wordmark) its own tint. The tone-only warm rule below has higher
    specificity than the theme-only rule, so it wins regardless of source
    order or whether data-tone is set yet. --text-logo stays brightness-only
    (unset in the warm blocks) since the wordmark keeps a fixed color across

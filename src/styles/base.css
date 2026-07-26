@@ -17,6 +17,22 @@ button {
   cursor: pointer;
 }
 
+/* Global, not per-usage — applies to every checkbox in the app (Roles'
+   scope checkboxes, Users' permission checkboxes, any future one) without
+   needing a class on each input. accent-color recolors the checked-state
+   fill/checkmark to match the app's own brand blue instead of the OS/
+   browser default blue, in both themes; the unchecked box's border/fill
+   already auto-adapts to light/dark on its own via color-scheme in
+   variables.css, so only the checked color needed pinning down. Slightly
+   bigger than the ~13px browser default so it doesn't read as an
+   undersized, generic OS control next to the rest of this hand-styled UI. */
+input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .app {
   display: flex;
   height: 100vh;

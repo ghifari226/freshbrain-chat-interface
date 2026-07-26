@@ -42,15 +42,21 @@
   color: var(--text-muted);
 }
 
+/* Fixed width shared with .font-select below — both toggle rows and both
+   dropdown rows sit under each other in the same modal, so they need to
+   line up to a common width (185.4px, the widest of the two toggles across
+   both locales) rather than each sizing to its own content. */
 .theme-toggle {
   display: flex;
   gap: 4px;
+  width: 186px;
   background: var(--surface-response);
   border-radius: 8px;
   padding: 3px;
 }
 
 .theme-toggle__option {
+  flex: 1;
   border: none;
   background: transparent;
   color: var(--text-muted);
@@ -59,6 +65,7 @@
   font-size: 13px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
@@ -68,6 +75,7 @@
 }
 
 .font-select {
+  width: 186px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-chat);

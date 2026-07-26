@@ -33,15 +33,33 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isRecentsOpen, setIsRecentsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isConfigFlyoutOpen, setIsConfigFlyoutOpen] = useState(false)
   const [isSettingsFromNav, setIsSettingsFromNav] = useState(false)
-  // Expanded nav variant's Access Configuration group — starts open when
-  // landing directly on a /config/* deep link, and re-opens any time
-  // navigation (from here or elsewhere, e.g. UserMenu) lands on /config so
-  // the group is never collapsed while one of its own children is active.
-  const [isConfigNavOpen, setIsConfigNavOpen] = useState(() => path.startsWith('/config'))
+  // Expanded nav variant's inline children list: no independent open/closed
+  // state, it's just whether you're currently in that section, so it stays
+  // visible as "where am I" context the whole time you're there — normal
+  // pushed-down layout, not an overlay. The collapsed rail's flyout is a
+  // floating overlay instead, so it gets a different model entirely (pure
+  // CSS :hover/:focus-within, no JS state — see sidebar.css): hover previews
+  // the children and closes the instant the mouse leaves, while a click on
+  // the icon itself always just navigates to /config, full stop.
+  const isConfigNavOpen = path.startsWith('/config')
+  // CSS :hover alone has no memory of a click — it'd stay open as long as
+  // the mouse hasn't physically moved away, which reads as lingering after
+  // a selection. This force-hides it the instant any item (or the icon
+  // itself) is clicked, regardless of continued hover, and clears again on
+  // a later mouseleave so the next hover-in opens it fresh.
+  const [isConfigFlyoutSuppressed, setIsConfigFlyoutSuppressed] = useState(false)
+  // Hiding the flyout out from under a stationary cursor (via the
+  // suppression above) exposes whatever page content was underneath it,
+  // which the browser correctly treats as "the mouse left the sidebar" —
+  // a real mouseleave, not a glitch. But that means the mouse has
+  // effectively moved onto the page, not back onto the sidebar, so no
+  // further mouseleave will ever come along to clear the suppression flag
+  // — it'd stay stuck until the user happened to hover the sidebar and
+  // back off again. A fixed timeout clears it deterministically instead,
+  // independent of whatever mouse events do or don't fire in between.
+  const configFlyoutTimeoutRef = useRef(null)
   const recentsWrapRef = useRef(null)
-  const configFlyoutRef = useRef(null)
 
   const canSeeFreshpedia = canAccessFreshpedia(session)
   const canSeeToolCatalog = canAccessToolCatalog(session)
@@ -49,10 +67,6 @@ export default function Sidebar({
   const canSeeRoles = canViewRoles(session)
   const canSeePermissions = canViewPermissions(session)
   const canSeeUsers = canViewUsers(session)
-
-  useEffect(() => {
-    if (path.startsWith('/config')) setIsConfigNavOpen(true)
-  }, [path])
 
   useEffect(() => {
     if (!isRecentsOpen) return
@@ -65,17 +79,6 @@ export default function Sidebar({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isRecentsOpen])
 
-  useEffect(() => {
-    if (!isConfigFlyoutOpen) return
-    function handleClickOutside(event) {
-      if (configFlyoutRef.current && !configFlyoutRef.current.contains(event.target)) {
-        setIsConfigFlyoutOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isConfigFlyoutOpen])
-
   function selectRecent(conversationId) {
     onSelectConversation(conversationId)
     setIsRecentsOpen(false)
@@ -86,9 +89,16 @@ export default function Sidebar({
     setIsSearchOpen(false)
   }
 
-  function navigateFromFlyout(nextPath) {
+  function selectFromConfigFlyout(nextPath, event) {
+    // Clicking a button gives it native focus, which persists even after it
+    // becomes display:none — leaving :focus-within (added for keyboard
+    // access) matching and reopening the menu right behind the suppression
+    // below. Blur it explicitly so focus-within actually clears too.
+    event.currentTarget.blur()
     navigate(nextPath)
-    setIsConfigFlyoutOpen(false)
+    setIsConfigFlyoutSuppressed(true)
+    clearTimeout(configFlyoutTimeoutRef.current)
+    configFlyoutTimeoutRef.current = setTimeout(() => setIsConfigFlyoutSuppressed(false), 300)
   }
 
   return (
@@ -97,23 +107,40 @@ export default function Sidebar({
         <>
           <div className="sidebar-collapsed__top">
             <button
-              className="icon-button"
+              className="icon-button sidebar-collapsed__toggle"
               aria-label={t('sidebar.expandSidebar')}
+              data-tooltip={t('sidebar.expandSidebar')}
               onClick={() => setIsCollapsed(false)}
             >
-              <i className="fa-solid fa-table-columns" />
+              <img
+                src="/assets/logos/freshbrain-icon.svg"
+                alt=""
+                className="sidebar-collapsed__toggle-logo sidebar-collapsed__toggle-logo--light"
+              />
+              <img
+                src="/assets/logos/freshbrain-icon-inverse.svg"
+                alt=""
+                className="sidebar-collapsed__toggle-logo sidebar-collapsed__toggle-logo--dark"
+              />
+              <i className="fa-solid fa-table-columns sidebar-collapsed__toggle-icon" />
             </button>
           </div>
 
           {isChat ? (
             <>
-              <button className="icon-button" aria-label={t('sidebar.newChat')} onClick={onNewChat}>
+              <button
+                className="icon-button"
+                aria-label={t('sidebar.newChat')}
+                data-tooltip={t('sidebar.newChat')}
+                onClick={onNewChat}
+              >
                 <i className="fa-solid fa-plus" />
               </button>
 
               <button
                 className="icon-button"
                 aria-label={t('sidebar.search')}
+                data-tooltip={t('sidebar.search')}
                 onClick={() => setIsSearchOpen(true)}
               >
                 <i className="fa-solid fa-magnifying-glass" />
@@ -123,6 +150,7 @@ export default function Sidebar({
                 <button
                   className={'icon-button' + (isRecentsOpen ? ' icon-button--active' : '')}
                   aria-label={t('sidebar.recentChats')}
+                  data-tooltip={isRecentsOpen ? undefined : t('sidebar.recentChats')}
                   onClick={() => setIsRecentsOpen((open) => !open)}
                 >
                   <i className="fa-solid fa-comment" />
@@ -154,6 +182,7 @@ export default function Sidebar({
               <button
                 className="icon-button"
                 aria-label={t('config.backToChat')}
+                data-tooltip={t('config.backToChat')}
                 onClick={() => navigate('/')}
               >
                 <i className="fa-solid fa-arrow-left" />
@@ -163,6 +192,7 @@ export default function Sidebar({
                 <button
                   className={'icon-button' + (path === '/freshpedia' ? ' icon-button--active' : '')}
                   aria-label={t('userMenu.freshpedia')}
+                  data-tooltip={t('userMenu.freshpedia')}
                   onClick={() => navigate('/freshpedia')}
                 >
                   <i className="fa-solid fa-book-open" />
@@ -173,6 +203,7 @@ export default function Sidebar({
                 <button
                   className={'icon-button' + (path === '/tool-catalog' ? ' icon-button--active' : '')}
                   aria-label={t('userMenu.toolCatalog')}
+                  data-tooltip={t('userMenu.toolCatalog')}
                   onClick={() => navigate('/tool-catalog')}
                 >
                   <i className="fa-solid fa-toolbox" />
@@ -180,52 +211,57 @@ export default function Sidebar({
               )}
 
               {canSeeConfig && (
-                <div className="sidebar-collapsed__recents" ref={configFlyoutRef}>
+                <div
+                  className={
+                    'sidebar-collapsed__recents sidebar-collapsed__config-flyout' +
+                    (isConfigFlyoutSuppressed ? ' sidebar-collapsed__config-flyout--suppressed' : '')
+                  }
+                  onMouseLeave={() => {
+                    clearTimeout(configFlyoutTimeoutRef.current)
+                    setIsConfigFlyoutSuppressed(false)
+                  }}
+                >
                   <button
-                    className={
-                      'icon-button' +
-                      (path.startsWith('/config') || isConfigFlyoutOpen ? ' icon-button--active' : '')
-                    }
+                    className={'icon-button' + (path.startsWith('/config') ? ' icon-button--active' : '')}
                     aria-label={t('userMenu.accessConfig')}
-                    onClick={() => setIsConfigFlyoutOpen((open) => !open)}
+                    onClick={(event) => selectFromConfigFlyout('/config', event)}
                   >
                     <i className="fa-solid fa-shield-halved" />
                   </button>
 
-                  {isConfigFlyoutOpen && (
-                    <div className="menu menu--recents">
-                      {canSeeRoles && (
-                        <button
-                          className="menu__item"
-                          onClick={() => navigateFromFlyout('/config/roles')}
-                        >
-                          <span className="menu__item-text">{t('config.navRoles')}</span>
-                        </button>
-                      )}
-                      {canSeePermissions && (
-                        <button
-                          className="menu__item"
-                          onClick={() => navigateFromFlyout('/config/permissions')}
-                        >
-                          <span className="menu__item-text">{t('config.navPermissions')}</span>
-                        </button>
-                      )}
-                      {canSeeUsers && (
-                        <button
-                          className="menu__item"
-                          onClick={() => navigateFromFlyout('/config/users')}
-                        >
-                          <span className="menu__item-text">{t('config.navUsers')}</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="menu menu--recents">
+                    {canSeeRoles && (
+                      <button
+                        className="menu__item"
+                        onClick={(event) => selectFromConfigFlyout('/config/roles', event)}
+                      >
+                        <span className="menu__item-text">{t('config.navRoles')}</span>
+                      </button>
+                    )}
+                    {canSeePermissions && (
+                      <button
+                        className="menu__item"
+                        onClick={(event) => selectFromConfigFlyout('/config/permissions', event)}
+                      >
+                        <span className="menu__item-text">{t('config.navPermissions')}</span>
+                      </button>
+                    )}
+                    {canSeeUsers && (
+                      <button
+                        className="menu__item"
+                        onClick={(event) => selectFromConfigFlyout('/config/users', event)}
+                      >
+                        <span className="menu__item-text">{t('config.navUsers')}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
               <button
                 className="icon-button"
                 aria-label={t('userMenu.settings')}
+                data-tooltip={t('userMenu.settings')}
                 onClick={() => setIsSettingsFromNav(true)}
               >
                 <i className="fa-solid fa-gear" />
@@ -274,6 +310,7 @@ export default function Sidebar({
                 <button
                   className="icon-button"
                   aria-label={t('sidebar.search')}
+                  data-tooltip={t('sidebar.search')}
                   onClick={() => setIsSearchOpen(true)}
                 >
                   <i className="fa-solid fa-magnifying-glass" />
@@ -282,6 +319,7 @@ export default function Sidebar({
               <button
                 className="icon-button"
                 aria-label={t('sidebar.closeSidebar')}
+                data-tooltip={t('sidebar.closeSidebar')}
                 onClick={() => setIsCollapsed(true)}
               >
                 <i className="fa-solid fa-table-columns" />
@@ -355,7 +393,7 @@ export default function Sidebar({
                           'sidebar-nav__item' +
                           (path.startsWith('/config') ? ' sidebar-nav__item--active' : '')
                         }
-                        onClick={() => setIsConfigNavOpen((open) => !open)}
+                        onClick={() => navigate('/config')}
                       >
                         <i className="fa-solid fa-shield-halved sidebar-nav__item-icon" />
                         <span className="sidebar-nav__item-label">{t('userMenu.accessConfig')}</span>

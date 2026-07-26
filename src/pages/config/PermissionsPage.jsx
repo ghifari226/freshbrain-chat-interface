@@ -163,9 +163,9 @@ export default function PermissionsPage({ session }) {
                   <div className="entry-index__entry-row">
                     <span className="entry-index__entry-label">
                       <span className="permission-entry__label">{t(entry.labelKey)}</span>
-                      <code className="permission-entry__key">{entry.key}</code>
                     </span>
                     <div className="entry-index__actions">
+                      <code className="permission-entry__key">{entry.key}</code>
                       {canEdit && (
                         <Tooltip title={t('config.editPermission')}>
                           <button

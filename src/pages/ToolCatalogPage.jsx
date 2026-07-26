@@ -276,7 +276,7 @@ export default function ToolCatalogPage() {
             label={t(`toolCatalog.${params.value}Status`)}
             size="small"
             color={STATUS_COLOR[params.value]}
-            variant={params.value === 'production' ? 'filled' : 'outlined'}
+            variant={params.value === 'request' ? 'outlined' : 'filled'}
           />
         ),
       },
@@ -371,62 +371,71 @@ export default function ToolCatalogPage() {
           </div>
         )}
 
-        {availableStatusFilters.length > 1 && (
+        {(availableStatusFilters.length > 1 || systems.length > 0) && (
           <div className="filter-bar">
-            <div
-              className="filter-bar__chips"
-              role="group"
-              aria-label={t('toolCatalog.filterByStatusLabel')}
-            >
-              {availableStatusFilters.map((status) => {
-                const isActive =
-                  status === 'request' ? isRequestActive : !isRequestActive && selectedStatuses.has(status)
-                return (
-                  <Chip
-                    key={status}
-                    label={t(`toolCatalog.${status}Status`)}
-                    size="small"
-                    clickable
-                    onClick={() => toggleStatusFilter(status)}
-                    color={isActive ? 'primary' : 'default'}
-                    variant={isActive ? 'filled' : 'outlined'}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        )}
+            <div className="filter-bar__chip-groups">
+              {availableStatusFilters.length > 1 && (
+                <div
+                  className="filter-bar__chips"
+                  role="group"
+                  aria-label={t('toolCatalog.filterByStatusLabel')}
+                >
+                  {availableStatusFilters.map((status) => {
+                    const isActive =
+                      status === 'request' ? isRequestActive : !isRequestActive && selectedStatuses.has(status)
+                    return (
+                      <Chip
+                        key={status}
+                        label={t(`toolCatalog.${status}Status`)}
+                        size="small"
+                        clickable
+                        onClick={() => toggleStatusFilter(status)}
+                        color={isActive ? 'primary' : 'default'}
+                        variant={isActive ? 'filled' : 'outlined'}
+                      />
+                    )
+                  })}
+                </div>
+              )}
 
-        {systems.length > 0 && (
-          <div className="filter-bar">
-            <div
-              className="filter-bar__chips"
-              role="group"
-              aria-label={t('toolCatalog.filterBySystemLabel')}
-            >
-              {systems.map(({ system }) => {
-                const isActive = selectedSystems.has(system)
-                return (
-                  <Chip
-                    key={system}
-                    label={system}
-                    size="small"
-                    clickable
-                    onClick={() => toggleSystemFilter(system)}
-                    variant={isActive ? 'filled' : 'outlined'}
-                    className={isActive ? 'chip--secondary-active' : undefined}
-                  />
-                )
-              })}
+              {availableStatusFilters.length > 1 && systems.length > 0 && (
+                <span className="filter-bar__divider" />
+              )}
+
+              {systems.length > 0 && (
+                <div
+                  className="filter-bar__chips"
+                  role="group"
+                  aria-label={t('toolCatalog.filterBySystemLabel')}
+                >
+                  {systems.map(({ system }) => {
+                    const isActive = selectedSystems.has(system)
+                    return (
+                      <Chip
+                        key={system}
+                        label={system}
+                        size="small"
+                        clickable
+                        onClick={() => toggleSystemFilter(system)}
+                        variant={isActive ? 'filled' : 'outlined'}
+                        className={isActive ? 'chip--secondary-active' : undefined}
+                      />
+                    )
+                  })}
+                </div>
+              )}
             </div>
-            <input
-              type="search"
-              className="form-field__input filter-bar__search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={t('toolCatalog.searchPlaceholder')}
-              aria-label={t('toolCatalog.searchPlaceholder')}
-            />
+
+            {systems.length > 0 && (
+              <input
+                type="search"
+                className="form-field__input filter-bar__search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t('toolCatalog.searchPlaceholder')}
+                aria-label={t('toolCatalog.searchPlaceholder')}
+              />
+            )}
           </div>
         )}
 

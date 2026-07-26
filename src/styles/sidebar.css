@@ -32,6 +32,120 @@
   position: relative;
 }
 
+/* Access Config's collapsed-rail flyout is a hover preview, not a click
+   toggle (unlike Recents just above, which shares the positioning class
+   but keeps its click-open/click-outside-close behavior) — closes itself
+   the instant the mouse leaves, no state or listeners needed. A click on
+   the icon underneath always just navigates to /config regardless of
+   whether the flyout happened to be showing. :focus-within keeps this
+   reachable via keyboard tabbing, not just a mouse. */
+.sidebar-collapsed__config-flyout .menu--recents {
+  display: none;
+}
+
+.sidebar-collapsed__config-flyout:hover .menu--recents,
+.sidebar-collapsed__config-flyout:focus-within .menu--recents {
+  display: flex;
+}
+
+/* No gap between the icon and the flyout — Recents (above) can afford the
+   base 8px gap since it's click-toggled, but a hover-only menu needs the
+   mouse to cross zero empty space getting from the icon to the menu
+   itself, otherwise that dead strip breaks :hover mid-transit and the menu
+   vanishes before the pointer ever reaches it. */
+.sidebar-collapsed__config-flyout .menu--recents {
+  left: 100%;
+}
+
+/* Force-hidden the instant an item is clicked (see Sidebar.jsx), regardless
+   of the mouse still technically hovering — otherwise a hover-only menu
+   has no way to react to "you just picked one," and it reads as lingering
+   rather than a completed action. !important because it must win over the
+   :hover rule above while the mouse hasn't moved away yet (same element,
+   same specificity otherwise). */
+.sidebar-collapsed__config-flyout--suppressed .menu--recents {
+  display: none !important;
+}
+
+/* Collapsed rail's expand control shows the brand mark at rest — reads as
+   "FreshBrain", not a generic control — and swaps to the actual
+   expand-sidebar icon on hover, right when someone's about to click it.
+   Both images always render; theme picks light/dark, :hover picks
+   logo-vs-icon (higher specificity than the theme rule, so it wins
+   regardless of light/dark). */
+.sidebar-collapsed__toggle-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  display: none;
+}
+
+.sidebar-collapsed__toggle-icon {
+  display: block;
+}
+
+:root[data-theme='light'] .sidebar-collapsed__toggle-logo--light {
+  display: block;
+}
+
+:root[data-theme='light'] .sidebar-collapsed__toggle-icon {
+  display: none;
+}
+
+:root[data-theme='dark'] .sidebar-collapsed__toggle-logo--dark {
+  display: block;
+}
+
+:root[data-theme='dark'] .sidebar-collapsed__toggle-icon {
+  display: none;
+}
+
+.sidebar-collapsed__toggle:hover .sidebar-collapsed__toggle-logo {
+  display: none;
+}
+
+.sidebar-collapsed__toggle:hover .sidebar-collapsed__toggle-icon {
+  display: block;
+}
+
+/* Name tooltip for icon-only sidebar buttons — every icon in the collapsed
+   rail (no text label at all once collapsed) plus the couple of icon-only
+   controls that stay icon-only even when expanded (search, the sidebar
+   toggle). Scoped by the data-tooltip attribute itself, not collapsed
+   state, since most expanded nav items already show a text label and never
+   get the attribute. data-tooltip is left unset (see Sidebar.jsx) while a
+   button's own flyout menu is open, so the two floating elements (both
+   anchored to the same left edge) never show at once. */
+.sidebar .icon-button {
+  position: relative;
+}
+
+.sidebar .icon-button[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background: var(--surface-response);
+  color: var(--text-chat);
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 30;
+}
+
+.sidebar .icon-button[data-tooltip]:hover::after,
+.sidebar .icon-button[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
 .sidebar-collapsed__spacer {
   flex: 1;
 }
