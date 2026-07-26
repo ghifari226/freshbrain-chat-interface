@@ -230,20 +230,20 @@ export default function Sidebar({
                   </button>
 
                   <div className="menu menu--recents">
-                    {canSeeRoles && (
-                      <button
-                        className="menu__item"
-                        onClick={(event) => selectFromConfigFlyout('/config/roles', event)}
-                      >
-                        <span className="menu__item-text">{t('config.navRoles')}</span>
-                      </button>
-                    )}
                     {canSeePermissions && (
                       <button
                         className="menu__item"
                         onClick={(event) => selectFromConfigFlyout('/config/permissions', event)}
                       >
                         <span className="menu__item-text">{t('config.navPermissions')}</span>
+                      </button>
+                    )}
+                    {canSeeRoles && (
+                      <button
+                        className="menu__item"
+                        onClick={(event) => selectFromConfigFlyout('/config/roles', event)}
+                      >
+                        <span className="menu__item-text">{t('config.navRoles')}</span>
                       </button>
                     )}
                     {canSeeUsers && (
@@ -407,17 +407,6 @@ export default function Sidebar({
 
                       {isConfigNavOpen && (
                         <div className="sidebar-nav__children">
-                          {canSeeRoles && (
-                            <button
-                              className={
-                                'sidebar-nav__child-item' +
-                                (path === '/config/roles' ? ' sidebar-nav__child-item--active' : '')
-                              }
-                              onClick={() => navigate('/config/roles')}
-                            >
-                              {t('config.navRoles')}
-                            </button>
-                          )}
                           {canSeePermissions && (
                             <button
                               className={
@@ -427,6 +416,17 @@ export default function Sidebar({
                               onClick={() => navigate('/config/permissions')}
                             >
                               {t('config.navPermissions')}
+                            </button>
+                          )}
+                          {canSeeRoles && (
+                            <button
+                              className={
+                                'sidebar-nav__child-item' +
+                                (path === '/config/roles' ? ' sidebar-nav__child-item--active' : '')
+                              }
+                              onClick={() => navigate('/config/roles')}
+                            >
+                              {t('config.navRoles')}
                             </button>
                           )}
                           {canSeeUsers && (

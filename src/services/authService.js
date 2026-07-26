@@ -95,10 +95,10 @@ function makeResetToken() {
 }
 
 // Re-derives the 17 boolean fields from a stored MOCK_USERS row, forcing
-// Superadmin's 3 locked fields to true regardless of what's stored —
+// Superadmin's locked field(s) to true regardless of what's stored —
 // defense in depth, not just a creation-time seed. Only forces them TRUE
-// for Superadmin; every other role's copies of these same 3 fields are
-// ordinary stored booleans (this is what lets Technology hold them true
+// for Superadmin; every other role's copy of these same field(s) is an
+// ordinary stored boolean (this is what lets Technology hold them true
 // too, without being locked — "true because it's stored true", not "true
 // because of a role override"). Called from every read path (toSession,
 // toDirectoryEntry) so the Superadmin lock can never drift even from a bad
@@ -290,11 +290,11 @@ export async function updateUser(email, updates, actor) {
 
   // Superadmin-lock write protection — only for a Superadmin target
   // (current role, since a role-change update hasn't been applied yet at
-  // this point): these 3 only ever flip as a side effect of a role change
-  // for Superadmin, never a direct boolean write by anyone. Every other
-  // role's copies of these same 3 fields are ordinary editable booleans —
-  // this is exactly what "don't lock anything to Technology" means in
-  // practice.
+  // this point): these locked field(s) only ever flip as a side effect of
+  // a role change for Superadmin, never a direct boolean write by anyone.
+  // Every other role's copies of these same field(s) are ordinary editable
+  // booleans — this is exactly what "don't lock anything to Technology"
+  // means in practice.
   if (user.role === 'Superadmin') {
     for (const field of SUPERADMIN_LOCKED_PERMISSIONS) {
       if (updates[field] !== undefined) {
@@ -304,7 +304,7 @@ export async function updateUser(email, updates, actor) {
   }
 
   // Reassigning ANY user to Superadmin requires the actor to already hold
-  // all 3 locked permissions themselves — not just user.edit. Applies
+  // all locked permissions themselves — not just user.edit. Applies
   // regardless of whether the target is the actor's own row. Gated on an
   // actual transition (user.role !== 'Superadmin' already) so a no-op edit
   // that merely leaves an existing Superadmin user's role field unchanged

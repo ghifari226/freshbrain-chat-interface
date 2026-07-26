@@ -493,28 +493,6 @@
   margin-bottom: 16px;
 }
 
-/* Lighter-weight than .config-add-form's dialog form — used for single-field
-   inline adds (Role Catalog) that don't need a whole MUI Dialog. */
-.config-inline-form {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-top: 12px;
-}
-
-.config-inline-form .form-field__input {
-  flex: 1;
-}
-
-.config-inline-form__actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
 /* Theme-aware counterparts of auth.css's .form-field__label/__input/
    __select/__error, which are pinned to light/cool but scoped to
    .auth-page there — these same class names are reused for every form

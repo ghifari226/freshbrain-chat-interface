@@ -1,46 +1,39 @@
 import { useMemo, useState } from 'react'
-import { Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Tooltip } from '@mui/material'
-import {
-  PERMISSION_GROUPS,
-  getPermissionCatalog,
-  addPermissionToCatalog,
-  updatePermissionInCatalog,
-} from '../../config/permissions.js'
-import { useT } from '../../hooks/useT.js'
+import { Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material'
+import { PERMISSION_GROUPS, getPermissionCatalog, updatePermissionInCatalog } from '../../config/permissions.js'
+import { useT, resolveLabelEntry } from '../../hooks/useT.js'
 
-const EMPTY_FORM = { key: '', group: PERMISSION_GROUPS[0].id, label: '' }
+function isFormValid(form) {
+  return Boolean(form.labelId.trim())
+}
 
 // Hardcoded for now, per the request — not derived from PERMISSION_GROUPS,
-// since "Role"/"Permission"/"User" are a finer split than the two display
+// since "Permission"/"Role"/"User" are a finer split than the two display
 // groups (all three currently live inside "System Access"). "Chat
-// capability access" matches that group 1:1 (tool/freshpedia/staging).
+// capability access" matches that group 1:1 (freshpedia/tool/staging).
+// Permission before Role before User, matching the same order as
+// SYSTEM_ACCESS_PERMISSIONS/the sidebar/the landing page.
 const FILTER_CHIPS = [
   { id: 'chat_capability', labelKey: 'permissions.chatAccessSectionLabel', match: (key) => key.startsWith('tool.') || key.startsWith('freshpedia.') || key.startsWith('staging.') },
-  { id: 'role', labelKey: 'config.filterChipRole', match: (key) => key.startsWith('role_scope.') },
   { id: 'permission', labelKey: 'config.filterChipPermission', match: (key) => key.startsWith('permission.') },
+  { id: 'role', labelKey: 'config.filterChipRole', match: (key) => key.startsWith('role_scope.') },
   { id: 'user', labelKey: 'config.filterChipUser', match: (key) => key.startsWith('user.') },
 ]
 
-// Permission add/edit are UI-only — there's no way to add an 18th boolean
-// column, or rename one of these 17, via any real endpoint yet
-// (permission-catalog.md documents a fixed set). New/edited entries mutate
-// the shared group arrays + ALL_PERMISSIONS + PERMISSION_LABEL_KEYS in
-// permissions.js in place, so they show up as real togglable checkboxes in
-// UsersPage's Shield dialog immediately. No delete at all, for anything —
-// editing only ever touches the label (key and group are fixed once
-// created, since gating logic elsewhere references the key as a literal
-// string, and the group is what the add form put it in).
+// The permission catalog is fixed, code-level (permissions.js) — no way to
+// add an 18th boolean column via the UI, only view the existing 17 and edit
+// a label. Editing only ever touches the label (key and group are
+// permanent once created in code, since gating logic elsewhere references
+// the key as a literal string).
 export default function PermissionsPage({ session }) {
   const t = useT()
-  const canAdd = Boolean(session?.['permission.add'])
   const canEdit = Boolean(session?.['permission.edit'])
   const [permissions, setPermissions] = useState(getPermissionCatalog)
   const [formTarget, setFormTarget] = useState(null)
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [form, setForm] = useState({ key: '', group: '', labelId: '', labelEn: '' })
   const [formError, setFormError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedChips, setSelectedChips] = useState(new Set())
-  const isEditMode = Boolean(formTarget) && formTarget !== 'new'
 
   function toggleChip(id) {
     setSelectedChips((prev) => {
@@ -76,14 +69,9 @@ export default function PermissionsPage({ session }) {
     [visiblePermissions],
   )
 
-  function openAddForm() {
-    setForm(EMPTY_FORM)
-    setFormError('')
-    setFormTarget('new')
-  }
-
   function openEditForm(entry) {
-    setForm({ key: entry.key, group: entry.group, label: t(entry.labelKey) })
+    const label = resolveLabelEntry(entry.labelKey)
+    setForm({ key: entry.key, group: entry.group, labelId: label.id, labelEn: label.en })
     setFormError('')
     setFormTarget(entry.key)
   }
@@ -94,14 +82,9 @@ export default function PermissionsPage({ session }) {
 
   function handleSubmit(event) {
     event.preventDefault()
-    if (!form.label.trim()) return
+    if (!isFormValid(form)) return
     try {
-      if (isEditMode) {
-        updatePermissionInCatalog(formTarget, { label: form.label })
-      } else {
-        if (!form.key.trim()) return
-        addPermissionToCatalog(form)
-      }
+      updatePermissionInCatalog(formTarget, { label: { id: form.labelId, en: form.labelEn } })
       setPermissions(getPermissionCatalog())
       setFormTarget(null)
     } catch (error) {
@@ -111,20 +94,7 @@ export default function PermissionsPage({ session }) {
 
   return (
     <div className="config-section">
-      {canAdd && (
-        <div className="config-section__title-row">
-          <Button
-            className="config-section__title-action"
-            variant="contained"
-            size="small"
-            onClick={openAddForm}
-          >
-            {t('config.addPermission')}
-          </Button>
-        </div>
-      )}
-
-      {!canAdd && !canEdit && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
+      {!canEdit && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
 
       <div className="filter-bar">
         <div className="filter-bar__chips" role="group" aria-label={t('config.filterByPermissionGroupLabel')}>
@@ -188,66 +158,43 @@ export default function PermissionsPage({ session }) {
       </div>
 
       <Dialog open={Boolean(formTarget)} onClose={closeForm}>
-        <DialogTitle>{isEditMode ? form.key : t('config.addPermission')}</DialogTitle>
+        <DialogTitle>{form.key}</DialogTitle>
         <DialogContent>
           <form id="permission-form" className="auth-form config-add-form" onSubmit={handleSubmit}>
-            {isEditMode ? (
-              <div className="form-field">
-                <label className="form-field__label" htmlFor="permission-key">
-                  {t('config.permissionKeyLabel')}
-                </label>
-                <span id="permission-key" className="form-field__static">
-                  {form.key}
-                </span>
-              </div>
-            ) : (
-              <>
-                <div className="form-field">
-                  <label className="form-field__label" htmlFor="permission-group">
-                    {t('config.permissionGroupLabel')}
-                  </label>
-                  <TextField
-                    id="permission-group"
-                    select
-                    size="small"
-                    value={form.group}
-                    onChange={(event) => setForm((prev) => ({ ...prev, group: event.target.value }))}
-                  >
-                    {PERMISSION_GROUPS.map((group) => (
-                      <MenuItem key={group.id} value={group.id}>
-                        {t(group.labelKey)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </div>
-
-                <div className="form-field">
-                  <label className="form-field__label" htmlFor="permission-key">
-                    {t('config.permissionKeyLabel')}
-                  </label>
-                  <input
-                    id="permission-key"
-                    className="form-field__input"
-                    type="text"
-                    value={form.key}
-                    onChange={(event) => setForm((prev) => ({ ...prev, key: event.target.value.trim() }))}
-                    placeholder={t('config.permissionKeyPlaceholder')}
-                  />
-                </div>
-              </>
-            )}
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="permission-key">
+                {t('config.permissionKeyLabel')}
+              </label>
+              <span id="permission-key" className="form-field__static">
+                {form.key}
+              </span>
+            </div>
 
             <div className="form-field">
-              <label className="form-field__label" htmlFor="permission-label">
-                {t('config.permissionLabelLabel')}
+              <label className="form-field__label" htmlFor="permission-label-id">
+                {t('config.permissionLabelIdLabel')}
               </label>
               <input
-                id="permission-label"
+                id="permission-label-id"
                 className="form-field__input"
                 type="text"
-                value={form.label}
-                onChange={(event) => setForm((prev) => ({ ...prev, label: event.target.value }))}
-                placeholder={t('config.permissionLabelPlaceholder')}
+                value={form.labelId}
+                onChange={(event) => setForm((prev) => ({ ...prev, labelId: event.target.value }))}
+                placeholder={t('config.permissionLabelIdPlaceholder')}
+              />
+            </div>
+
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="permission-label-en">
+                {t('config.permissionLabelEnLabel')}
+              </label>
+              <input
+                id="permission-label-en"
+                className="form-field__input"
+                type="text"
+                value={form.labelEn}
+                onChange={(event) => setForm((prev) => ({ ...prev, labelEn: event.target.value }))}
+                placeholder={t('config.permissionLabelEnPlaceholder')}
               />
             </div>
 
@@ -256,8 +203,8 @@ export default function PermissionsPage({ session }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeForm}>{t('config.cancelEdit')}</Button>
-          <Button type="submit" form="permission-form" variant="contained">
-            {t(isEditMode ? 'config.saveUser' : 'config.addPermission')}
+          <Button type="submit" form="permission-form" variant="contained" disabled={!isFormValid(form)}>
+            {t('config.saveUser')}
           </Button>
         </DialogActions>
       </Dialog>

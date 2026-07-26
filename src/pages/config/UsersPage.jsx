@@ -24,7 +24,10 @@ import {
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 
-const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES[0] }
+// Superadmin is ROLES[0] but is never assignable through this form (see
+// roleOptions below) — defaulting to it here would silently create a
+// Superadmin unless the admin happened to touch the Role field themselves.
+const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superadmin') }
 
 // Order-independent — see the identical concern in RolesPage's scopesEqual.
 function permissionsEqual(a, b) {
@@ -63,6 +66,19 @@ function formatPhoneForDisplay(phone) {
   if (!phone) return ''
   return `+62 ${localPhoneDigitsFromStored(phone)}`
 }
+
+// A single leading 0 is the familiar local-format habit (0812-3456-7890) —
+// accepted on input, but stripped before it's combined with +62 on submit,
+// since +62 already stands in for that trunk 0 (otherwise it'd end up
+// double-counted, e.g. 620812... instead of 62812...). Anything else is
+// submitted as-is, as long as it clears the minimum length.
+function significantPhoneDigits(localPart) {
+  const digits = digitsOnly(localPart)
+  return digits.startsWith('0') ? digits.slice(1) : digits
+}
+
+const MIN_PHONE_DIGITS = 9
+const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // A query starting with "0" is ambiguous: it might be a local-format trunk
 // prefix ("0811..." for stored "6281110000001") or just a substring that
@@ -136,16 +152,22 @@ export default function UsersPage() {
   const canEdit = Boolean(session?.['user.edit'])
   const canDelete = Boolean(session?.['user.delete'])
   const canAssign = canAssignPermissions(session)
-  const canReassignToSuperadmin = SUPERADMIN_LOCKED_PERMISSIONS.every((field) =>
-    Boolean(session?.[field]),
-  )
   const actorForUpdate = useMemo(() => ({ email: session?.email }), [session?.email])
-  const roleOptions = canReassignToSuperadmin ? ROLES : ROLES.filter((r) => r !== 'Superadmin')
+  // Superadmin is visible in the table (existing Superadmin users show their
+  // real role) but never assignable through this picker — bootstrap-locked,
+  // not something granted via the UI, for anyone, regardless of the actor's
+  // own permissions.
+  const roleOptions = ROLES.filter((r) => r !== 'Superadmin')
 
   // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
+  // Unlike Roles/Permissions/Freshpedia/Tool Catalog, this dialog's submit
+  // button is never disabled — validation only runs (and these populate)
+  // when it's actually clicked, showing a message under each problem field
+  // rather than blocking the click itself.
+  const [fieldErrors, setFieldErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetLink, setResetLink] = useState(null)
   const [isCopied, setIsCopied] = useState(false)
@@ -245,12 +267,14 @@ export default function UsersPage() {
   function openAddUserDialog() {
     setForm(EMPTY_FORM)
     setFormError('')
+    setFieldErrors({})
     setUserFormTarget('new')
   }
 
   function openEditUserDialog(row) {
     setForm({ name: row.name, email: row.email, phone: localPhoneDigitsFromStored(row.phone), role: row.role })
     setFormError('')
+    setFieldErrors({})
     setUserFormTarget(row.email)
   }
 
@@ -262,7 +286,17 @@ export default function UsersPage() {
     event.preventDefault()
     setFormError('')
 
-    if (!form.name.trim() || (userFormTarget === 'new' && !form.email.trim())) return
+    const errors = {}
+    if (!form.name.trim()) errors.name = 'nameRequired'
+    if (userFormTarget === 'new') {
+      if (!form.email.trim()) errors.email = 'emailRequired'
+      else if (!EMAIL_FORMAT.test(form.email.trim())) errors.email = 'emailInvalidFormat'
+    }
+    if (form.phone && significantPhoneDigits(form.phone).length < MIN_PHONE_DIGITS) {
+      errors.phone = 'phoneTooShort'
+    }
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
 
     setIsSubmitting(true)
     try {
@@ -270,7 +304,7 @@ export default function UsersPage() {
         const { resetToken, ...user } = await createUser({
           name: form.name.trim(),
           email: form.email.trim(),
-          phone: form.phone ? `62${digitsOnly(form.phone)}` : '',
+          phone: form.phone ? `62${significantPhoneDigits(form.phone)}` : '',
           role: form.role,
         })
         setUsers((prev) => [...prev, user])
@@ -280,7 +314,7 @@ export default function UsersPage() {
         const email = userFormTarget
         const updated = await updateUser(
           email,
-          { name: form.name.trim(), phone: form.phone ? `62${digitsOnly(form.phone)}` : '', role: form.role },
+          { name: form.name.trim(), phone: form.phone ? `62${significantPhoneDigits(form.phone)}` : '', role: form.role },
           actorForUpdate,
         )
         setUsers((prev) => prev.map((u) => (u.email === email ? updated : u)))
@@ -513,7 +547,12 @@ export default function UsersPage() {
       <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog}>
         <DialogTitle>{isEditMode ? editingUser?.name : t('config.addUser')}</DialogTitle>
         <DialogContent>
-          <form id="user-form" className="auth-form config-add-form" onSubmit={handleSubmitUserForm}>
+          <form
+            id="user-form"
+            className="auth-form config-add-form"
+            onSubmit={handleSubmitUserForm}
+            noValidate
+          >
             <div className="form-field">
               <label className="form-field__label" htmlFor="user-email">
                 {t('auth.emailLabel')}
@@ -523,11 +562,17 @@ export default function UsersPage() {
                 className="form-field__input"
                 type="email"
                 value={form.email}
-                onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                onChange={(event) => {
+                  setForm((prev) => ({ ...prev, email: event.target.value }))
+                  setFieldErrors((prev) => ({ ...prev, email: '' }))
+                }}
                 placeholder={t('config.emailPlaceholder')}
                 autoComplete="off"
                 disabled={isEditMode}
               />
+              {fieldErrors.email && (
+                <span className="form-field__error">{t('config.' + fieldErrors.email)}</span>
+              )}
             </div>
 
             <div className="form-field">
@@ -539,9 +584,15 @@ export default function UsersPage() {
                 className="form-field__input"
                 type="text"
                 value={form.name}
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                onChange={(event) => {
+                  setForm((prev) => ({ ...prev, name: event.target.value }))
+                  setFieldErrors((prev) => ({ ...prev, name: '' }))
+                }}
                 placeholder={t('config.namePlaceholder')}
               />
+              {fieldErrors.name && (
+                <span className="form-field__error">{t('config.' + fieldErrors.name)}</span>
+              )}
             </div>
 
             <div className="form-field">
@@ -556,13 +607,17 @@ export default function UsersPage() {
                   type="tel"
                   inputMode="numeric"
                   value={form.phone}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setForm((prev) => ({ ...prev, phone: formatLocalPhoneDigits(event.target.value) }))
-                  }
+                    setFieldErrors((prev) => ({ ...prev, phone: '' }))
+                  }}
                   placeholder={t('config.phonePlaceholder')}
                   autoComplete="off"
                 />
               </div>
+              {fieldErrors.phone && (
+                <span className="form-field__error">{t('config.' + fieldErrors.phone)}</span>
+              )}
             </div>
 
             <div className="form-field">
@@ -595,7 +650,7 @@ export default function UsersPage() {
         <DialogActions>
           <Button onClick={closeUserFormDialog}>{t('config.cancelEdit')}</Button>
           <Button type="submit" form="user-form" variant="contained" disabled={isSubmitting}>
-            {t(isEditMode ? 'config.saveUser' : 'config.addUserSubmit')}
+            {t(isEditMode ? 'config.saveUser' : 'config.addUser')}
           </Button>
         </DialogActions>
       </Dialog>

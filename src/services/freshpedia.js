@@ -12,9 +12,10 @@ function toEntry(row) {
   return { ...row }
 }
 
-// Only forward transitions plus one demotion step back — matches the three
-// buttons the UI actually shows (Promote to Staging on Request, Promote to
-// Production on Staging, Demote to Staging on Production).
+// Only forward transitions plus one demotion step back. request->staging
+// stays supported here even though the UI no longer shows a button for it
+// (Promote to Staging was removed) — Promote to Production on Staging and
+// Demote to Staging on Production are the two buttons the UI shows now.
 const ALLOWED_TRANSITIONS = {
   request: ['staging'],
   staging: ['production'],

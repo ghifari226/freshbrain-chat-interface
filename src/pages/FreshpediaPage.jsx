@@ -47,12 +47,6 @@ const TRANSITION_BY_STATUS = {
     icon: 'fa-arrow-up',
     colorClass: 'icon-button--success',
   },
-  request: {
-    labelKey: 'freshpedia.promoteToStagingAction',
-    toStatus: 'staging',
-    icon: 'fa-arrow-up',
-    colorClass: 'icon-button--warning',
-  },
 }
 const EMPTY_FORM = {
   title: '',
@@ -479,7 +473,7 @@ export default function FreshpediaPage({ language }) {
                         color={STATUS_COLOR[entry.status]}
                         variant={entry.status === 'request' ? 'outlined' : 'filled'}
                       />
-                      {canChangeStatus && (
+                      {canChangeStatus && transition && (
                         <Tooltip title={t(transition.labelKey)}>
                           <button
                             type="button"

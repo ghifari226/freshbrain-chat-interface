@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Tooltip, Button, Chip } from '@mui/material'
+import { Tooltip, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import { getScopeCatalog } from '../../config/scopeCatalog.js'
 import {
   ROLES,
@@ -277,28 +277,6 @@ export default function RolesPage({ session }) {
 
       {!canEditAnything && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
 
-      {isAdding && (
-        <form className="config-inline-form" onSubmit={handleAddRole}>
-          <input
-            className="form-field__input"
-            type="text"
-            autoFocus
-            value={newRoleName}
-            onChange={(event) => setNewRoleName(event.target.value)}
-            placeholder={t('config.roleNamePlaceholder')}
-          />
-          {addError && <span className="form-field__error">{addError}</span>}
-          <div className="config-inline-form__actions">
-            <Button size="small" onClick={() => setIsAdding(false)}>
-              {t('config.cancelEdit')}
-            </Button>
-            <Button size="small" variant="contained" type="submit">
-              {t('config.addRole')}
-            </Button>
-          </div>
-        </form>
-      )}
-
       <div className="filter-bar">
         <div className="filter-bar__chips" role="group" aria-label={t('config.filterBySystemLabel')}>
           {catalog.map((entry) => {
@@ -519,6 +497,35 @@ export default function RolesPage({ session }) {
           )
         })}
       </div>
+
+      <Dialog open={isAdding} onClose={() => setIsAdding(false)}>
+        <DialogTitle>{t('config.addRole')}</DialogTitle>
+        <DialogContent>
+          <form id="role-form" className="auth-form config-add-form" onSubmit={handleAddRole}>
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="role-name">
+                {t('config.nameLabel')}
+              </label>
+              <input
+                id="role-name"
+                className="form-field__input"
+                type="text"
+                autoFocus
+                value={newRoleName}
+                onChange={(event) => setNewRoleName(event.target.value)}
+                placeholder={t('config.roleNamePlaceholder')}
+              />
+            </div>
+            {addError && <span className="form-field__error">{addError}</span>}
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsAdding(false)}>{t('config.cancelEdit')}</Button>
+          <Button type="submit" form="role-form" variant="contained" disabled={!newRoleName.trim()}>
+            {t('config.addRole')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   )
 }
