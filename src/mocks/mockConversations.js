@@ -1,11 +1,14 @@
 // Seed data for the sidebar. Not part of the api.js request/response
 // contract — just local mock state until conversation listing is a real
-// endpoint.
+// endpoint. id is the URL slug for this conversation (App.jsx routes to
+// /<id>) — shaped like App.jsx's own makeId() (random base36, 8 chars) but
+// hardcoded here so these mock chats have a stable, shareable URL across
+// reloads instead of a fresh random id every session.
 
 export function makeMockConversations() {
   return [
     {
-      id: 'c1',
+      id: 'k3f8x1qz',
       backendId: null,
       title: 'Revenue bulan lalu',
       timestamp: '2026-07-12T09:14:00Z',
@@ -15,7 +18,7 @@ export function makeMockConversations() {
       ],
     },
     {
-      id: 'c2',
+      id: 'p9m2v7bd',
       backendId: null,
       title: 'Total warehouse saat ini',
       timestamp: '2026-07-11T15:42:00Z',

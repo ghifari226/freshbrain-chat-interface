@@ -24,7 +24,7 @@ function makeId() {
 }
 
 function AuthenticatedApp({ language, setLanguage }) {
-  const [path] = useRoute()
+  const [path, navigate] = useRoute()
   const { session } = useAuth()
 
   const [theme, setTheme] = useTheme()
@@ -42,36 +42,32 @@ function AuthenticatedApp({ language, setLanguage }) {
   )
 
   const [conversations, setConversations] = useState(() => makeMockConversations())
-  const [activeConversationId, setActiveConversationId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef(null)
 
+  // The URL is the source of truth for which conversation is open —
+  // /chat/<id> — rather than duplicating that as separate React state that
+  // could drift out of sync with the address bar. The prefix (matching
+  // ChatGPT's /c/ and Claude's /chat/) makes chat paths recognizable by
+  // inclusion rather than isChatRoute having to exclude every known section
+  // by name — a future top-level route doesn't risk silently being treated
+  // as a conversation id.
+  const isChatRoute = path === '/' || path.startsWith('/chat/')
+  const activeConversationId = path.startsWith('/chat/') ? path.slice('/chat/'.length) : null
   const activeConversation = conversations.find((c) => c.id === activeConversationId) ?? null
 
+  // No placeholder conversation gets created (and no title added to Recents)
+  // until the user actually sends a first message — see handleSend, which is
+  // the only place a conversation object is ever created. This just clears
+  // the active selection so ChatPanel falls back to its blank welcome state.
   function handleNewChat() {
-    if (activeConversation && activeConversation.messages.length === 0) {
-      inputRef.current?.focus()
-      return
-    }
-
-    const newConversation = {
-      id: makeId(),
-      title: strings.sidebar.newChat[language],
-      timestamp: new Date().toISOString(),
-      messages: [],
-    }
-    setConversations((prev) => [newConversation, ...prev])
-    setActiveConversationId(newConversation.id)
+    navigate('/')
+    inputRef.current?.focus()
   }
 
   function handleSelectConversation(nextConversationId) {
     if (nextConversationId === activeConversationId) return
-
-    if (activeConversation && activeConversation.messages.length === 0) {
-      const abandonedId = activeConversation.id
-      setConversations((prev) => prev.filter((c) => c.id !== abandonedId))
-    }
-    setActiveConversationId(nextConversationId)
+    navigate('/chat/' + nextConversationId)
   }
 
   function handleRenameConversation(conversationId, title) {
@@ -84,7 +80,7 @@ function AuthenticatedApp({ language, setLanguage }) {
     setConversations((prev) => {
       const next = prev.filter((c) => c.id !== conversationId)
       if (conversationId === activeConversationId) {
-        setActiveConversationId(next[0]?.id ?? null)
+        navigate(next[0] ? '/chat/' + next[0].id : '/')
       }
       return next
     })
@@ -130,7 +126,7 @@ function AuthenticatedApp({ language, setLanguage }) {
         },
         ...prev,
       ])
-      setActiveConversationId(conversationId)
+      navigate('/chat/' + conversationId)
     }
 
     if (isFirstMessage) {
@@ -182,8 +178,6 @@ function AuthenticatedApp({ language, setLanguage }) {
       setIsLoading(false)
     }
   }
-
-  const isChatRoute = path === '/'
 
   let content
   if (path.startsWith('/config')) {
