@@ -156,7 +156,7 @@ export const strings = {
     filterChipRole: { id: 'Peran', en: 'Role' },
     filterChipPermission: { id: 'Hak Akses', en: 'Permission' },
     filterChipUser: { id: 'Pengguna', en: 'User' },
-    allAccess: { id: 'Akses penuh (*)', en: 'All access (*)' },
+    allAccess: { id: 'Semua scope (*)', en: 'All scopes (*)' },
     noScopes: { id: 'Belum ada scope yang diberikan', en: 'No scopes assigned' },
     restricted: {
       id: 'Anda tidak memiliki akses ke halaman ini.',
@@ -177,7 +177,7 @@ export const strings = {
     filterByRoleLabel: { id: 'Filter berdasarkan peran', en: 'Filter by role' },
     emailPlaceholder: { id: 'nama@perusahaan.com', en: 'name@company.com' },
     phoneLabel: { id: 'Telepon', en: 'Phone' },
-    phonePlaceholder: { id: '+62 812-3456-7890', en: '+62 812-3456-7890' },
+    phonePlaceholder: { id: '812-3456-78901', en: '812-3456-78901' },
     addUser: { id: 'Tambah pengguna', en: 'Add user' },
     addUserSubmit: { id: 'Tambahkan', en: 'Add' },
     editUser: { id: 'Ubah', en: 'Edit' },

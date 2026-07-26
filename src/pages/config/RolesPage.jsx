@@ -370,7 +370,12 @@ export default function RolesPage({ session }) {
                   </form>
                 ) : (
                   <>
-                    <span className="role-card__name">{t(ROLE_LABEL_KEYS[role] ?? role)}</span>
+                    <div className="role-card__name-group">
+                      <span className="role-card__name">{t(ROLE_LABEL_KEYS[role] ?? role)}</span>
+                      {isSuperadmin && (
+                        <span className="scope-pill scope-pill--fixed">{t('config.allAccess')}</span>
+                      )}
+                    </div>
                     <div className="role-card__header-actions">
                       {isLocked && (
                         <Tooltip title={t('config.roleLockedNotice')}>
@@ -439,10 +444,19 @@ export default function RolesPage({ session }) {
               {isRenaming && renameError && <span className="form-field__error">{renameError}</span>}
 
               {isSuperadmin ? (
-                <div className="role-card__fixed">
-                  <span className="scope-pill scope-pill--fixed">
-                    <i className="fa-solid fa-lock" /> {t('config.allAccess')}
-                  </span>
+                <div className="role-card__systems">
+                  {visibleCatalog.map((entry) => (
+                    <div className="role-card__system" key={entry.system}>
+                      <div className="scope-checkbox scope-checkbox--system role-card__system--fixed">
+                        <label className="scope-checkbox__control">
+                          <input type="checkbox" checked disabled readOnly />
+                          <Tooltip title={entry.label}>
+                            <span className="scope-checkbox__tag">{entry.system}</span>
+                          </Tooltip>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="role-card__systems">

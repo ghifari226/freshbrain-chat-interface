@@ -274,12 +274,32 @@
   gap: 8px;
 }
 
+.role-card__name-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .role-card__name {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 15px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Fixed-size, doesn't compete with the name for space — the name (which
+   already ellipsis-truncates for long role names) should be the one to
+   shrink first, not this short, constant-length badge. Tighter padding/
+   font than a standalone .scope-pill since this one has to fit inline
+   next to the name in an already-narrow card header. */
+.role-card__name-group .scope-pill--fixed {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  font-size: 11px;
 }
 
 .role-card__header-actions {
@@ -302,8 +322,12 @@
   padding: 6px 8px;
 }
 
-.role-card__fixed {
-  display: flex;
+/* Superadmin's system rows — always-checked, non-interactive stand-ins for
+   its real ['*'] scope value (not a per-system breakdown, so no expand
+   chevron either). Dimmed so they read as fixed/non-editable at a glance,
+   same intent as the disabled SystemCheckbox state elsewhere. */
+.role-card__system--fixed {
+  opacity: 0.6;
 }
 
 .scope-pill {
@@ -533,6 +557,44 @@
 .form-field__error {
   font-size: 12px;
   color: var(--danger);
+}
+
+/* Phone field: fixed, non-editable +62 (this is an internal ID tool, one
+   country, so a flag/country picker would just be a dropdown with a single
+   option in it) plus a digits-only input that self-formats with dashes as
+   the user types — see formatLocalPhoneDigits in UsersPage.jsx. Styled as
+   one box so the prefix and the input read as a single field. */
+.phone-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-input);
+  padding-left: 12px;
+}
+
+.phone-field:focus-within {
+  border-color: var(--accent);
+}
+
+.phone-field__prefix {
+  flex-shrink: 0;
+  padding-right: 8px;
+  border-right: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.phone-field__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-chat);
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
 }
 
 .user-card__header {
