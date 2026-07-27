@@ -10,21 +10,21 @@
 
 import { USE_MOCK_API } from '../config/appConfig.js'
 import { ROLES, ROLE_SCOPES, addRoleToCatalog, getRoleCatalog, renameRoleInCatalog } from '../config/roles.js'
-import { authHeaders, gatewayApi } from './api.js'
-import { mockDelay } from './mockDelay.js'
+import type { RoleScope } from '../types/domain.ts'
+import type { AuthenticatedRequestOptions, RequestOptions, TokenActor } from '../types/api.ts'
+import { authHeaders, gatewayApi } from './api.ts'
+import { mockDelay } from './mockDelay.ts'
 
-/**
- * GET/PATCH /config/roles' response shape (auth-contract.md) — one row of
- * the role catalog, name plus its resolved Family 1 scope list.
- * @typedef {{ name: string, allowed_scopes: string[] }} RoleScope
- */
+const roleScopesByName = ROLE_SCOPES as Record<string, string[]>
 
-/**
- * @returns {Promise<RoleScope[]>}
- */
-export async function getAllRoles({ signal, token } = {}) {
+export async function getAllRoles(
+  { signal, token }: AuthenticatedRequestOptions = {},
+): Promise<RoleScope[]> {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.get('/config/roles', { signal, headers: authHeaders(token) })
+    const { data } = await gatewayApi.get<RoleScope[]>('/config/roles', {
+      signal,
+      headers: authHeaders(token),
+    })
     return data
   }
 
@@ -32,16 +32,15 @@ export async function getAllRoles({ signal, token } = {}) {
   return getRoleCatalog().map(({ name, allowedScopes }) => ({ name, allowed_scopes: allowedScopes }))
 }
 
-/**
- * Creates a role with `allowed_scopes: []` (assigned afterward via
- * updateRoleScopes) — matches POST /config/roles's 201 response shape.
- * @param {string} name
- * @param {{ token?: string }} actor
- * @returns {Promise<RoleScope>}
- */
-export async function createRole(name, actor, { signal } = {}) {
+// Creates a role with `allowed_scopes: []` (assigned afterward via
+// updateRoleScopes) — matches POST /config/roles's 201 response shape.
+export async function createRole(
+  name: string,
+  actor: TokenActor | null | undefined,
+  { signal }: RequestOptions = {},
+): Promise<RoleScope> {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.post(
+    const { data } = await gatewayApi.post<RoleScope>(
       '/config/roles',
       { name },
       { signal, headers: authHeaders(actor?.token) },
@@ -59,18 +58,17 @@ export async function createRole(name, actor, { signal } = {}) {
   return { name: trimmed, allowed_scopes: [] }
 }
 
-/**
- * Renames a role in place — scopes carry over unchanged (see
- * renameRoleInCatalog). Rejected for LOCKED_ROLES (Superadmin) both here and
- * server-side, per auth-contract.md's "Superadmin terkunci total" rule.
- * @param {string} oldName
- * @param {string} newName
- * @param {{ token?: string }} actor
- * @returns {Promise<RoleScope>}
- */
-export async function renameRole(oldName, newName, actor, { signal } = {}) {
+// Renames a role in place — scopes carry over unchanged (see
+// renameRoleInCatalog). Rejected for LOCKED_ROLES (Superadmin) both here and
+// server-side, per auth-contract.md's "Superadmin terkunci total" rule.
+export async function renameRole(
+  oldName: string,
+  newName: string,
+  actor: TokenActor | null | undefined,
+  { signal }: RequestOptions = {},
+): Promise<RoleScope> {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.patch(
+    const { data } = await gatewayApi.patch<RoleScope>(
       `/config/roles/${encodeURIComponent(oldName)}`,
       { name: newName },
       { signal, headers: authHeaders(actor?.token) },
@@ -81,18 +79,17 @@ export async function renameRole(oldName, newName, actor, { signal } = {}) {
   await mockDelay(400, 700, signal)
   renameRoleInCatalog(oldName, newName)
   const trimmed = newName.trim()
-  return { name: trimmed, allowed_scopes: ROLE_SCOPES[trimmed] ?? [] }
+  return { name: trimmed, allowed_scopes: roleScopesByName[trimmed] ?? [] }
 }
 
-/**
- * @param {string} name
- * @param {string[]} allowedScopes
- * @param {{ token?: string }} actor
- * @returns {Promise<RoleScope>}
- */
-export async function updateRoleScopes(name, allowedScopes, actor, { signal } = {}) {
+export async function updateRoleScopes(
+  name: string,
+  allowedScopes: string[],
+  actor: TokenActor | null | undefined,
+  { signal }: RequestOptions = {},
+): Promise<RoleScope> {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.patch(
+    const { data } = await gatewayApi.patch<RoleScope>(
       `/config/roles/${encodeURIComponent(name)}`,
       { allowed_scopes: allowedScopes },
       { signal, headers: authHeaders(actor?.token) },
@@ -101,6 +98,6 @@ export async function updateRoleScopes(name, allowedScopes, actor, { signal } = 
   }
 
   await mockDelay(400, 700, signal)
-  ROLE_SCOPES[name] = allowedScopes
+  roleScopesByName[name] = allowedScopes
   return { name, allowed_scopes: allowedScopes }
 }

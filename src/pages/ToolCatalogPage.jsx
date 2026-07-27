@@ -19,7 +19,7 @@ import {
   getAllToolCatalogEntries,
   updateToolCatalogEntry,
 } from '../services/toolCatalog.js'
-import { errorMessage, isCanceled } from '../services/api.js'
+import { errorMessage, isCanceled } from '../services/api.ts'
 
 export default function ToolCatalogPage() {
   const t = useT()

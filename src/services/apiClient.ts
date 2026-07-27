@@ -5,36 +5,30 @@
 // convenience endpoint the frontend already calls, not yet written up in
 // freshbrain-agreement.
 import { USE_MOCK_API } from '../config/appConfig.js'
-import { aiApi, authHeaders } from './api.js'
-import { mockDelay } from './mockDelay.js'
+import axios from 'axios'
+import type { ChatRequest, ChatResponse, RequestOptions } from '../types/api.ts'
+import { aiApi, authHeaders } from './api.ts'
+import { mockDelay } from './mockDelay.ts'
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10)
 }
-
-/**
- * POST /chat's request/response shape (auth-contract.md's "Setiap request
- * berikutnya") — `role`/`allowed_scopes` are the only Family 2/3-adjacent
- * fields that reach ai-engine at all; the 17 permission booleans never leave
- * chat-interface/chat-gateway.
- * @typedef {{
- *   message: string,
- *   conversation_id: string | null,
- *   user_id: string,
- *   role: string,
- *   allowed_scopes: string[],
- * }} ChatRequest
- */
-
-/**
- * @typedef {{ answer: string, conversation_id: string }} ChatResponse
- */
 
 // Internal helper only — camelCase params here, translated to the
 // contract's snake_case body just before the request goes out. sendMessage
 // (below) is the actual exported surface and takes snake_case params
 // directly, matching the wire shape 1:1 so callers don't have to translate
 // twice.
+interface InternalChatRequest {
+  message: string
+  conversationId: string | null
+  userId: string
+  role: string
+  allowedScopes: string[]
+  token?: string
+  signal?: AbortSignal
+}
+
 async function postChat({
   message,
   conversationId,
@@ -43,8 +37,8 @@ async function postChat({
   allowedScopes,
   token,
   signal,
-}) {
-  const { data } = await aiApi.post(
+}: InternalChatRequest): Promise<ChatResponse> {
+  const { data } = await aiApi.post<ChatResponse>(
     '/chat',
     {
       message,
@@ -58,10 +52,6 @@ async function postChat({
   return data
 }
 
-/**
- * @param {ChatRequest & { token?: string, signal?: AbortSignal }} params
- * @returns {Promise<ChatResponse>}
- */
 export async function sendMessage({
   message,
   conversation_id,
@@ -70,7 +60,7 @@ export async function sendMessage({
   allowed_scopes,
   token,
   signal,
-}) {
+}: ChatRequest): Promise<ChatResponse> {
   if (USE_MOCK_API) {
     await mockDelay(900, 1500, signal)
     return {
@@ -98,7 +88,7 @@ export async function sendMessage({
     // conversation_id: null degrades to "start a new conversation" instead
     // of surfacing a hard failure for what the user experiences as an
     // ordinary send. Only retried once — a second failure propagates.
-    const status = error.response?.status
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined
     if (conversation_id && (status === 400 || status === 404)) {
       return postChat({ ...request, conversationId: null })
     }
@@ -106,14 +96,13 @@ export async function sendMessage({
   }
 }
 
-/**
- * No auth-contract.md entry for this one — see the header note above.
- * @param {string} message
- * @returns {Promise<string>}
- */
-export async function generateTitle(message, { signal } = {}) {
+// No auth-contract.md entry for this one — see the header note above.
+export async function generateTitle(
+  message: string,
+  { signal }: RequestOptions = {},
+): Promise<string> {
   if (!USE_MOCK_API) {
-    const { data } = await aiApi.post('/chat/title', { message }, { signal })
+    const { data } = await aiApi.post<{ title: string }>('/chat/title', { message }, { signal })
     return data.title
   }
 

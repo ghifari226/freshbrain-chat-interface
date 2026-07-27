@@ -3,7 +3,7 @@ import { Pencil } from 'lucide-react'
 import { Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material'
 import { PERMISSION_GROUPS, getPermissionCatalog, updatePermissionInCatalog } from '../../config/permissions.js'
 import { useT, resolveLabelEntry } from '../../hooks/useT.js'
-import { errorMessage } from '../../services/api.js'
+import { errorMessage } from '../../services/api.ts'
 
 function isFormValid(form) {
   return Boolean(form.labelId.trim())

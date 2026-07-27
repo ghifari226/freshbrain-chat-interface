@@ -20,7 +20,7 @@ import {
   updateFreshpediaEntryStatus,
   updateFreshpediaEntry,
 } from '../services/freshpedia.js'
-import { errorMessage, isCanceled } from '../services/api.js'
+import { errorMessage, isCanceled } from '../services/api.ts'
 
 export default function FreshpediaPage({ language }) {
   const t = useT()

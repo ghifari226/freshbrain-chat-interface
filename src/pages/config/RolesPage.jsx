@@ -13,8 +13,8 @@ import {
 import { Tooltip, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import { getScopeCatalog } from '../../config/scopeCatalog.js'
 import { LOCKED_ROLES } from '../../config/roles.js'
-import { createRole, getAllRoles, renameRole, updateRoleScopes } from '../../services/roleScopes.js'
-import { errorMessage, isCanceled } from '../../services/api.js'
+import { createRole, getAllRoles, renameRole, updateRoleScopes } from '../../services/roleScopes.ts'
+import { errorMessage, isCanceled } from '../../services/api.ts'
 import { useT } from '../../hooks/useT.js'
 
 // Order-independent — toggling systems/sub-scopes rebuilds the array via

@@ -8,8 +8,8 @@
 // through by ToolCatalogPage's list load (getAllToolCatalogEntries) today —
 // create/update accept it too but no caller passes one yet.
 import { USE_MOCK_API } from '../config/appConfig.js'
-import { authHeaders, gatewayApi } from './api.js'
-import { mockDelay } from './mockDelay.js'
+import { authHeaders, gatewayApi } from './api.ts'
+import { mockDelay } from './mockDelay.ts'
 
 /**
  * Shape returned by every function in this file.

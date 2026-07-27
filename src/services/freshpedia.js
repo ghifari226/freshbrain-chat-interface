@@ -9,8 +9,8 @@
 // passes one yet, so cancellation only cancels the initial fetch, not a
 // pending write.
 import { USE_MOCK_API } from '../config/appConfig.js'
-import { authHeaders, gatewayApi } from './api.js'
-import { mockDelay } from './mockDelay.js'
+import { authHeaders, gatewayApi } from './api.ts'
+import { mockDelay } from './mockDelay.ts'
 
 /**
  * Shape returned by every function in this file — `content`/`fileName`/

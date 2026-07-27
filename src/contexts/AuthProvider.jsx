@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from './AuthContext.js'
 import { authenticate } from '../services/authService.js'
-import { setUnauthorizedHandler } from '../services/api.js'
+import { setUnauthorizedHandler } from '../services/api.ts'
 
 export function AuthProvider({ session, setSession, children }) {
   const navigate = useNavigate()

@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import Sidebar from './components/layout/Sidebar.jsx'
 import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
-import { sendMessage, generateTitle } from './services/apiClient.js'
+import { sendMessage, generateTitle } from './services/apiClient.ts'
 import { makeMockConversations } from './mocks/mockConversations.js'
 import { useTheme } from './hooks/useTheme.js'
 import { useTone } from './hooks/useTone.js'

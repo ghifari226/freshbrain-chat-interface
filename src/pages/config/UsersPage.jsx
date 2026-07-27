@@ -21,7 +21,7 @@ import {
   TableSortLabel,
 } from '@mui/material'
 import { createUser, deleteUser, getAllUsers, updateUser } from '../../services/authService.js'
-import { errorMessage, isCanceled } from '../../services/api.js'
+import { errorMessage, isCanceled } from '../../services/api.ts'
 import { ROLES } from '../../config/roles.js'
 import {
   ALL_PERMISSIONS,

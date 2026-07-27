@@ -14,8 +14,8 @@
 import { USE_MOCK_API } from '../config/appConfig.js'
 import { ROLE_SCOPES } from '../config/roles.js'
 import { ALL_PERMISSIONS, SUPERADMIN_LOCKED_PERMISSIONS } from '../config/permissions.js'
-import { authHeaders, gatewayApi } from './api.js'
-import { mockDelay } from './mockDelay.js'
+import { authHeaders, gatewayApi } from './api.ts'
+import { mockDelay } from './mockDelay.ts'
 
 /**
  * The 17 Family 2/3 permission booleans from permission-catalog.md — dot-key

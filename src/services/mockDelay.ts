@@ -5,13 +5,7 @@
 // abort (component unmount, a page's effect re-running with a new
 // conversation/filter) rejects immediately instead of resolving the mock
 // data into a component that's no longer listening.
-/**
- * @param {number} [minMs]
- * @param {number} [maxMs]
- * @param {AbortSignal} [signal]
- * @returns {Promise<void>}
- */
-export function mockDelay(minMs = 500, maxMs = 900, signal) {
+export function mockDelay(minMs = 500, maxMs = 900, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) {
     return Promise.reject(new DOMException('The request was aborted', 'AbortError'))
   }
