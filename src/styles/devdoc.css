@@ -8,6 +8,21 @@
   margin-top: 40px;
 }
 
+/* Same idea as .auth-devdoc, but for full-width /config/* pages (below the
+   table, not next to a narrow centered form) — row instead of column, wraps
+   on narrow screens instead of clipping. */
+.config-devdoc {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.config-devdoc .gateway-json-preview {
+  flex: 1 1 320px;
+}
+
 .gateway-json-preview {
   background: #fff;
   border: 1px solid var(--border-color, #e2e2e2);

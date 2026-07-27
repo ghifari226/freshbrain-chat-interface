@@ -4,6 +4,7 @@ import { Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Toolti
 import { PERMISSION_GROUPS, getPermissionCatalog, updatePermissionInCatalog, hasPermission } from '../../config/permissions.js'
 import { useT, resolveLabelEntry } from '../../hooks/useT.js'
 import { errorMessage } from '../../services/api.ts'
+import GatewayJsonPreview from '../../components/devdoc/GatewayJsonPreview.jsx'
 
 function isFormValid(form) {
   return Boolean(form.labelId.trim())
@@ -69,6 +70,20 @@ export default function PermissionsPage({ session }) {
         entries: visiblePermissions.filter((p) => p.group === group.id),
       })).filter((group) => group.entries.length > 0),
     [visiblePermissions],
+  )
+
+  // dev-doc only — GET /permissions' 200 response (auth-contract.md), shaped
+  // from the full catalog (not visiblePermissions, so filter chips/search
+  // don't hide rows from the preview). `group` is deliberately absent — it
+  // never leaves this page, see permission-catalog.md's "Katalog permission
+  // tertutup".
+  const gatewayPermissionsResponse = useMemo(
+    () =>
+      permissions.map((entry) => {
+        const label = resolveLabelEntry(entry.labelKey)
+        return { key: entry.key, label_id: label.id, label_en: label.en }
+      }),
+    [permissions],
   )
 
   function openEditForm(entry) {
@@ -157,6 +172,14 @@ export default function PermissionsPage({ session }) {
             </ul>
           </div>
         ))}
+      </div>
+
+      <div className="config-devdoc">
+        <GatewayJsonPreview title="GET /permissions — Response (live)" data={gatewayPermissionsResponse} />
+        <GatewayJsonPreview
+          title={`PATCH /permissions/${form.key || '{key}'} — Payload (live)`}
+          data={{ label_id: form.labelId, label_en: form.labelEn }}
+        />
       </div>
 
       <Dialog open={Boolean(formTarget)} onClose={closeForm} fullWidth maxWidth="xs">
