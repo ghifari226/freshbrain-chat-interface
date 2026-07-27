@@ -159,7 +159,7 @@ export default function PermissionsPage({ session }) {
         ))}
       </div>
 
-      <Dialog open={Boolean(formTarget)} onClose={closeForm}>
+      <Dialog open={Boolean(formTarget)} onClose={closeForm} fullWidth maxWidth="xs">
         <DialogTitle>{form.key}</DialogTitle>
         <DialogContent>
           <form id="permission-form" className="auth-form config-add-form" onSubmit={handleSubmit}>

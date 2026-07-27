@@ -150,7 +150,7 @@ export default function FreshpediaEntryDialog({
   t,
 }) {
   return (
-    <Dialog open={isOpen} onClose={onClose}>
+    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{isEditMode ? form.title : t('freshpedia.addEntry')}</DialogTitle>
       <DialogContent>
         <form

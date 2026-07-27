@@ -541,7 +541,7 @@ export default function RolesPage({ session }) {
         })}
       </div>
 
-      <Dialog open={isAdding} onClose={() => setIsAdding(false)}>
+      <Dialog open={isAdding} onClose={() => setIsAdding(false)} fullWidth maxWidth="xs">
         <DialogTitle>{t('config.addRole')}</DialogTitle>
         <DialogContent>
           <form id="role-form" className="auth-form config-add-form" onSubmit={handleAddRole}>

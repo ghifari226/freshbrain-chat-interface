@@ -16,7 +16,7 @@ export default function SettingsModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(event) => event.stopPropagation()}>
+      <div className="modal settings-modal" onClick={(event) => event.stopPropagation()}>
         <div className="modal__header">
           <span className="modal__title">{t('settings.title')}</span>
           <button className="icon-button" aria-label={t('settings.close')} onClick={onClose}>

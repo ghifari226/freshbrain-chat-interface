@@ -138,7 +138,7 @@ export default function ToolEntryDialog({
   t,
 }) {
   return (
-    <Dialog open={isOpen} onClose={onClose}>
+    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>
         {isEditMode ? `${form.system}.${form.name}` : t('toolCatalog.addEntry')}
       </DialogTitle>

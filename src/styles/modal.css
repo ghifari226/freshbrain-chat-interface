@@ -17,6 +17,12 @@
   padding: 16px;
 }
 
+/* Wider than the base .modal so the tone row still has room once it grows
+   from cool/warm to cool/neutral/warm — see .theme-toggle below. */
+.settings-modal {
+  max-width: 440px;
+}
+
 .modal__header {
   display: flex;
   align-items: center;
@@ -44,12 +50,14 @@
 
 /* Fixed width shared with .font-select below — both toggle rows and both
    dropdown rows sit under each other in the same modal, so they need to
-   line up to a common width (185.4px, the widest of the two toggles across
-   both locales) rather than each sizing to its own content. */
+   line up to a common width rather than each sizing to its own content.
+   Sized for 3 captioned options (cool/neutral/warm) even though the
+   brightness toggle only uses 2, so both rows still line up once tone
+   grows a third option. */
 .theme-toggle {
   display: flex;
   gap: 4px;
-  width: 186px;
+  width: 280px;
   background: var(--surface-response);
   border-radius: 8px;
   padding: 3px;
@@ -80,7 +88,7 @@
 }
 
 .font-select {
-  width: 186px;
+  width: 280px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-chat);
@@ -187,6 +195,7 @@
   }
 
   .modal,
+  .settings-modal,
   .search-modal {
     width: 100%;
     max-width: 100%;

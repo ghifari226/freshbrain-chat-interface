@@ -558,7 +558,7 @@ export default function UsersPage() {
         hideFooter={filteredUsers.length <= 100}
       />
 
-      <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog}>
+      <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog} fullWidth maxWidth="sm">
         <DialogTitle>{isEditMode ? editingUser?.name : t('config.addUser')}</DialogTitle>
         <DialogContent>
           <form
@@ -669,7 +669,7 @@ export default function UsersPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
+      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} fullWidth maxWidth="xs">
         <DialogTitle>{t('config.deleteUser')}</DialogTitle>
         <DialogContent>
           <p>{t('config.deleteUserConfirm').replace('%s', deleteTarget?.name ?? '')}</p>
@@ -682,7 +682,7 @@ export default function UsersPage() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={Boolean(permissionsDialogUser)} onClose={closePermissionsDialog}>
+      <Dialog open={Boolean(permissionsDialogUser)} onClose={closePermissionsDialog} fullWidth maxWidth="sm">
         <DialogTitle>{permissionsDialogUser?.name}</DialogTitle>
         <DialogContent>
           <div className="permission-group-list">
