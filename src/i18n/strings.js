@@ -44,6 +44,7 @@ export const strings = {
     dark: { id: 'Gelap', en: 'Dark' },
     tone: { id: 'Nuansa', en: 'Tone' },
     cool: { id: 'Sejuk', en: 'Cool' },
+    neutral: { id: 'Netral', en: 'Neutral' },
     warm: { id: 'Hangat', en: 'Warm' },
     chatFont: { id: 'Font Chat', en: 'Chat Font' },
     fontSans: { id: 'Sans (Inter)', en: 'Sans (Inter)' },

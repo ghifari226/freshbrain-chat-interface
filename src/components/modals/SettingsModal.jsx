@@ -1,4 +1,4 @@
-import { Moon, Snowflake, Sun, ThermometerSun, X } from 'lucide-react'
+import { Moon, Sun, Thermometer, ThermometerSnowflake, ThermometerSun, X } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 
 export default function SettingsModal({
@@ -58,7 +58,16 @@ export default function SettingsModal({
               }
               onClick={() => setTone('cool')}
             >
-              <Snowflake /> {t('settings.cool')}
+              <ThermometerSnowflake /> {t('settings.cool')}
+            </button>
+            <button
+              className={
+                'theme-toggle__option' +
+                (tone === 'neutral' ? ' theme-toggle__option--active' : '')
+              }
+              onClick={() => setTone('neutral')}
+            >
+              <Thermometer /> {t('settings.neutral')}
             </button>
             <button
               className={

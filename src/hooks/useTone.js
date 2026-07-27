@@ -4,7 +4,7 @@ const STORAGE_KEY = 'freshbrain-tone'
 
 function getPreferredTone() {
   const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'cool' || stored === 'warm') return stored
+  if (stored === 'cool' || stored === 'neutral' || stored === 'warm') return stored
   return 'cool'
 }
 
