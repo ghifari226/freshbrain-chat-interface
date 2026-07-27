@@ -1,7 +1,7 @@
 {
   "name": "freshbrain-chat-interface",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "packageManager": "npm@11.16.0",
   "engines": {
     "node": ">=24 <25",
@@ -19,32 +19,32 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@fontsource/inter": "^5.2.8",
-    "@fontsource/lora": "^5.2.8",
-    "@fontsource/quicksand": "^5.2.10",
-    "@mui/material": "^9.2.0",
-    "axios": "^1.18.1",
-    "bootstrap": "^5.3.8",
-    "lucide-react": "^1.27.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.30.4"
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/lora": "5.3.0",
+    "@fontsource/quicksand": "5.3.0",
+    "@mui/material": "9.2.0",
+    "axios": "1.18.1",
+    "bootstrap": "5.3.8",
+    "lucide-react": "1.27.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.30.4"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^26.1.1",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
-    "jsdom": "^29.1.1",
-    "oxlint": "^1.71.0",
-    "typescript": "^7.0.2",
-    "vite": "^8.1.1",
-    "vitest": "^4.1.10"
+    "@playwright/test": "1.62.0",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "24.13.3",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "6.0.4",
+    "jsdom": "29.1.1",
+    "oxlint": "1.75.0",
+    "typescript": "7.0.2",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
   }
 }
