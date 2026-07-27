@@ -433,7 +433,7 @@ export default function UsersPage() {
             actions.push(
               <GridActionsCellItem
                 key="edit"
-                icon={<Pencil className="grid-action-icon icon-button--edit" />}
+                icon={<Pencil className="grid-action-icon icon-button--edit" fill="currentColor" />}
                 label={t('config.editUser')}
                 size="small"
                 onClick={() => openEditUserDialog(row)}

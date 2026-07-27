@@ -60,7 +60,7 @@ export default function FreshpediaEntryList({
                       aria-label={t('freshpedia.editEntryAction')}
                       onClick={() => onEdit(entry)}
                     >
-                      <Pencil />
+                      <Pencil fill="currentColor" />
                     </button>
                   </Tooltip>
                 )}

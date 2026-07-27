@@ -70,7 +70,7 @@ export default function MessageFeedback({ feedback, onChange }) {
           aria-pressed={feedback?.rating === 'up'}
           onClick={handleThumbsUp}
         >
-          <ThumbsUp />
+          <ThumbsUp fill={feedback?.rating === 'up' ? 'currentColor' : 'none'} />
         </button>
         <button
           type="button"
@@ -82,7 +82,7 @@ export default function MessageFeedback({ feedback, onChange }) {
           aria-pressed={feedback?.rating === 'down'}
           onClick={handleThumbsDown}
         >
-          <ThumbsDown />
+          <ThumbsDown fill={feedback?.rating === 'down' ? 'currentColor' : 'none'} />
         </button>
       </div>
 

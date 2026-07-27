@@ -38,7 +38,7 @@ export default function ToolCatalogTable({
         getActions: ({ row }) => [
           <GridActionsCellItem
             key="edit"
-            icon={<Pencil className="grid-action-icon icon-button--edit" />}
+            icon={<Pencil className="grid-action-icon icon-button--edit" fill="currentColor" />}
             label={t('toolCatalog.editRequestAction')}
             onClick={() => onEdit(row)}
           />,

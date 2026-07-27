@@ -398,7 +398,7 @@ export default function Sidebar({
             </>
           ) : (
             <>
-              <button className="conversation-item conversation-item--new" onClick={() => navigate('/')}>
+              <button className="conversation-item conversation-item--new conversation-item--accent" onClick={() => navigate('/')}>
                 <ArrowLeft className="conversation-item__icon" />
                 <span className="conversation-item__title">{t('config.backToChat')}</span>
               </button>

@@ -122,8 +122,8 @@
 }
 
 .search-modal__icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   color: var(--text-muted);
   font-size: 14px;
   flex-shrink: 0;

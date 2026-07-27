@@ -99,7 +99,7 @@ export default function ConversationItem({
         {isMenuOpen && (
           <div className="menu menu--conversation">
             <button className="menu__item" onClick={startRename}>
-              <Pencil className="menu__item-icon" />
+              <Pencil className="menu__item-icon" fill="currentColor" />
               {t('conversationMenu.rename')}
             </button>
             <div className="menu__divider" />

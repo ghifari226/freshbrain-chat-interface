@@ -36,12 +36,35 @@
   color: var(--danger);
 }
 
+/* Back to Chat specifically — accent-colored to call out the app's main
+   feature, the chat itself, from the profile popup. */
+.menu__item--accent {
+  color: var(--accent);
+}
+
+.menu__item--accent .menu__item-icon {
+  color: var(--accent);
+}
+
 .menu__item-icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   text-align: center;
   color: var(--text-muted);
+}
+
+/* Dark mode: inherit the item's own label color (--text-sidebar) instead of
+   staying muted-gray — see the identical rule on .sidebar-nav__item-icon in
+   sidebar.css for why this alone is enough for both tones (cool: uniformly
+   white since --text-sidebar/--text-sidebar-highlight match; warm: this
+   surface has no separate hover/active color today, so its icons pick up
+   the tone's muted label color rather than ever brightening — a plain
+   improvement over the old always-gray look either way). :where() keeps
+   this at the same specificity as the base rule above, so it can never
+   outrank --danger/--accent's more specific icon-color overrides.  */
+:where([data-theme='dark']) .menu__item-icon {
+  color: inherit;
 }
 
 .menu__item-text {

@@ -146,7 +146,7 @@ export default function PermissionsPage({ session }) {
                             aria-label={t('config.editPermission')}
                             onClick={() => openEditForm(entry)}
                           >
-                            <Pencil />
+                            <Pencil fill="currentColor" />
                           </button>
                         </Tooltip>
                       )}

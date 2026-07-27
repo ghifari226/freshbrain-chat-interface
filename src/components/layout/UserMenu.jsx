@@ -67,7 +67,7 @@ export default function UserMenu({
           <div className="menu__divider" />
           {path !== '/' && (
             <button
-              className="menu__item"
+              className="menu__item menu__item--accent"
               onClick={() => {
                 navigate('/')
                 setIsOpen(false)

@@ -428,7 +428,7 @@ export default function RolesPage({ session }) {
                             aria-label={t('config.editRole')}
                             onClick={() => openRename(role)}
                           >
-                            <Pencil />
+                            <Pencil fill="currentColor" />
                           </button>
                         </Tooltip>
                       )}
