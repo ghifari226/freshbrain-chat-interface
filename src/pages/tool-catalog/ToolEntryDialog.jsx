@@ -7,6 +7,7 @@ import {
   DialogTitle,
   TextField,
 } from '@mui/material'
+import { X } from 'lucide-react'
 import { isToolFormValid } from './toolCatalogConfig.js'
 
 function ToolEntryForm({ form, setForm, systems, t }) {
@@ -112,7 +113,7 @@ function ToolEntryForm({ form, setForm, systems, t }) {
               aria-label={t('toolCatalog.removeQuestionAction')}
               onClick={() => removeQuestion(index)}
             >
-              <i className="fa-solid fa-xmark" />
+              <X />
             </button>
           </div>
         ))}

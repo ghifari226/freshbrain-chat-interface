@@ -1,4 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronDown,
+  LogOut,
+  Settings,
+  ShieldCheck,
+  User,
+  Wrench,
+} from 'lucide-react'
 import SettingsModal from '../modals/SettingsModal.jsx'
 import ProfileModal from '../modals/ProfileModal.jsx'
 import { useT } from '../../hooks/useT.js'
@@ -49,7 +59,7 @@ export default function UserMenu({
             }}
           >
             <span className="user-avatar">
-              <i className="fa-solid fa-user" />
+              <User />
             </span>
             <span className="menu__profile-name">{session?.name}</span>
           </button>
@@ -62,7 +72,7 @@ export default function UserMenu({
                 setIsOpen(false)
               }}
             >
-              <i className="fa-solid fa-arrow-left menu__item-icon" />
+              <ArrowLeft className="menu__item-icon" />
               {t('config.backToChat')}
             </button>
           )}
@@ -73,7 +83,7 @@ export default function UserMenu({
               setIsOpen(false)
             }}
           >
-            <i className="fa-solid fa-gear menu__item-icon" />
+            <Settings className="menu__item-icon" />
             {t('userMenu.settings')}
           </button>
           <div className="menu__divider" />
@@ -85,7 +95,7 @@ export default function UserMenu({
                 setIsOpen(false)
               }}
             >
-              <i className="fa-solid fa-book-open menu__item-icon" />
+              <BookOpen className="menu__item-icon" />
               {t('userMenu.freshpedia')}
             </button>
           )}
@@ -97,7 +107,7 @@ export default function UserMenu({
                 setIsOpen(false)
               }}
             >
-              <i className="fa-solid fa-toolbox menu__item-icon" />
+              <Wrench className="menu__item-icon" />
               {t('userMenu.toolCatalog')}
             </button>
           )}
@@ -109,7 +119,7 @@ export default function UserMenu({
                 setIsOpen(false)
               }}
             >
-              <i className="fa-solid fa-shield-halved menu__item-icon" />
+              <ShieldCheck className="menu__item-icon" />
               {t('userMenu.accessConfig')}
             </button>
           )}
@@ -121,7 +131,7 @@ export default function UserMenu({
               setIsOpen(false)
             }}
           >
-            <i className="fa-solid fa-right-from-bracket menu__item-icon" />
+            <LogOut className="menu__item-icon" />
             {t('userMenu.logOut')}
           </button>
         </div>
@@ -133,12 +143,12 @@ export default function UserMenu({
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className="user-avatar">
-          <i className="fa-solid fa-user" />
+          <User />
         </span>
         {!collapsed && (
           <>
             <span className="user-menu__name">{session?.name}</span>
-            <i className="fa-solid fa-chevron-down user-menu__chevron" />
+            <ChevronDown className="user-menu__chevron" />
           </>
         )}
       </button>

@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 import { ROLE_LABEL_KEYS } from '../../config/roles.js'
 
@@ -11,7 +12,7 @@ export default function ProfileModal({ onClose, session }) {
         <div className="modal__header">
           <span className="modal__title">{t('profile.title')}</span>
           <button className="icon-button" aria-label={t('profile.close')} onClick={onClose}>
-            <i className="fa-solid fa-xmark" />
+            <X />
           </button>
         </div>
 

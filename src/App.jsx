@@ -1,11 +1,7 @@
-import { useMemo, useRef, useState } from 'react'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { lazy, Suspense, useRef, useState } from 'react'
 import Sidebar from './components/layout/Sidebar.jsx'
 import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
-import ConfigSection from './pages/config/ConfigSection.jsx'
-import FreshpediaPage from './pages/FreshpediaPage.jsx'
-import ToolCatalogPage from './pages/ToolCatalogPage.jsx'
 import { sendMessage, generateTitle } from './services/apiClient.js'
 import { makeMockConversations } from './mocks/mockConversations.js'
 import { useTheme } from './hooks/useTheme.js'
@@ -19,6 +15,11 @@ import { LanguageProvider } from './contexts/LanguageProvider.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { strings } from './i18n/strings.js'
 
+const MuiPage = lazy(() => import('./pages/MuiPage.jsx'))
+const ConfigSection = lazy(() => import('./pages/config/ConfigSection.jsx'))
+const FreshpediaPage = lazy(() => import('./pages/FreshpediaPage.jsx'))
+const ToolCatalogPage = lazy(() => import('./pages/ToolCatalogPage.jsx'))
+
 function makeId() {
   return Math.random().toString(36).slice(2, 10)
 }
@@ -30,17 +31,6 @@ function AuthenticatedApp({ language, setLanguage }) {
   const [theme, setTheme] = useTheme()
   const [tone, setTone] = useTone()
   const [chatFont, setChatFont] = useChatFont()
-  // Config/Freshpedia/Tool Catalog are the only pages using MUI components
-  // (Chip, Autocomplete, TextField, Dialog, DataGrid). Without a
-  // ThemeProvider they always render MUI's light-mode defaults, so in dark
-  // mode their text/borders (near-black) sit directly on our dark page
-  // background instead of MUI's own paper — this keeps MUI's palette in
-  // sync with ours so that doesn't happen.
-  const muiTheme = useMemo(
-    () => createTheme({ palette: { mode: theme === 'dark' ? 'dark' : 'light' } }),
-    [theme],
-  )
-
   const [conversations, setConversations] = useState(() => makeMockConversations())
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef(null)
@@ -182,21 +172,27 @@ function AuthenticatedApp({ language, setLanguage }) {
   let content
   if (path.startsWith('/config')) {
     content = (
-      <ThemeProvider theme={muiTheme}>
-        <ConfigSection />
-      </ThemeProvider>
+      <Suspense fallback={<div className="config-page" />}>
+        <MuiPage mode={theme}>
+          <ConfigSection />
+        </MuiPage>
+      </Suspense>
     )
   } else if (path === '/freshpedia') {
     content = (
-      <ThemeProvider theme={muiTheme}>
-        <FreshpediaPage language={language} />
-      </ThemeProvider>
+      <Suspense fallback={<div className="config-page" />}>
+        <MuiPage mode={theme}>
+          <FreshpediaPage language={language} />
+        </MuiPage>
+      </Suspense>
     )
   } else if (path === '/tool-catalog') {
     content = (
-      <ThemeProvider theme={muiTheme}>
-        <ToolCatalogPage />
-      </ThemeProvider>
+      <Suspense fallback={<div className="config-page" />}>
+        <MuiPage mode={theme}>
+          <ToolCatalogPage />
+        </MuiPage>
+      </Suspense>
     )
   } else {
     content = (

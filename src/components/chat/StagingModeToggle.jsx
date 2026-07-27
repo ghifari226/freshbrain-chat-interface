@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth.js'
+import { Eye, EyeOff } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 
 // staging.test is its own independent, per-individual toggle (not derived
@@ -25,7 +26,7 @@ export default function StagingModeToggle() {
         aria-label={t('staging.toggleLabel')}
         onClick={() => setIsStaging((prev) => !prev)}
       >
-        <i className={'fa-solid ' + (isStaging ? 'fa-eye-slash' : 'fa-eye')} />
+        {isStaging ? <EyeOff /> : <Eye />}
       </button>
     </>
   )

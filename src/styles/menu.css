@@ -38,6 +38,7 @@
 
 .menu__item-icon {
   width: 14px;
+  height: 14px;
   flex-shrink: 0;
   text-align: center;
   color: var(--text-muted);

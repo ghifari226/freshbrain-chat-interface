@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Lock, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid'
 import {
   Dialog,
@@ -136,7 +137,7 @@ function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldL
               onChange={() => onToggle(field)}
             />
             <span className="permission-checkbox__label">
-              {locked && <i className="fa-solid fa-lock" />} {t(PERMISSION_LABEL_KEYS[field])}
+              {locked && <Lock />} {t(PERMISSION_LABEL_KEYS[field])}
             </span>
           </label>
         )
@@ -421,7 +422,7 @@ export default function UsersPage() {
             actions.push(
               <GridActionsCellItem
                 key="edit"
-                icon={<i className="fa-solid fa-pen grid-action-icon icon-button--edit" />}
+                icon={<Pencil className="grid-action-icon icon-button--edit" />}
                 label={t('config.editUser')}
                 size="small"
                 onClick={() => openEditUserDialog(row)}
@@ -432,7 +433,7 @@ export default function UsersPage() {
             actions.push(
               <GridActionsCellItem
                 key="permissions"
-                icon={<i className="fa-solid fa-shield-halved grid-action-icon" />}
+                icon={<ShieldCheck className="grid-action-icon" />}
                 label={t('permissions.sectionLabel')}
                 size="small"
                 onClick={() => setPermissionsDialogEmail(row.email)}
@@ -443,7 +444,7 @@ export default function UsersPage() {
             actions.push(
               <GridActionsCellItem
                 key="delete"
-                icon={<i className="fa-solid fa-trash grid-action-icon icon-button--danger" />}
+                icon={<Trash2 className="grid-action-icon icon-button--danger" />}
                 label={t('config.deleteUser')}
                 size="small"
                 disabled={row.email === session?.email}

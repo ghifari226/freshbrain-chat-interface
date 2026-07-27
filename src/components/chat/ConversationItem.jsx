@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 
 export default function ConversationItem({
@@ -92,18 +93,18 @@ export default function ConversationItem({
             }
           }}
         >
-          <i className="fa-solid fa-ellipsis-vertical" />
+          <MoreVertical />
         </button>
 
         {isMenuOpen && (
           <div className="menu menu--conversation">
             <button className="menu__item" onClick={startRename}>
-              <i className="fa-solid fa-pencil menu__item-icon" />
+              <Pencil className="menu__item-icon" />
               {t('conversationMenu.rename')}
             </button>
             <div className="menu__divider" />
             <button className="menu__item menu__item--danger" onClick={onDelete}>
-              <i className="fa-solid fa-trash menu__item-icon" />
+              <Trash2 className="menu__item-icon" />
               {t('conversationMenu.delete')}
             </button>
           </div>

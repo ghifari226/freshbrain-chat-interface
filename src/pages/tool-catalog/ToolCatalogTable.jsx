@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Pencil } from 'lucide-react'
 import { Chip } from '@mui/material'
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid'
 import { TOOL_STATUS_COLOR } from './toolCatalogConfig.js'
@@ -37,7 +38,7 @@ export default function ToolCatalogTable({
         getActions: ({ row }) => [
           <GridActionsCellItem
             key="edit"
-            icon={<i className="fa-solid fa-pen" />}
+            icon={<Pencil className="grid-action-icon icon-button--edit" />}
             label={t('toolCatalog.editRequestAction')}
             onClick={() => onEdit(row)}
           />,

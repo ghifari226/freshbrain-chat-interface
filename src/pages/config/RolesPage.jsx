@@ -1,4 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
+  Lock,
+  Pencil,
+  Save,
+  X,
+} from 'lucide-react'
 import { Tooltip, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import { getScopeCatalog } from '../../config/scopeCatalog.js'
 import {
@@ -335,7 +346,7 @@ export default function RolesPage({ session }) {
                       onChange={(event) => setRenameDraft(event.target.value)}
                     />
                     <button type="submit" className="icon-button icon-button--pending" aria-label={t('config.saveUser')}>
-                      <i className="fa-solid fa-check" />
+                      <Check />
                     </button>
                     <button
                       type="button"
@@ -343,7 +354,7 @@ export default function RolesPage({ session }) {
                       aria-label={t('config.cancelEdit')}
                       onClick={() => setRenamingRole(null)}
                     >
-                      <i className="fa-solid fa-xmark" />
+                      <X />
                     </button>
                   </form>
                 ) : (
@@ -357,7 +368,7 @@ export default function RolesPage({ session }) {
                     <div className="role-card__header-actions">
                       {isLocked && (
                         <Tooltip title={t('config.roleLockedNotice')}>
-                          <i className="fa-solid fa-lock" />
+                          <Lock />
                         </Tooltip>
                       )}
                       {isDirty && (
@@ -368,7 +379,7 @@ export default function RolesPage({ session }) {
                             aria-label={t('config.cancelEdit')}
                             onClick={() => handleCancelRole(role)}
                           >
-                            <i className="fa-solid fa-xmark" />
+                            <X />
                           </button>
                           <button
                             type="button"
@@ -376,7 +387,7 @@ export default function RolesPage({ session }) {
                             aria-label={t('config.saveUser')}
                             onClick={() => handleSaveRole(role)}
                           >
-                            <i className="fa-solid fa-floppy-disk" />
+                            <Save />
                           </button>
                         </>
                       )}
@@ -388,7 +399,7 @@ export default function RolesPage({ session }) {
                             aria-label={t('config.editRole')}
                             onClick={() => openRename(role)}
                           >
-                            <i className="fa-solid fa-pen" />
+                            <Pencil />
                           </button>
                         </Tooltip>
                       )}
@@ -410,7 +421,7 @@ export default function RolesPage({ session }) {
                               disabled={isFilteredMode}
                               onClick={() => toggleAllExpanded(role, expandableSystems)}
                             >
-                              <i className={`fa-solid fa-angles-${allExpanded ? 'up' : 'down'}`} />
+                              {allExpanded ? <ChevronsUp /> : <ChevronsDown />}
                             </button>
                           </span>
                         </Tooltip>
@@ -463,7 +474,7 @@ export default function RolesPage({ session }) {
                               aria-label={entry.label}
                               onClick={() => toggleSystemExpanded(role, entry.system)}
                             >
-                              <i className={`fa-solid fa-chevron-${isExpanded ? 'up' : 'down'}`} />
+                              {isExpanded ? <ChevronUp /> : <ChevronDown />}
                             </button>
                           )}
                         </div>

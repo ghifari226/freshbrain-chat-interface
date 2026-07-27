@@ -1,4 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Search,
+  Settings,
+  ShieldCheck,
+  Wrench,
+} from 'lucide-react'
 import ConversationItem from '../chat/ConversationItem.jsx'
 import UserMenu from './UserMenu.jsx'
 import SearchModal from '../modals/SearchModal.jsx'
@@ -138,7 +152,7 @@ export default function Sidebar({
                 alt=""
                 className="sidebar-collapsed__toggle-logo sidebar-collapsed__toggle-logo--dark"
               />
-              <i className="fa-solid fa-table-columns sidebar-collapsed__toggle-icon" />
+              <PanelLeftOpen className="sidebar-collapsed__toggle-icon" />
             </button>
           </div>
 
@@ -150,7 +164,7 @@ export default function Sidebar({
                 data-tooltip={t('sidebar.newChat')}
                 onClick={onNewChat}
               >
-                <i className="fa-solid fa-plus" />
+                <Plus />
               </button>
 
               <button
@@ -159,7 +173,7 @@ export default function Sidebar({
                 data-tooltip={t('sidebar.search')}
                 onClick={() => setIsSearchOpen(true)}
               >
-                <i className="fa-solid fa-magnifying-glass" />
+                <Search />
               </button>
 
               <div className="sidebar-collapsed__recents" ref={recentsWrapRef}>
@@ -169,7 +183,7 @@ export default function Sidebar({
                   data-tooltip={isRecentsOpen ? undefined : t('sidebar.recentChats')}
                   onClick={() => setIsRecentsOpen((open) => !open)}
                 >
-                  <i className="fa-solid fa-comment" />
+                  <MessageSquare />
                 </button>
 
                 {isRecentsOpen && (
@@ -201,7 +215,7 @@ export default function Sidebar({
                 data-tooltip={t('config.backToChat')}
                 onClick={() => navigate('/')}
               >
-                <i className="fa-solid fa-arrow-left" />
+                <ArrowLeft />
               </button>
 
               {canSeeFreshpedia && (
@@ -211,7 +225,7 @@ export default function Sidebar({
                   data-tooltip={t('userMenu.freshpedia')}
                   onClick={() => navigate('/freshpedia')}
                 >
-                  <i className="fa-solid fa-book-open" />
+                  <BookOpen />
                 </button>
               )}
 
@@ -222,7 +236,7 @@ export default function Sidebar({
                   data-tooltip={t('userMenu.toolCatalog')}
                   onClick={() => navigate('/tool-catalog')}
                 >
-                  <i className="fa-solid fa-toolbox" />
+                  <Wrench />
                 </button>
               )}
 
@@ -242,7 +256,7 @@ export default function Sidebar({
                     aria-label={t('userMenu.accessConfig')}
                     onClick={(event) => selectFromConfigFlyout('/config', event)}
                   >
-                    <i className="fa-solid fa-shield-halved" />
+                    <ShieldCheck />
                   </button>
 
                   <div className="menu menu--recents">
@@ -280,7 +294,7 @@ export default function Sidebar({
                 data-tooltip={t('userMenu.settings')}
                 onClick={() => setIsSettingsFromNav(true)}
               >
-                <i className="fa-solid fa-gear" />
+                <Settings />
               </button>
             </>
           )}
@@ -329,7 +343,7 @@ export default function Sidebar({
                   data-tooltip={t('sidebar.search')}
                   onClick={() => setIsSearchOpen(true)}
                 >
-                  <i className="fa-solid fa-magnifying-glass" />
+                  <Search />
                 </button>
               )}
               <button
@@ -338,7 +352,7 @@ export default function Sidebar({
                 data-tooltip={t('sidebar.closeSidebar')}
                 onClick={() => setIsCollapsed(true)}
               >
-                <i className="fa-solid fa-table-columns" />
+                <PanelLeftClose />
               </button>
             </div>
           </div>
@@ -346,7 +360,7 @@ export default function Sidebar({
           {isChat ? (
             <>
               <button className="conversation-item conversation-item--new" onClick={onNewChat}>
-                <i className="fa-solid fa-plus conversation-item__icon" />
+                <Plus className="conversation-item__icon" />
                 <span className="conversation-item__title">{t('sidebar.newChat')}</span>
               </button>
 
@@ -372,7 +386,7 @@ export default function Sidebar({
           ) : (
             <>
               <button className="conversation-item conversation-item--new" onClick={() => navigate('/')}>
-                <i className="fa-solid fa-arrow-left conversation-item__icon" />
+                <ArrowLeft className="conversation-item__icon" />
                 <span className="conversation-item__title">{t('config.backToChat')}</span>
               </button>
 
@@ -385,7 +399,7 @@ export default function Sidebar({
                       }
                       onClick={() => navigate('/freshpedia')}
                     >
-                      <i className="fa-solid fa-book-open sidebar-nav__item-icon" />
+                      <BookOpen className="sidebar-nav__item-icon" />
                       <span className="sidebar-nav__item-label">{t('userMenu.freshpedia')}</span>
                     </button>
                   )}
@@ -397,7 +411,7 @@ export default function Sidebar({
                       }
                       onClick={() => navigate('/tool-catalog')}
                     >
-                      <i className="fa-solid fa-toolbox sidebar-nav__item-icon" />
+                      <Wrench className="sidebar-nav__item-icon" />
                       <span className="sidebar-nav__item-label">{t('userMenu.toolCatalog')}</span>
                     </button>
                   )}
@@ -411,14 +425,13 @@ export default function Sidebar({
                         }
                         onClick={handleConfigNavClick}
                       >
-                        <i className="fa-solid fa-shield-halved sidebar-nav__item-icon" />
+                        <ShieldCheck className="sidebar-nav__item-icon" />
                         <span className="sidebar-nav__item-label">{t('userMenu.accessConfig')}</span>
-                        <i
-                          className={
-                            'fa-solid sidebar-nav__item-chevron ' +
-                            (isConfigNavOpen ? 'fa-chevron-up' : 'fa-chevron-down')
-                          }
-                        />
+                        {isConfigNavOpen ? (
+                          <ChevronUp className="sidebar-nav__item-chevron" />
+                        ) : (
+                          <ChevronDown className="sidebar-nav__item-chevron" />
+                        )}
                       </button>
 
                       {isConfigNavOpen && (
@@ -465,7 +478,7 @@ export default function Sidebar({
                     className="sidebar-nav__item sidebar-nav__item--settings"
                     onClick={() => setIsSettingsFromNav(true)}
                   >
-                    <i className="fa-solid fa-gear sidebar-nav__item-icon" />
+                    <Settings className="sidebar-nav__item-icon" />
                     <span className="sidebar-nav__item-label">{t('userMenu.settings')}</span>
                   </button>
                 </nav>

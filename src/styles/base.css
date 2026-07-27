@@ -51,6 +51,12 @@ input[type='checkbox'] {
   font-size: 14px;
 }
 
+.icon-button svg {
+  width: 1em;
+  height: 1em;
+  stroke-width: 2;
+}
+
 .icon-button:hover {
   background: var(--surface-response);
 }

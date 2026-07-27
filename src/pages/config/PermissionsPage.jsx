@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material'
 import { PERMISSION_GROUPS, getPermissionCatalog, updatePermissionInCatalog } from '../../config/permissions.js'
 import { useT, resolveLabelEntry } from '../../hooks/useT.js'
@@ -144,7 +145,7 @@ export default function PermissionsPage({ session }) {
                             aria-label={t('config.editPermission')}
                             onClick={() => openEditForm(entry)}
                           >
-                            <i className="fa-solid fa-pen" />
+                            <Pencil />
                           </button>
                         </Tooltip>
                       )}

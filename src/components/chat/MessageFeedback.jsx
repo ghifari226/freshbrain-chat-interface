@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 
 const REASONS = [
@@ -69,7 +70,7 @@ export default function MessageFeedback({ feedback, onChange }) {
           aria-pressed={feedback?.rating === 'up'}
           onClick={handleThumbsUp}
         >
-          <i className="fa-solid fa-thumbs-up" />
+          <ThumbsUp />
         </button>
         <button
           type="button"
@@ -81,7 +82,7 @@ export default function MessageFeedback({ feedback, onChange }) {
           aria-pressed={feedback?.rating === 'down'}
           onClick={handleThumbsDown}
         >
-          <i className="fa-solid fa-thumbs-down" />
+          <ThumbsDown />
         </button>
       </div>
 

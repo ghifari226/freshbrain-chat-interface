@@ -8,13 +8,13 @@ export const TRANSITION_BY_STATUS = {
   production: {
     labelKey: 'freshpedia.demoteToStagingAction',
     toStatus: 'staging',
-    icon: 'fa-arrow-down',
+    direction: 'down',
     colorClass: 'icon-button--warning',
   },
   staging: {
     labelKey: 'freshpedia.promoteToProductionAction',
     toStatus: 'production',
-    icon: 'fa-arrow-up',
+    direction: 'up',
     colorClass: 'icon-button--success',
   },
 }

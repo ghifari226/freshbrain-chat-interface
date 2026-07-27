@@ -1,3 +1,4 @@
+import { Moon, Snowflake, Sun, ThermometerSun, X } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 
 export default function SettingsModal({
@@ -19,7 +20,7 @@ export default function SettingsModal({
         <div className="modal__header">
           <span className="modal__title">{t('settings.title')}</span>
           <button className="icon-button" aria-label={t('settings.close')} onClick={onClose}>
-            <i className="fa-solid fa-xmark" />
+            <X />
           </button>
         </div>
 
@@ -33,7 +34,7 @@ export default function SettingsModal({
               }
               onClick={() => setTheme('light')}
             >
-              <i className="fa-solid fa-sun" /> {t('settings.light')}
+              <Sun /> {t('settings.light')}
             </button>
             <button
               className={
@@ -42,7 +43,7 @@ export default function SettingsModal({
               }
               onClick={() => setTheme('dark')}
             >
-              <i className="fa-solid fa-moon" /> {t('settings.dark')}
+              <Moon /> {t('settings.dark')}
             </button>
           </div>
         </div>
@@ -57,7 +58,7 @@ export default function SettingsModal({
               }
               onClick={() => setTone('cool')}
             >
-              <i className="fa-solid fa-temperature-quarter" /> {t('settings.cool')}
+              <Snowflake /> {t('settings.cool')}
             </button>
             <button
               className={
@@ -66,7 +67,7 @@ export default function SettingsModal({
               }
               onClick={() => setTone('warm')}
             >
-              <i className="fa-solid fa-temperature-half" /> {t('settings.warm')}
+              <ThermometerSun /> {t('settings.warm')}
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { ArrowUp } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 
 const MAX_LINES = 10
@@ -62,7 +63,7 @@ const MessageInput = forwardRef(function MessageInput(
           aria-label={t('chat.sendMessage')}
           disabled={disabled || !value.trim()}
         >
-          <i className="fa-solid fa-arrow-up" />
+          <ArrowUp />
         </button>
       </form>
     </div>

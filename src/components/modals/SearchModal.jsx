@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { MessageSquare, Search, X } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 
 export default function SearchModal({ conversations, onSelect, onClose }) {
@@ -15,7 +16,7 @@ export default function SearchModal({ conversations, onSelect, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="search-modal" onClick={(event) => event.stopPropagation()}>
         <div className="search-modal__bar">
-          <i className="fa-solid fa-magnifying-glass search-modal__icon" />
+          <Search className="search-modal__icon" />
           <input
             type="text"
             className="search-modal__input"
@@ -25,7 +26,7 @@ export default function SearchModal({ conversations, onSelect, onClose }) {
             autoFocus
           />
           <button className="icon-button" aria-label={t('search.close')} onClick={onClose}>
-            <i className="fa-solid fa-xmark" />
+            <X />
           </button>
         </div>
 
@@ -37,7 +38,7 @@ export default function SearchModal({ conversations, onSelect, onClose }) {
               className="search-modal__item"
               onClick={() => onSelect(conversation.id)}
             >
-              <i className="fa-solid fa-comment search-modal__item-icon" />
+              <MessageSquare className="search-modal__item-icon" />
               <span className="search-modal__item-title">{conversation.title}</span>
             </button>
           ))}

@@ -132,6 +132,8 @@
 }
 
 .config-card__icon {
+  width: 18px;
+  height: 18px;
   color: var(--accent);
   font-size: 18px;
 }
@@ -665,6 +667,13 @@
   color: var(--text-muted);
 }
 
+.permission-checkbox__label svg,
+.role-card__header-actions > svg {
+  width: 13px;
+  height: 13px;
+  vertical-align: -2px;
+}
+
 .filter-bar {
   display: flex;
   flex-direction: column;
@@ -808,7 +817,8 @@
    larger IconButton default instead. This brings them back in line with
    every other icon-button in the app. */
 .grid-action-icon {
-  font-size: 14px;
+  width: 14px;
+  height: 14px;
 }
 
 /* Dynamic example-question list rows inside the Tool Catalog form. */

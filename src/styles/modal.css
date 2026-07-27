@@ -69,6 +69,11 @@
   gap: 6px;
 }
 
+.theme-toggle__option svg {
+  width: 14px;
+  height: 14px;
+}
+
 .theme-toggle__option--active {
   background: var(--surface-chat);
   color: var(--text-chat);
@@ -117,6 +122,8 @@
 }
 
 .search-modal__icon {
+  width: 14px;
+  height: 14px;
   color: var(--text-muted);
   font-size: 14px;
   flex-shrink: 0;
@@ -163,6 +170,7 @@
   font-size: 13px;
   flex-shrink: 0;
   width: 14px;
+  height: 14px;
   text-align: center;
 }
 

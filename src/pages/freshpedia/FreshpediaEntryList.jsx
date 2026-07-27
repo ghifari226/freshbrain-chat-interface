@@ -1,4 +1,5 @@
 import { Chip, Tooltip } from '@mui/material'
+import { ArrowDown, ArrowUp, Pencil } from 'lucide-react'
 import { STATUS_COLOR, TRANSITION_BY_STATUS } from './freshpediaConfig.js'
 
 function entryDescriptor(entry, entries, t) {
@@ -47,7 +48,7 @@ export default function FreshpediaEntryList({
                       aria-label={t(transition.labelKey)}
                       onClick={() => onTransition(entry)}
                     >
-                      <i className={`fa-solid ${transition.icon}`} />
+                      {transition.direction === 'up' ? <ArrowUp /> : <ArrowDown />}
                     </button>
                   </Tooltip>
                 )}
@@ -59,7 +60,7 @@ export default function FreshpediaEntryList({
                       aria-label={t('freshpedia.editEntryAction')}
                       onClick={() => onEdit(entry)}
                     >
-                      <i className="fa-solid fa-pen" />
+                      <Pencil />
                     </button>
                   </Tooltip>
                 )}
