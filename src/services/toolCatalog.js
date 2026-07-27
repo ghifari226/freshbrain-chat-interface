@@ -1,8 +1,30 @@
-import { CHAT_GATEWAY_BASE_URL } from '../config/appConfig.js'
+// Tool Catalog CRUD against chat-gateway — same shape as freshpedia.js
+// (USE_MOCK_API branch, MOCK_TOOLS in place of MOCK_ENTRIES), but no
+// change_status endpoint: per permission-catalog.md's open questions, Tool
+// Catalog has no promote/demote path at all yet, mocked or real — a
+// `request` entry can only be edited while pending, never moved to
+// staging/production from this file or the UI. No dedicated contract doc
+// exists for Tool Catalog either. `signal` is only actually threaded
+// through by ToolCatalogPage's list load (getAllToolCatalogEntries) today —
+// create/update accept it too but no caller passes one yet.
+import { USE_MOCK_API } from '../config/appConfig.js'
+import { authHeaders, gatewayApi } from './api.js'
+import { mockDelay } from './mockDelay.js'
 
-function delay() {
-  return new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 400))
-}
+/**
+ * Shape returned by every function in this file.
+ * @typedef {{
+ *   id: string,
+ *   system: string,
+ *   name: string,
+ *   status: 'request' | 'staging' | 'production',
+ *   updatedAt: string,
+ *   submittedBy: string,
+ *   submittedByEmail: string,
+ *   description: string,
+ *   exampleQuestions: string[],
+ * }} ToolCatalogEntry
+ */
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10)
@@ -136,34 +158,37 @@ const MOCK_TOOLS = [
   },
 ]
 
-export async function listToolCatalogEntries() {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/tool-catalog`)
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+/**
+ * @returns {Promise<ToolCatalogEntry[]>}
+ */
+export async function getAllToolCatalogEntries({ signal, token } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.get(
+      '/tool-catalog',
+      { signal, headers: authHeaders(token) },
+    )
+    return data
   }
-  await delay()
+  await mockDelay(500, 900, signal)
   return MOCK_TOOLS.map(toEntry)
 }
 
 /**
  * @param {{ system: string, name: string, description: string, exampleQuestions: string[] }} input
- * @param {{ email: string, name: string, 'tool.request'?: boolean }} actor
+ * @param {{ email: string, name: string, token?: string, 'tool.request'?: boolean }} actor
+ * @returns {Promise<ToolCatalogEntry>}
  */
-export async function createToolCatalogEntry(input, actor) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/tool-catalog`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    })
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function createToolCatalogEntry(input, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.post(
+      '/tool-catalog',
+      input,
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   if (!actor?.['tool.request']) {
     throw new Error('You do not have permission to submit tool requests')
@@ -193,21 +218,20 @@ export async function createToolCatalogEntry(input, actor) {
  *
  * @param {string} id
  * @param {{ system?: string, name?: string, description?: string, exampleQuestions?: string[] }} updates
- * @param {{ email: string, 'tool.request'?: boolean }} actor
+ * @param {{ email: string, token?: string, 'tool.request'?: boolean }} actor
+ * @returns {Promise<ToolCatalogEntry>}
  */
-export async function updateToolCatalogEntry(id, updates, actor) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/tool-catalog/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    })
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function updateToolCatalogEntry(id, updates, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.patch(
+      `/tool-catalog/${encodeURIComponent(id)}`,
+      updates,
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   const entry = MOCK_TOOLS.find((e) => e.id === id)
   if (!entry) throw new Error('Entry not found')

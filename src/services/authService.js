@@ -1,32 +1,86 @@
-// Auth, matching the request/response contract in
-// freshbrain-agreement/auth-contract.md (including the /config/users admin
-// section) and permission-catalog.md. Each exported function tries the
-// real endpoint first; since chat-gateway doesn't exist yet, that fetch
-// always fails and every function falls back to the MOCK_USERS logic
-// below, unchanged. Once chat-gateway is up, the fallback branches (and
-// eventually MOCK_USERS itself) just get deleted — call sites don't change.
+// Auth and user administration matching auth-contract.md. VITE_USE_MOCK_API
+// selects either the mutable in-memory data below or the real Axios client
+// explicitly; real HTTP errors never fall back to mocks. `signal` is only
+// actually threaded through by UsersPage's list load (getAllUsers) today —
+// authenticate/createUser/updateUser/deleteUser accept it too but no caller
+// passes one yet.
 //
 // No username, by design — this isn't a social product, email + password
 // is the login identity. MOCK_USERS also backs the /config/users admin
-// directory below (listUsers/createUser/updateUser) — self-service
+// directory below (getAllUsers/createUser/updateUser) — self-service
 // registration has been removed in favor of admin-managed user creation,
 // so this is now the only place new mock accounts come from.
 
-import { CHAT_GATEWAY_BASE_URL } from '../config/appConfig.js'
+import { USE_MOCK_API } from '../config/appConfig.js'
 import { ROLE_SCOPES } from '../config/roles.js'
 import { ALL_PERMISSIONS, SUPERADMIN_LOCKED_PERMISSIONS } from '../config/permissions.js'
+import { authHeaders, gatewayApi } from './api.js'
+import { mockDelay } from './mockDelay.js'
+
+/**
+ * The 17 Family 2/3 permission booleans from permission-catalog.md — dot-key
+ * names, always read/written via bracket notation, never dot access (the
+ * dots aren't valid in a plain identifier). config/permissions.js's
+ * ALL_PERMISSIONS is the actual source of truth this list has to stay in
+ * sync with; this typedef is documentation, not enforcement.
+ * @typedef {{
+ *   'permission.view': boolean,
+ *   'permission.edit': boolean,
+ *   'role_scope.view': boolean,
+ *   'role_scope.add_role': boolean,
+ *   'role_scope.edit_role': boolean,
+ *   'role_scope.assign_scopes': boolean,
+ *   'user.view': boolean,
+ *   'user.add': boolean,
+ *   'user.edit': boolean,
+ *   'user.delete': boolean,
+ *   'user.assign_permissions': boolean,
+ *   'tool.view': boolean,
+ *   'tool.request': boolean,
+ *   'freshpedia.view': boolean,
+ *   'freshpedia.request': boolean,
+ *   'freshpedia.change_status': boolean,
+ *   'staging.test': boolean,
+ * }} Permissions
+ */
+
+/**
+ * POST /login's 200 response shape (auth-contract.md) — also what
+ * useAuth's `session` looks like everywhere else in the app, since it's
+ * stored/passed around verbatim from here.
+ * @typedef {Permissions & {
+ *   user_id: string,
+ *   name: string,
+ *   email: string,
+ *   phone: string,
+ *   role: string,
+ *   allowed_scopes: string[],
+ *   token: string,
+ * }} Session
+ */
+
+/**
+ * One element of GET /config/users' 200 response array (auth-contract.md) —
+ * same shape as Session minus the login-only fields (user_id, allowed_scopes,
+ * token: none of those belong on "some other user's" directory row).
+ * @typedef {Permissions & {
+ *   name: string,
+ *   email: string,
+ *   phone: string,
+ *   role: string,
+ * }} UserDirectoryEntry
+ */
 
 function allFalsePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, false]))
 }
 
-// Seeds every permission true — used for Superadmin (the "gets everything"
-// role now, both wildcard data scope and every admin permission) and for
-// the two pre-existing Technology mock rows below, which keep their
-// already-checked state as a static fact even though Technology itself is
-// no longer role-conditional anywhere in this file (see createUser() —
-// there's no Technology branch left, new Technology users default false
-// like any other ordinary role, same as Finance/Human Resource/etc).
+// Seeds every permission true — used for the three Superadmin mock rows
+// below (Larry, Ghifari, Admin: the "gets everything" role, both wildcard
+// data scope and every admin permission). Technology is no longer
+// role-conditional anywhere in this file (see createUser() — there's no
+// Technology branch left, new Technology users default false like any
+// other ordinary role, same as Finance/Human Resource/etc).
 function allTruePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, true]))
 }
@@ -81,10 +135,6 @@ const MOCK_USERS = [
     ...allFalsePermissions(),
   },
 ]
-
-function delay() {
-  return new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 400))
-}
 
 // Stand-in for a real reset-password token. There's no email-sending
 // channel yet, so this is surfaced once in the UsersPage UI for an admin to
@@ -148,20 +198,19 @@ function toDirectoryEntry(user) {
 /**
  * @param {string} email
  * @param {string} password
+ * @returns {Promise<Session>}
  */
-export async function authenticate(email, password) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function authenticate(email, password, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.post(
+      '/login',
+      { email, password },
+      { signal },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   const user = MOCK_USERS.find((u) => u.email === email)
   if (!user || user.password !== password) {
@@ -172,17 +221,18 @@ export async function authenticate(email, password) {
 }
 
 /**
- * @returns {Promise<object[]>}
+ * @returns {Promise<UserDirectoryEntry[]>}
  */
-export async function listUsers() {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users`)
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function getAllUsers({ signal, token } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.get(
+      '/config/users',
+      { signal, headers: authHeaders(token) },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
   return MOCK_USERS.map(toDirectoryEntry)
 }
 
@@ -190,35 +240,37 @@ export async function listUsers() {
  * New users get no password — they're created pending a reset link, not
  * with an admin-assigned credential. `resetToken` is only returned here,
  * once, for the caller to display; it isn't retrievable again from
- * listUsers().
+ * getAllUsers().
  *
  * All 17 permission booleans start false, except when `role` is
  * 'Superadmin' (all 17 start true — the "gets everything" role). Technology
  * has no special-cased default anymore, it starts false like any other
- * role; the two pre-existing Technology mock accounts (Ghifari, Admin)
- * keep their already-true state as static seed data, not because of a
- * role branch here. This is purely a function of `role` — never something
+ * role; the three pre-existing Superadmin mock accounts (Larry, Ghifari,
+ * Admin) keep their already-true state as static seed data, not because of
+ * a role branch here. This is purely a function of `role` — never something
  * the request body can ask for directly.
  *
  * `email` is captured but not verified or used to actually send anything —
  * real delivery is a chat-gateway/email-provider decision for later.
  *
  * @param {{ name: string, email: string, phone?: string, role: string }} input
- * @returns {Promise<object>}
+ * @returns {Promise<UserDirectoryEntry & { resetToken: string }>}
  */
-export async function createUser({ name, email, phone, role }) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone, role }),
-    })
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function createUser(
+  { name, email, phone, role },
+  actor,
+  { signal } = {},
+) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.post(
+      '/config/users',
+      { name, email, phone, role },
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   if (MOCK_USERS.some((u) => u.email === email)) {
     throw new Error('Email already exists')
@@ -245,23 +297,21 @@ export async function createUser({ name, email, phone, role }) {
  * live, not cached session state" rule.
  *
  * @param {string} email - target user being updated
- * @param {{ name?: string, phone?: string, role?: string } & Partial<Record<string, boolean>>} updates
- * @param {{ email: string }} actor - the calling session's own email
- * @returns {Promise<object>}
+ * @param {{ name?: string, phone?: string, role?: string } & Partial<Permissions>} updates
+ * @param {{ email: string, token?: string }} actor - the calling session's own email
+ * @returns {Promise<UserDirectoryEntry>}
  */
-export async function updateUser(email, updates, actor) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users/${encodeURIComponent(email)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    })
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function updateUser(email, updates, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.patch(
+      `/config/users/${encodeURIComponent(email)}`,
+      updates,
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   const user = MOCK_USERS.find((u) => u.email === email)
   if (!user) {
@@ -338,27 +388,26 @@ export async function updateUser(email, updates, actor) {
 }
 
 /**
- * No `DELETE /config/users/{email}` documented in auth-contract.md yet —
- * same "try the real endpoint, fall through" shape as everything else here,
- * new territory once chat-gateway actually exists. Gated by `user.delete`,
+ * No `DELETE /config/users/{email}` documented in auth-contract.md yet.
+ * The mock contract below is gated by `user.delete`,
  * re-validated live like updateUser's writes. An actor can never delete
  * their own row (self-lockout guard, mirrors the self-escalation guard
  * above) — there's no cascade to reassign a self-deleted admin's work.
  *
  * @param {string} email
- * @param {{ email: string }} actor
+ * @param {{ email: string, token?: string }} actor
+ * @returns {Promise<void>}
  */
-export async function deleteUser(email, actor) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/config/users/${encodeURIComponent(email)}`, {
-      method: 'DELETE',
-    })
-    if (res.ok) return
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function deleteUser(email, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    await gatewayApi.delete(
+      `/config/users/${encodeURIComponent(email)}`,
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   if (email === actor?.email) {
     throw new Error('You cannot delete your own account')

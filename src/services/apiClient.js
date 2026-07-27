@@ -1,67 +1,83 @@
-// All API interaction lives here. Like auth.js, each function tries the
-// real endpoint first; since ai-engine isn't reachable yet, the fetch
-// itself fails (not a real HTTP error) and we fall back to a local mock.
-// sendMessage additionally retries once with a fresh conversation on a
-// 400/404 (see the comment inline) since a conversation_id from an earlier
-// network-failure fallback isn't a real backend id. Any other non-2xx
-// response still throws, since that's a real backend telling us something
-// failed, not "there's no backend."
-
-import { AI_ENGINE_BASE_URL } from '../config/appConfig.js'
+// ai-engine-only calls (POST /chat, /chat/title) — never chat-gateway, see
+// auth-contract.md's "Setiap request berikutnya" for the /chat wire shape
+// this mirrors (message/conversation_id/user_id/role/allowed_scopes, bearer
+// token). /chat/title has no contract doc yet — it's an ai-engine-side
+// convenience endpoint the frontend already calls, not yet written up in
+// freshbrain-agreement.
+import { USE_MOCK_API } from '../config/appConfig.js'
+import { aiApi, authHeaders } from './api.js'
+import { mockDelay } from './mockDelay.js'
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10)
 }
 
 /**
- * user_id/role/allowed_scopes/token ride along per auth-contract.md's
- * "every subsequent request" shape — role/allowed_scopes gate which tools
- * ai-engine even shows Claude, token goes in the Authorization header, not
- * the body.
- *
- * @param {{
+ * POST /chat's request/response shape (auth-contract.md's "Setiap request
+ * berikutnya") — `role`/`allowed_scopes` are the only Family 2/3-adjacent
+ * fields that reach ai-engine at all; the 17 permission booleans never leave
+ * chat-interface/chat-gateway.
+ * @typedef {{
  *   message: string,
- *   conversationId: string | null,
- *   userId?: string,
- *   role?: string,
- *   allowedScopes?: string[],
- *   token?: string,
- * }} request
- * @returns {Promise<{ answer: string, conversation_id: string }>}
+ *   conversation_id: string | null,
+ *   user_id: string,
+ *   role: string,
+ *   allowed_scopes: string[],
+ * }} ChatRequest
  */
-async function postChat({ message, conversationId, userId, role, allowedScopes, token }) {
-  const headers = { 'Content-Type': 'application/json' }
-  if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${AI_ENGINE_BASE_URL}/chat`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
+/**
+ * @typedef {{ answer: string, conversation_id: string }} ChatResponse
+ */
+
+// Internal helper only — camelCase params here, translated to the
+// contract's snake_case body just before the request goes out. sendMessage
+// (below) is the actual exported surface and takes snake_case params
+// directly, matching the wire shape 1:1 so callers don't have to translate
+// twice.
+async function postChat({
+  message,
+  conversationId,
+  userId,
+  role,
+  allowedScopes,
+  token,
+  signal,
+}) {
+  const { data } = await aiApi.post(
+    '/chat',
+    {
       message,
       conversation_id: conversationId ?? null,
       user_id: userId,
       role,
       allowed_scopes: allowedScopes,
-    }),
-  })
-
-  if (!res.ok) {
-    let detail
-    try {
-      detail = (await res.json()).detail
-    } catch {
-      // response body wasn't JSON; fall through to the generic message
-    }
-    const error = new Error(detail || `Request failed (${res.status})`)
-    error.status = res.status
-    throw error
-  }
-
-  return res.json()
+    },
+    { signal, headers: authHeaders(token) },
+  )
+  return data
 }
 
-export async function sendMessage({ message, conversation_id, user_id, role, allowed_scopes, token }) {
-  await new Promise((resolve) => setTimeout(resolve, 900 + Math.random() * 600))
+/**
+ * @param {ChatRequest & { token?: string, signal?: AbortSignal }} params
+ * @returns {Promise<ChatResponse>}
+ */
+export async function sendMessage({
+  message,
+  conversation_id,
+  user_id,
+  role,
+  allowed_scopes,
+  token,
+  signal,
+}) {
+  if (USE_MOCK_API) {
+    await mockDelay(900, 1500, signal)
+    return {
+      answer: `You said: "${message}" (Tidak dapat terhubung ke ai-engine)`,
+      conversation_id: conversation_id ?? makeId(),
+    }
+  }
 
   const request = {
     message,
@@ -70,60 +86,40 @@ export async function sendMessage({ message, conversation_id, user_id, role, all
     role,
     allowedScopes: allowed_scopes,
     token,
+    signal,
   }
 
   try {
     return await postChat(request)
   } catch (error) {
-    if (error.status === undefined) {
-      // fetch itself failed (ai-engine unreachable) — fall back to a canned
-      // reply so the app stays usable, but say so instead of pretending
-      return {
-        answer: `You said: "${message}" (Tidak dapat terhubung ke ai-engine)`,
-        conversation_id: conversation_id ?? makeId(),
-      }
-    }
-
-    // conversation_id came from an earlier network failure (see fallback
-    // above) and isn't a real backend id, or the conversation otherwise
-    // doesn't exist server-side — transparently continue as a new backend
-    // conversation instead of surfacing the error.
-    if (conversation_id && (error.status === 400 || error.status === 404)) {
+    // Recovery, not a retry-on-flakiness: a 400/404 with a conversation_id
+    // attached means ai-engine doesn't recognize that conversation anymore
+    // (e.g. its in-memory store was reset). Resending once with
+    // conversation_id: null degrades to "start a new conversation" instead
+    // of surfacing a hard failure for what the user experiences as an
+    // ordinary send. Only retried once — a second failure propagates.
+    const status = error.response?.status
+    if (conversation_id && (status === 400 || status === 404)) {
       return postChat({ ...request, conversationId: null })
     }
-
     throw error
   }
 }
 
 /**
- * Title-summarization for the first message of a new conversation.
- * Resolves independently of sendMessage so the title can pop in shortly
- * after send, same as it does for real Claude conversations.
- *
- * There's no agreed contract for this endpoint yet (auth-contract.md only
- * covers login/register) — `/chat/title` is chat-interface's own proposal.
- *
+ * No auth-contract.md entry for this one — see the header note above.
  * @param {string} message
  * @returns {Promise<string>}
  */
-export async function generateTitle(message) {
-  try {
-    const res = await fetch(`${AI_ENGINE_BASE_URL}/chat/title`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
-    })
-    if (res.ok) return (await res.json()).title
-  } catch {
-    // no real ai-engine yet — fall through to the local mock below
+export async function generateTitle(message, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await aiApi.post('/chat/title', { message }, { signal })
+    return data.title
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 500))
-
+  await mockDelay(600, 1100, signal)
   const words = message.trim().split(/\s+/).filter(Boolean)
   const summary = words.slice(0, 6).join(' ')
   const title = summary.charAt(0).toUpperCase() + summary.slice(1)
-
   return words.length > 6 ? `${title}…` : title
 }

@@ -3,6 +3,7 @@ import { Pencil } from 'lucide-react'
 import { Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material'
 import { PERMISSION_GROUPS, getPermissionCatalog, updatePermissionInCatalog } from '../../config/permissions.js'
 import { useT, resolveLabelEntry } from '../../hooks/useT.js'
+import { errorMessage } from '../../services/api.js'
 
 function isFormValid(form) {
   return Boolean(form.labelId.trim())
@@ -89,7 +90,7 @@ export default function PermissionsPage({ session }) {
       setPermissions(getPermissionCatalog())
       setFormTarget(null)
     } catch (error) {
-      setFormError(error.message)
+      setFormError(errorMessage(error))
     }
   }
 

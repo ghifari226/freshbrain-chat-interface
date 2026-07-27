@@ -16,10 +16,11 @@ import { useT } from '../hooks/useT.js'
 import { canAccessFreshpedia, canChangeFreshpediaStatus } from '../config/permissions.js'
 import {
   createFreshpediaEntry,
-  listFreshpediaEntries,
-  setFreshpediaEntryStatus,
+  getAllFreshpediaEntries,
+  updateFreshpediaEntryStatus,
   updateFreshpediaEntry,
 } from '../services/freshpedia.js'
+import { errorMessage, isCanceled } from '../services/api.js'
 
 export default function FreshpediaPage({ language }) {
   const t = useT()
@@ -39,6 +40,7 @@ export default function FreshpediaPage({ language }) {
 
   const [entries, setEntries] = useState([])
   const [entriesLoaded, setEntriesLoaded] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [selectedTypes, setSelectedTypes] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [entryFormTarget, setEntryFormTarget] = useState(null)
@@ -47,17 +49,20 @@ export default function FreshpediaPage({ language }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
-    listFreshpediaEntries().then((data) => {
-      if (!cancelled) {
+    const controller = new AbortController()
+    getAllFreshpediaEntries({ signal: controller.signal, token: session?.token })
+      .then((data) => {
         setEntries(data)
         setEntriesLoaded(true)
-      }
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+      })
+      .catch((error) => {
+        if (!isCanceled(error)) {
+          setLoadError(errorMessage(error))
+          setEntriesLoaded(true)
+        }
+      })
+    return () => controller.abort()
+  }, [session?.token])
 
   const visibleEntries = useMemo(() => {
     const locale = language === 'id' ? 'id' : 'en'
@@ -125,7 +130,7 @@ export default function FreshpediaPage({ language }) {
       setForm(EMPTY_FRESHPEDIA_FORM)
       setEntryFormTarget(null)
     } catch (error) {
-      setFormError(error.message)
+      setFormError(errorMessage(error))
     } finally {
       setIsSubmitting(false)
     }
@@ -133,7 +138,7 @@ export default function FreshpediaPage({ language }) {
 
   async function handleTransition(entry) {
     const transition = TRANSITION_BY_STATUS[entry.status]
-    const updated = await setFreshpediaEntryStatus(
+    const updated = await updateFreshpediaEntryStatus(
       entry.id,
       transition.toStatus,
       session,
@@ -171,6 +176,8 @@ export default function FreshpediaPage({ language }) {
           onToggleType={toggleTypeFilter}
           t={t}
         />
+
+        {loadError && <p className="config-section__notice">{loadError}</p>}
 
         {entriesLoaded && (
           <FreshpediaEntryList

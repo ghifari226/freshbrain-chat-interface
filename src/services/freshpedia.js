@@ -1,8 +1,37 @@
-import { CHAT_GATEWAY_BASE_URL } from '../config/appConfig.js'
+// Freshpedia CRUD + status transitions against chat-gateway — no dedicated
+// contract doc exists for this yet (only auth/roles/permissions are written
+// up in freshbrain-agreement), so this file and its call sites in
+// FreshpediaPage.jsx are the closest thing to a spec right now.
+// USE_MOCK_API selects the in-memory MOCK_ENTRIES below or the real Axios
+// client explicitly, same pattern as authService.js. `signal` is only
+// actually threaded through by FreshpediaPage's list load (getAllFreshpediaEntries)
+// today — the create/update/status calls accept it too but no caller
+// passes one yet, so cancellation only cancels the initial fetch, not a
+// pending write.
+import { USE_MOCK_API } from '../config/appConfig.js'
+import { authHeaders, gatewayApi } from './api.js'
+import { mockDelay } from './mockDelay.js'
 
-function delay() {
-  return new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 400))
-}
+/**
+ * Shape returned by every function in this file — `content`/`fileName`/
+ * `aliasTargetId`+`aliasPhrase` are mutually exclusive, which of the three
+ * is present depends on `type` (see EntryForm/entryDescriptor in
+ * FreshpediaPage.jsx, the only place that branches on `type` to know which
+ * one to read).
+ * @typedef {{
+ *   id: string,
+ *   title: string,
+ *   type: 'definition' | 'document' | 'alias',
+ *   status: 'request' | 'staging' | 'production',
+ *   updatedAt: string,
+ *   submittedBy: string,
+ *   submittedByEmail: string,
+ *   content?: string | { id: string, en: string },
+ *   fileName?: string,
+ *   aliasTargetId?: string,
+ *   aliasPhrase?: string,
+ * }} FreshpediaEntry
+ */
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10)
@@ -134,34 +163,37 @@ const MOCK_ENTRIES = [
   },
 ]
 
-export async function listFreshpediaEntries() {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/freshpedia`)
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+/**
+ * @returns {Promise<FreshpediaEntry[]>}
+ */
+export async function getAllFreshpediaEntries({ signal, token } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.get(
+      '/freshpedia',
+      { signal, headers: authHeaders(token) },
+    )
+    return data
   }
-  await delay()
+  await mockDelay(500, 900, signal)
   return MOCK_ENTRIES.map(toEntry)
 }
 
 /**
  * @param {{ title: string, type: 'definition'|'document'|'alias', content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} input
- * @param {{ email: string, name: string, 'freshpedia.request'?: boolean }} actor
+ * @param {{ email: string, name: string, token?: string, 'freshpedia.request'?: boolean }} actor
+ * @returns {Promise<FreshpediaEntry>}
  */
-export async function createFreshpediaEntry(input, actor) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/freshpedia`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    })
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function createFreshpediaEntry(input, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.post(
+      '/freshpedia',
+      input,
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   if (!actor?.['freshpedia.request']) {
     throw new Error('You do not have permission to submit Freshpedia entries')
@@ -193,21 +225,20 @@ export async function createFreshpediaEntry(input, actor) {
  *
  * @param {string} id
  * @param {{ title?: string, content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} updates
- * @param {{ email: string, 'freshpedia.request'?: boolean, 'freshpedia.change_status'?: boolean }} actor
+ * @param {{ email: string, token?: string, 'freshpedia.request'?: boolean, 'freshpedia.change_status'?: boolean }} actor
+ * @returns {Promise<FreshpediaEntry>}
  */
-export async function updateFreshpediaEntry(id, updates, actor) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/freshpedia/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    })
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function updateFreshpediaEntry(id, updates, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.patch(
+      `/freshpedia/${encodeURIComponent(id)}`,
+      updates,
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   const entry = MOCK_ENTRIES.find((e) => e.id === id)
   if (!entry) throw new Error('Entry not found')
@@ -217,7 +248,7 @@ export async function updateFreshpediaEntry(id, updates, actor) {
     throw new Error('You do not have permission to edit this entry')
   }
   if (updates.status !== undefined) {
-    throw new Error('status cannot be set directly — use setFreshpediaEntryStatus')
+    throw new Error('status cannot be set directly — use updateFreshpediaEntryStatus')
   }
 
   if (updates.title !== undefined) entry.title = updates.title
@@ -236,21 +267,20 @@ export async function updateFreshpediaEntry(id, updates, actor) {
  *
  * @param {string} id
  * @param {'staging'|'production'} status
- * @param {{ 'freshpedia.change_status'?: boolean }} actor
+ * @param {{ token?: string, 'freshpedia.change_status'?: boolean }} actor
+ * @returns {Promise<FreshpediaEntry>}
  */
-export async function setFreshpediaEntryStatus(id, status, actor) {
-  try {
-    const res = await fetch(`${CHAT_GATEWAY_BASE_URL}/freshpedia/${encodeURIComponent(id)}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    if (res.ok) return res.json()
-  } catch {
-    // no real chat-gateway yet — fall through to the mock below
+export async function updateFreshpediaEntryStatus(id, status, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.post(
+      `/freshpedia/${encodeURIComponent(id)}/status`,
+      { status },
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
   }
 
-  await delay()
+  await mockDelay(500, 900, signal)
 
   if (!actor?.['freshpedia.change_status']) {
     throw new Error('You do not have permission to change entry status')

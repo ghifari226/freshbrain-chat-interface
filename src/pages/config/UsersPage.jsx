@@ -12,7 +12,8 @@ import {
   TextField,
   Chip,
 } from '@mui/material'
-import { createUser, listUsers, updateUser, deleteUser } from '../../services/authService.js'
+import { createUser, deleteUser, getAllUsers, updateUser } from '../../services/authService.js'
+import { errorMessage, isCanceled } from '../../services/api.js'
 import { ROLES, ROLE_LABEL_KEYS } from '../../config/roles.js'
 import {
   ALL_PERMISSIONS,
@@ -153,7 +154,10 @@ export default function UsersPage() {
   const canEdit = Boolean(session?.['user.edit'])
   const canDelete = Boolean(session?.['user.delete'])
   const canAssign = canAssignPermissions(session)
-  const actorForUpdate = useMemo(() => ({ email: session?.email }), [session?.email])
+  const actorForUpdate = useMemo(
+    () => ({ email: session?.email, token: session?.token }),
+    [session?.email, session?.token],
+  )
   // Superadmin is visible in the table (existing Superadmin users show their
   // real role) but never assignable through this picker — bootstrap-locked,
   // not something granted via the UI, for anyone, regardless of the actor's
@@ -251,19 +255,23 @@ export default function UsersPage() {
   // usersLoaded means the filter bar and the grid's real rows appear in the
   // same paint.
   const [usersLoaded, setUsersLoaded] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
-    let cancelled = false
-    listUsers().then((data) => {
-      if (!cancelled) {
+    const controller = new AbortController()
+    getAllUsers({ signal: controller.signal, token: session?.token })
+      .then((data) => {
         setUsers(data)
         setUsersLoaded(true)
-      }
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+      })
+      .catch((error) => {
+        if (!isCanceled(error)) {
+          setLoadError(errorMessage(error))
+          setUsersLoaded(true)
+        }
+      })
+    return () => controller.abort()
+  }, [session?.token])
 
   function openAddUserDialog() {
     setForm(EMPTY_FORM)
@@ -302,12 +310,15 @@ export default function UsersPage() {
     setIsSubmitting(true)
     try {
       if (userFormTarget === 'new') {
-        const { resetToken, ...user } = await createUser({
-          name: form.name.trim(),
-          email: form.email.trim(),
-          phone: form.phone ? `62${significantPhoneDigits(form.phone)}` : '',
-          role: form.role,
-        })
+        const { resetToken, ...user } = await createUser(
+          {
+            name: form.name.trim(),
+            email: form.email.trim(),
+            phone: form.phone ? `62${significantPhoneDigits(form.phone)}` : '',
+            role: form.role,
+          },
+          session,
+        )
         setUsers((prev) => [...prev, user])
         setResetLink(`/reset/${resetToken}`)
         setIsCopied(false)
@@ -333,7 +344,7 @@ export default function UsersPage() {
       // there's no equivalent translated copy for guard rejections that, in
       // practice, the UI already prevents from being reachable (Technology
       // filtered out of the role picker, etc).
-      setFormError(userFormTarget === 'new' ? 'emailTaken' : error.message)
+      setFormError(userFormTarget === 'new' ? 'emailTaken' : errorMessage(error))
     } finally {
       setIsSubmitting(false)
     }
@@ -506,6 +517,8 @@ export default function UsersPage() {
           </button>
         </div>
       )}
+
+      {loadError && <p className="config-section__notice">{loadError}</p>}
 
       {usersLoaded && (
         <div className="filter-bar">

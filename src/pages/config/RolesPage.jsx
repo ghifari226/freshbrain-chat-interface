@@ -12,24 +12,10 @@ import {
 } from 'lucide-react'
 import { Tooltip, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import { getScopeCatalog } from '../../config/scopeCatalog.js'
-import {
-  ROLES,
-  ROLE_LABEL_KEYS,
-  ROLE_SCOPES,
-  LOCKED_ROLES,
-  addRoleToCatalog,
-  renameRoleInCatalog,
-} from '../../config/roles.js'
-import { updateRoleScopes } from '../../services/roleScopes.js'
+import { ROLE_LABEL_KEYS, LOCKED_ROLES } from '../../config/roles.js'
+import { createRole, getAllRoles, renameRole, updateRoleScopes } from '../../services/roleScopes.js'
+import { errorMessage, isCanceled } from '../../services/api.js'
 import { useT } from '../../hooks/useT.js'
-
-function seedRoleScopes() {
-  const seeded = {}
-  for (const role of ROLES) {
-    seeded[role] = [...(ROLE_SCOPES[role] ?? [])]
-  }
-  return seeded
-}
 
 // Order-independent — toggling systems/sub-scopes rebuilds the array via
 // filter+push, so plain array/reference equality would false-positive as
@@ -79,12 +65,19 @@ export default function RolesPage({ session }) {
   const canEditAnything = canAdd || canEditName || canAssignScopes
 
   const [catalog, setCatalog] = useState([])
-  // Mocked, in-memory only — no backend persistence yet for add/rename
-  // (see roles.js); assign_scopes tries the real PATCH endpoint via
-  // updateRoleScopes before falling back to local mock state.
-  const [roleScopes, setRoleScopes] = useState(seedRoleScopes)
-  const [savedRoleScopes, setSavedRoleScopes] = useState(seedRoleScopes)
-  const [roleVersion, setRoleVersion] = useState(0)
+  // Role list + scope assignment both come from getAllRoles() — add/rename/
+  // scope-assign each go through their own service call (createRole/
+  // renameRole/updateRoleScopes), the same real/mock branch as every other
+  // service in this app, rather than this page mutating config/roles.js's
+  // module state directly.
+  const [roles, setRoles] = useState([])
+  const [loadError, setLoadError] = useState('')
+  const [roleScopes, setRoleScopes] = useState({})
+  const [savedRoleScopes, setSavedRoleScopes] = useState({})
+  // Keyed by role — multiple cards can be dirty (and one can fail to save)
+  // independently of each other, unlike renameError which only ever applies
+  // to the single role currently in rename mode.
+  const [scopeSaveErrors, setScopeSaveErrors] = useState({})
   const [searchQuery, setSearchQuery] = useState('')
   // Empty = show every system's rows in every card.
   const [selectedSystems, setSelectedSystems] = useState(new Set())
@@ -108,6 +101,21 @@ export default function RolesPage({ session }) {
     }
   }, [])
 
+  useEffect(() => {
+    const controller = new AbortController()
+    getAllRoles({ signal: controller.signal, token: session?.token })
+      .then((data) => {
+        setRoles(data.map((r) => r.name))
+        const scopesByName = Object.fromEntries(data.map((r) => [r.name, r.allowed_scopes]))
+        setRoleScopes(scopesByName)
+        setSavedRoleScopes(scopesByName)
+      })
+      .catch((error) => {
+        if (!isCanceled(error)) setLoadError(errorMessage(error))
+      })
+    return () => controller.abort()
+  }, [session?.token])
+
   function toggleSystemFilter(system) {
     setSelectedSystems((prev) => {
       const next = new Set(prev)
@@ -129,19 +137,34 @@ export default function RolesPage({ session }) {
 
   const visibleRoles = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return ROLES
-    return ROLES.filter((role) => t(ROLE_LABEL_KEYS[role] ?? role).toLowerCase().includes(query))
+    if (!query) return roles
+    return roles.filter((role) => t(ROLE_LABEL_KEYS[role] ?? role).toLowerCase().includes(query))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, roleVersion])
+  }, [roles, searchQuery])
 
   async function handleSaveRole(role) {
     const scopes = [...(roleScopes[role] ?? [])]
-    await updateRoleScopes(role, scopes)
-    setSavedRoleScopes((prev) => ({ ...prev, [role]: scopes }))
+    try {
+      await updateRoleScopes(role, scopes, session)
+      setSavedRoleScopes((prev) => ({ ...prev, [role]: scopes }))
+      clearScopeSaveError(role)
+    } catch (error) {
+      setScopeSaveErrors((prev) => ({ ...prev, [role]: errorMessage(error) }))
+    }
+  }
+
+  function clearScopeSaveError(role) {
+    setScopeSaveErrors((prev) => {
+      if (!(role in prev)) return prev
+      const next = { ...prev }
+      delete next[role]
+      return next
+    })
   }
 
   function handleCancelRole(role) {
     setRoleScopes((prev) => ({ ...prev, [role]: [...(savedRoleScopes[role] ?? [])] }))
+    clearScopeSaveError(role)
   }
 
   // One-way — only ever adds, never removes. Distinct from
@@ -232,18 +255,23 @@ export default function RolesPage({ session }) {
     setIsAdding(true)
   }
 
-  function handleAddRole(event) {
+  async function handleAddRole(event) {
     event.preventDefault()
-    if (!newRoleName.trim()) return
-    if (ROLES.includes(newRoleName.trim())) {
+    const trimmed = newRoleName.trim()
+    if (!trimmed) return
+    setAddError('')
+    try {
+      const created = await createRole(trimmed, session)
+      setRoles((prev) => [...prev, created.name])
+      setRoleScopes((prev) => ({ ...prev, [created.name]: created.allowed_scopes }))
+      setSavedRoleScopes((prev) => ({ ...prev, [created.name]: created.allowed_scopes }))
+      setIsAdding(false)
+    } catch {
+      // Duplicate name is really the only realistic failure mode here (same
+      // reasoning as UsersPage's createUser handling) — always show the
+      // translated copy rather than the service's raw contract error text.
       setAddError(t('config.roleNameTaken'))
-      return
     }
-    addRoleToCatalog(newRoleName.trim())
-    setRoleScopes((prev) => ({ ...prev, [newRoleName.trim()]: [] }))
-    setSavedRoleScopes((prev) => ({ ...prev, [newRoleName.trim()]: [] }))
-    setRoleVersion((v) => v + 1)
-    setIsAdding(false)
   }
 
   function openRename(role) {
@@ -252,22 +280,22 @@ export default function RolesPage({ session }) {
     setRenameError('')
   }
 
-  function handleRenameSubmit(event, oldName) {
+  async function handleRenameSubmit(event, oldName) {
     event.preventDefault()
     try {
-      renameRoleInCatalog(oldName, renameDraft)
+      const renamed = await renameRole(oldName, renameDraft, session)
+      setRoles((prev) => prev.map((role) => (role === oldName ? renamed.name : role)))
       setRoleScopes((prev) => {
         const { [oldName]: scopes, ...rest } = prev
-        return { ...rest, [renameDraft.trim()]: scopes ?? [] }
+        return { ...rest, [renamed.name]: renamed.allowed_scopes ?? scopes ?? [] }
       })
       setSavedRoleScopes((prev) => {
         const { [oldName]: scopes, ...rest } = prev
-        return { ...rest, [renameDraft.trim()]: scopes ?? [] }
+        return { ...rest, [renamed.name]: renamed.allowed_scopes ?? scopes ?? [] }
       })
       setRenamingRole(null)
-      setRoleVersion((v) => v + 1)
     } catch (error) {
-      setRenameError(error.message)
+      setRenameError(errorMessage(error))
     }
   }
 
@@ -287,6 +315,7 @@ export default function RolesPage({ session }) {
       )}
 
       {!canEditAnything && <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>}
+      {loadError && <p className="config-section__notice">{loadError}</p>}
 
       <div className="filter-bar">
         <div className="filter-bar__chips" role="group" aria-label={t('config.filterBySystemLabel')}>
@@ -431,6 +460,9 @@ export default function RolesPage({ session }) {
                 )}
               </div>
               {isRenaming && renameError && <span className="form-field__error">{renameError}</span>}
+              {scopeSaveErrors[role] && (
+                <span className="form-field__error">{scopeSaveErrors[role]}</span>
+              )}
 
               {isSuperadmin ? (
                 <div className="role-card__systems">

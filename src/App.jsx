@@ -120,11 +120,15 @@ function AuthenticatedApp({ language, setLanguage }) {
     }
 
     if (isFirstMessage) {
-      generateTitle(text).then((title) => {
-        setConversations((prev) =>
-          prev.map((c) => (c.id === conversationId ? { ...c, title } : c)),
-        )
-      })
+      generateTitle(text)
+        .then((title) => {
+          setConversations((prev) =>
+            prev.map((c) => (c.id === conversationId ? { ...c, title } : c)),
+          )
+        })
+        .catch(() => {
+          // Chat delivery remains independent from optional title generation.
+        })
     }
 
     setIsLoading(true)

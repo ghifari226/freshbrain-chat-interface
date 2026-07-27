@@ -16,9 +16,10 @@ import { canAccessToolCatalog } from '../config/permissions.js'
 import { getScopeCatalog } from '../config/scopeCatalog.js'
 import {
   createToolCatalogEntry,
-  listToolCatalogEntries,
+  getAllToolCatalogEntries,
   updateToolCatalogEntry,
 } from '../services/toolCatalog.js'
+import { errorMessage, isCanceled } from '../services/api.js'
 
 export default function ToolCatalogPage() {
   const t = useT()
@@ -37,6 +38,7 @@ export default function ToolCatalogPage() {
 
   const [entries, setEntries] = useState([])
   const [systems, setSystems] = useState([])
+  const [loadError, setLoadError] = useState('')
   const [selectedSystems, setSelectedSystems] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [entryFormTarget, setEntryFormTarget] = useState(null)
@@ -45,14 +47,14 @@ export default function ToolCatalogPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
-    listToolCatalogEntries().then((data) => {
-      if (!cancelled) setEntries(data)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    const controller = new AbortController()
+    getAllToolCatalogEntries({ signal: controller.signal, token: session?.token })
+      .then(setEntries)
+      .catch((error) => {
+        if (!isCanceled(error)) setLoadError(errorMessage(error))
+      })
+    return () => controller.abort()
+  }, [session?.token])
 
   useEffect(() => {
     let cancelled = false
@@ -131,7 +133,7 @@ export default function ToolCatalogPage() {
       setForm(EMPTY_TOOL_FORM)
       setEntryFormTarget(null)
     } catch (error) {
-      setFormError(error.message)
+      setFormError(errorMessage(error))
     } finally {
       setIsSubmitting(false)
     }
@@ -168,6 +170,8 @@ export default function ToolCatalogPage() {
           setSearchQuery={setSearchQuery}
           t={t}
         />
+
+        {loadError && <p className="config-section__notice">{loadError}</p>}
 
         <ToolCatalogTable
           isRequestView={statusFilters.isRequestActive}

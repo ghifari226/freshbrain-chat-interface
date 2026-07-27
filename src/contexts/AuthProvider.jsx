@@ -1,9 +1,26 @@
+import { useEffect } from 'react'
 import { AuthContext } from './AuthContext.js'
 import { authenticate } from '../services/authService.js'
+import { setUnauthorizedHandler } from '../services/api.js'
 import { useRoute } from '../hooks/useRoute.js'
 
 export function AuthProvider({ session, setSession, children }) {
   const [, navigate] = useRoute()
+
+  function forceLogout() {
+    setSession(null)
+    navigate('/')
+  }
+
+  // Registers once per mount, not per session change — a 401 firing mid-login
+  // (before setSession's own closure below updates) still needs to clear
+  // whatever's in localStorage and bounce home, so this doesn't depend on
+  // `session` being current inside the closure the way `logout()` below does.
+  useEffect(() => {
+    setUnauthorizedHandler(forceLogout)
+    return () => setUnauthorizedHandler(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const value = {
     session,
@@ -18,12 +35,9 @@ export function AuthProvider({ session, setSession, children }) {
       navigate('/')
       return nextSession
     },
-    logout() {
-      setSession(null)
-      navigate('/')
-    },
+    logout: forceLogout,
     // Patches the live session in place — for when the logged-in user edits
-    // their own record elsewhere (e.g. Users page) and fields like the 12
+    // their own record elsewhere (e.g. Users page) and fields like the 17
     // permission booleans need to reflect immediately, without forcing a
     // full logout/login to re-fetch via authenticate().
     updateSession(patch) {
