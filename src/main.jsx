@@ -8,6 +8,8 @@ import '@fontsource/lora/latin-500.css'
 import '@fontsource/lora/latin-600.css'
 import '@fontsource/quicksand/latin-500.css'
 import '@fontsource/quicksand/latin-600.css'
+import 'bootstrap/dist/css/bootstrap-grid.min.css'
+import 'bootstrap/dist/css/bootstrap-utilities.min.css'
 import './styles/index.css'
 import App from './App.jsx'
 

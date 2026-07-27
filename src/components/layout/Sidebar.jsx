@@ -44,7 +44,9 @@ export default function Sidebar({
   const [path, navigate] = useRoute()
   const isChat = variant === 'chat'
   const [openMenuId, setOpenMenuId] = useState(null)
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767.98px)').matches,
+  )
   const [isRecentsOpen, setIsRecentsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isSettingsFromNav, setIsSettingsFromNav] = useState(false)
@@ -75,6 +77,16 @@ export default function Sidebar({
   // independent of whatever mouse events do or don't fire in between.
   const configFlyoutTimeoutRef = useRef(null)
   const recentsWrapRef = useRef(null)
+
+  useEffect(() => {
+    const mobileViewport = window.matchMedia('(max-width: 767.98px)')
+    const collapseForMobile = (event) => {
+      if (event.matches) setIsCollapsed(true)
+    }
+
+    mobileViewport.addEventListener('change', collapseForMobile)
+    return () => mobileViewport.removeEventListener('change', collapseForMobile)
+  }, [])
 
   const canSeeFreshpedia = canAccessFreshpedia(session)
   const canSeeToolCatalog = canAccessToolCatalog(session)

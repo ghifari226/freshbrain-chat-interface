@@ -317,3 +317,52 @@
   opacity: 0.5;
   cursor: default;
 }
+@media (max-width: 767.98px) {
+  .chat-header {
+    min-width: 0;
+    padding-inline: 16px;
+  }
+
+  .welcome {
+    padding-inline: 16px;
+  }
+
+  .welcome__greeting {
+    right: 16px;
+    left: 16px;
+  }
+
+  .message-list__inner {
+    gap: 24px;
+    padding: 20px 16px 10px;
+  }
+
+  .message-group--user {
+    max-width: 88%;
+  }
+
+  .feedback-reason {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .welcome__greeting {
+    gap: 10px;
+  }
+
+  .welcome__greeting-logo {
+    width: 32px;
+  }
+
+  .welcome__greeting-caption {
+    font-size: 18px;
+  }
+}
+
+@media (hover: none) {
+  .message-actions,
+  .feedback-actions {
+    opacity: 1;
+  }
+}

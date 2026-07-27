@@ -297,3 +297,26 @@
   color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
 }
+@media (max-width: 575.98px) {
+  .auth-page {
+    min-height: 100dvh;
+    padding: 88px 16px 24px;
+  }
+
+  .auth-page__brand {
+    top: 16px;
+    left: 16px;
+  }
+
+  .auth-slogan {
+    font-size: clamp(27px, 8vw, 34px);
+  }
+
+  .auth-slogan__line {
+    white-space: normal;
+  }
+
+  .auth-box {
+    padding: 22px 20px;
+  }
+}

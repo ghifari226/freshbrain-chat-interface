@@ -181,3 +181,27 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+@media (max-width: 575.98px) {
+  .modal-overlay {
+    padding: 16px;
+  }
+
+  .modal,
+  .search-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+  }
+
+  .modal__row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .theme-toggle,
+  .font-select {
+    width: 100%;
+  }
+}

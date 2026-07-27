@@ -831,3 +831,41 @@
 .form-field__list-row .form-field__input {
   flex: 1;
 }
+
+@media (max-width: 767.98px) {
+  .config-page__header {
+    min-width: 0;
+    padding: 12px 16px;
+  }
+
+  .config-page__body {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .config-page__title-row,
+  .filter-bar,
+  .entry-index__entry-row {
+    flex-wrap: wrap;
+  }
+
+  .filter-bar__search {
+    width: 100%;
+    max-width: none;
+  }
+
+  .entry-index__entry-row > :first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .entry-index__actions {
+    margin-left: auto;
+  }
+
+  .MuiDialog-root .MuiDialog-paper {
+    width: calc(100% - 32px);
+    max-height: calc(100% - 32px);
+    margin: 16px;
+  }
+}
