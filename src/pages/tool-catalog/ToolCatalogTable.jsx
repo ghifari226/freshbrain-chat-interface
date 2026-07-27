@@ -1,60 +1,60 @@
-import { useMemo } from 'react'
 import { Pencil } from 'lucide-react'
-import { Chip } from '@mui/material'
-import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid'
+import {
+  Chip,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tooltip,
+} from '@mui/material'
 import { TOOL_STATUS_COLOR } from './toolCatalogConfig.js'
 
-export default function ToolCatalogTable({
-  isRequestView,
-  onEdit,
-  rows,
-  t,
-}) {
-  const columns = useMemo(() => {
-    const result = [
-      { field: 'system', headerName: t('toolCatalog.systemLabel'), flex: 0.6 },
-      { field: 'displayName', headerName: t('toolCatalog.toolColumn'), flex: 1 },
-      {
-        field: 'status',
-        headerName: t('toolCatalog.statusColumn'),
-        flex: 1,
-        renderCell: (params) => (
-          <Chip
-            label={t(`toolCatalog.${params.value}Status`)}
-            size="small"
-            color={TOOL_STATUS_COLOR[params.value]}
-            variant={params.value === 'request' ? 'outlined' : 'filled'}
-          />
-        ),
-      },
-    ]
-
-    if (isRequestView) {
-      result.push({
-        field: 'rowActions',
-        type: 'actions',
-        headerName: '',
-        width: 48,
-        getActions: ({ row }) => [
-          <GridActionsCellItem
-            key="edit"
-            icon={<Pencil className="grid-action-icon icon-button--edit" fill="currentColor" />}
-            label={t('toolCatalog.editRequestAction')}
-            onClick={() => onEdit(row)}
-          />,
-        ],
-      })
-    }
-    return result
-  }, [isRequestView, onEdit, t])
-
+export default function ToolCatalogTable({ isRequestView, onEdit, rows, t }) {
   return (
-    <DataGrid
-      rows={rows}
-      columns={columns}
-      getRowId={(row) => row.id}
-      autoHeight
-      hideFooter
-    />
+    <TableContainer className="data-table-container">
+      <Table className="data-table" size="small" aria-label={t('toolCatalog.title')}>
+        <TableHead>
+          <TableRow>
+            <TableCell>{t('toolCatalog.systemLabel')}</TableCell>
+            <TableCell>{t('toolCatalog.toolColumn')}</TableCell>
+            <TableCell>{t('toolCatalog.statusColumn')}</TableCell>
+            {isRequestView && (
+              <TableCell className="data-table__actions-cell" aria-label="Actions" />
+            )}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row.id} hover>
+              <TableCell>{row.system}</TableCell>
+              <TableCell>{row.displayName}</TableCell>
+              <TableCell>
+                <Chip
+                  label={t(`toolCatalog.${row.status}Status`)}
+                  size="small"
+                  color={TOOL_STATUS_COLOR[row.status]}
+                  variant={row.status === 'request' ? 'outlined' : 'filled'}
+                />
+              </TableCell>
+              {isRequestView && (
+                <TableCell className="data-table__actions-cell">
+                  <Tooltip title={t('toolCatalog.editRequestAction')}>
+                    <IconButton size="small" onClick={() => onEdit(row)}>
+                      <Pencil
+                        className="table-action-icon icon-button--edit"
+                        fill="currentColor"
+                      />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   )
 }

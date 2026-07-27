@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Lock, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
-import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid'
 import {
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -11,6 +11,14 @@ import {
   Autocomplete,
   TextField,
   Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TableSortLabel,
 } from '@mui/material'
 import { createUser, deleteUser, getAllUsers, updateUser } from '../../services/authService.js'
 import { errorMessage, isCanceled } from '../../services/api.js'
@@ -45,7 +53,7 @@ function digitsOnly(value) {
 // just says `"phone": "string"` and doesn't mandate a display format, so the
 // dashed "+62 811-1000-0001" look is purely a presentation concern, applied
 // only in this form's input (formatLocalPhoneDigits, the local part after the
-// fixed +62 prefix) and the grid column (formatPhoneForDisplay) below.
+// fixed +62 prefix) and the table column (formatPhoneForDisplay) below.
 // 3-4-5 grouping, capped at 12 digits — Indonesian mobile numbers run up to
 // 13 digits including the leading trunk 0 (e.g. 0812-3456-78901), and +62
 // already stands in for that leading 0, so the local part alone maxes out
@@ -183,6 +191,8 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [permissionsDialogEmail, setPermissionsDialogEmail] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortDirection, setSortDirection] = useState('asc')
+  const [page, setPage] = useState(0)
   // Empty set = no role filter applied (show everyone). Chips are additive
   // (OR within roles), combined with searchQuery as AND.
   const [selectedRoles, setSelectedRoles] = useState(new Set())
@@ -240,6 +250,28 @@ export default function UsersPage() {
     })
   }, [users, searchQuery, selectedRoles])
 
+  const sortedUsers = useMemo(() => {
+    const direction = sortDirection === 'asc' ? 1 : -1
+    return [...filteredUsers].sort((left, right) =>
+      String(left.name ?? '').localeCompare(String(right.name ?? ''), 'en', {
+        sensitivity: 'base',
+      }) * direction,
+    )
+  }, [filteredUsers, sortDirection])
+
+  const rowsPerPage = 100
+  const visibleUsers = sortedUsers.slice(page * rowsPerPage, (page + 1) * rowsPerPage)
+
+  useEffect(() => {
+    const lastPage = Math.max(0, Math.ceil(filteredUsers.length / rowsPerPage) - 1)
+    if (page > lastPage) setPage(lastPage)
+  }, [filteredUsers.length, page])
+
+  function handleNameSort() {
+    setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+    setPage(0)
+  }
+
   function toggleRoleFilter(role) {
     setSelectedRoles((prev) => {
       const next = new Set(prev)
@@ -252,7 +284,7 @@ export default function UsersPage() {
   // Gates the search/chip filter bar below — without it, the bar renders
   // immediately (with an empty chip row, since availableRoles is derived
   // from users) and then pops once the mock fetch resolves. Waiting for
-  // usersLoaded means the filter bar and the grid's real rows appear in the
+  // usersLoaded means the filter bar and the table's real rows appear in the
   // same paint.
   const [usersLoaded, setUsersLoaded] = useState(false)
   const [loadError, setLoadError] = useState('')
@@ -418,77 +450,6 @@ export default function UsersPage() {
     setPermissionsDialogEmail(null)
   }
 
-  const columns = useMemo(() => {
-    const base = []
-
-    if (canAssign || canEdit || canDelete) {
-      base.push({
-        field: 'rowActions',
-        type: 'actions',
-        headerName: '',
-        width: 28 + [canAssign, canEdit, canDelete].filter(Boolean).length * 36,
-        getActions: ({ row }) => {
-          const actions = []
-          if (canEdit) {
-            actions.push(
-              <GridActionsCellItem
-                key="edit"
-                icon={<Pencil className="grid-action-icon icon-button--edit" fill="currentColor" />}
-                label={t('config.editUser')}
-                size="small"
-                onClick={() => openEditUserDialog(row)}
-              />,
-            )
-          }
-          if (canAssign) {
-            actions.push(
-              <GridActionsCellItem
-                key="permissions"
-                icon={<ShieldCheck className="grid-action-icon" />}
-                label={t('permissions.sectionLabel')}
-                size="small"
-                onClick={() => setPermissionsDialogEmail(row.email)}
-              />,
-            )
-          }
-          if (canDelete) {
-            actions.push(
-              <GridActionsCellItem
-                key="delete"
-                icon={<Trash2 className="grid-action-icon icon-button--danger" />}
-                label={t('config.deleteUser')}
-                size="small"
-                disabled={row.email === session?.email}
-                onClick={() => setDeleteTarget(row)}
-              />,
-            )
-          }
-          return actions
-        },
-      })
-    }
-
-    base.push(
-      { field: 'name', headerName: t('config.nameLabel'), flex: 1 },
-      { field: 'email', headerName: t('auth.emailLabel'), flex: 1.2 },
-      {
-        field: 'phone',
-        headerName: t('config.phoneLabel'),
-        flex: 1,
-        valueFormatter: (value) => formatPhoneForDisplay(value),
-      },
-      {
-        field: 'role',
-        headerName: t('auth.roleLabel'),
-        flex: 1,
-        valueFormatter: (value) => t(ROLE_LABEL_KEYS[value] ?? value),
-      },
-    )
-
-    return base
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canAssign, canEdit, canDelete, session?.email, t])
-
   return (
     <div className="config-section">
       {canAdd && (
@@ -549,14 +510,82 @@ export default function UsersPage() {
         </div>
       )}
 
-      <DataGrid
-        rows={filteredUsers}
-        columns={columns}
-        getRowId={(row) => row.email}
-        disableRowSelectionOnClick
-        autoHeight
-        hideFooter={filteredUsers.length <= 100}
-      />
+      <TableContainer className="data-table-container">
+        <Table className="data-table" size="small" aria-label={t('config.usersTitle')}>
+          <TableHead>
+            <TableRow>
+              {(canAssign || canEdit || canDelete) && (
+                <TableCell className="data-table__actions-cell" aria-label="Actions" />
+              )}
+              <TableCell sortDirection={sortDirection}>
+                <TableSortLabel
+                  active
+                  direction={sortDirection}
+                  onClick={handleNameSort}
+                >
+                  {t('config.nameLabel')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>{t('auth.emailLabel')}</TableCell>
+              <TableCell>{t('config.phoneLabel')}</TableCell>
+              <TableCell>{t('auth.roleLabel')}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {visibleUsers.map((row) => (
+              <TableRow key={row.email} hover>
+                {(canAssign || canEdit || canDelete) && (
+                  <TableCell className="data-table__actions-cell">
+                    <div className="data-table__actions">
+                      {canEdit && (
+                        <Tooltip title={t('config.editUser')}>
+                          <IconButton size="small" onClick={() => openEditUserDialog(row)}>
+                            <Pencil className="table-action-icon icon-button--edit" fill="currentColor" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {canAssign && (
+                        <Tooltip title={t('permissions.sectionLabel')}>
+                          <IconButton size="small" onClick={() => setPermissionsDialogEmail(row.email)}>
+                            <ShieldCheck className="table-action-icon" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {canDelete && (
+                        <Tooltip title={t('config.deleteUser')}>
+                          <span>
+                            <IconButton
+                              size="small"
+                              disabled={row.email === session?.email}
+                              onClick={() => setDeleteTarget(row)}
+                            >
+                              <Trash2 className="table-action-icon icon-button--danger" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
+                <TableCell>{row.name}</TableCell>
+                <TableCell>{row.email}</TableCell>
+                <TableCell>{formatPhoneForDisplay(row.phone)}</TableCell>
+                <TableCell>{t(ROLE_LABEL_KEYS[row.role] ?? row.role)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      {filteredUsers.length > rowsPerPage && (
+        <TablePagination
+          component="div"
+          count={filteredUsers.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[rowsPerPage]}
+          onPageChange={(_event, nextPage) => setPage(nextPage)}
+        />
+      )}
 
       <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog} fullWidth maxWidth="sm">
         <DialogTitle>{isEditMode ? editingUser?.name : t('config.addUser')}</DialogTitle>

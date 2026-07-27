@@ -137,8 +137,14 @@ export default function RolesPage({ session }) {
 
   const visibleRoles = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return roles
-    return roles.filter((role) => t(ROLE_LABEL_KEYS[role] ?? role).toLowerCase().includes(query))
+    const filtered = query
+      ? roles.filter((role) => t(ROLE_LABEL_KEYS[role] ?? role).toLowerCase().includes(query))
+      : roles
+    return [...filtered].sort((left, right) => {
+      if (left === 'Superadmin') return -1
+      if (right === 'Superadmin') return 1
+      return left.localeCompare(right, 'en', { sensitivity: 'base' })
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roles, searchQuery])
 

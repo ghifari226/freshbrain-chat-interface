@@ -80,7 +80,11 @@ export default function ToolCatalogPage() {
       )
     }
     return [...filtered]
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort(
+        (a, b) =>
+          a.system.localeCompare(b.system, 'en', { sensitivity: 'base' }) ||
+          a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }),
+      )
       .map((entry) => ({
         ...entry,
         displayName: `${entry.system}.${entry.name}`,

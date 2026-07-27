@@ -827,12 +827,36 @@
   color: var(--danger);
 }
 
-/* GridActionsCellItem (MUI DataGrid row actions, only used in UsersPage's
-   grid) doesn't render through our .icon-button component at all, so its
-   icons don't pick up that class's font-size — they render at MUI's
-   larger IconButton default instead. This brings them back in line with
-   every other icon-button in the app. */
-.grid-action-icon {
+.data-table-container {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.data-table {
+  min-width: 680px;
+}
+
+.data-table .MuiTableCell-head {
+  color: var(--text-chat);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.data-table .MuiTableCell-body {
+  color: var(--text-chat);
+}
+
+.data-table__actions-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.data-table__actions {
+  display: flex;
+  align-items: center;
+}
+
+.table-action-icon {
   width: 16px;
   height: 16px;
 }
