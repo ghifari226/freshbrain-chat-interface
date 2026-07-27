@@ -102,10 +102,10 @@ export const strings = {
   config: {
     backToChat: { id: 'Kembali ke obrolan', en: 'Back to chat' },
     title: { id: 'Konfigurasi Akses', en: 'Access Configuration' },
-    navPermissions: { id: 'Hak akses sistem', en: 'System permissions' },
+    navPermissions: { id: 'Hak Akses', en: 'Permissions' },
     navRoles: { id: 'Cakupan peran', en: 'Role Scopes' },
     navUsers: { id: 'Pengguna', en: 'Users' },
-    permissionsCardTitle: { id: 'Hak akses sistem', en: 'System permissions' },
+    permissionsCardTitle: { id: 'Hak Akses', en: 'Permissions' },
     permissionsCardDesc: {
       id: 'Lihat dan ubah label hak akses admin/UI yang dapat diberikan ke pengguna.',
       en: 'View and edit the labels of admin/UI permissions that can be assigned to a user.',
@@ -115,7 +115,7 @@ export const strings = {
       id: 'Tambah atau ubah nama peran, dan atur scope yang dapat diakses tiap peran.',
       en: 'Add or rename roles, and assign which scopes each one can access.',
     },
-    permissionsTitle: { id: 'Hak akses sistem', en: 'System permissions' },
+    permissionsTitle: { id: 'Hak Akses', en: 'Permissions' },
     rolesTitle: { id: 'Cakupan peran', en: 'Role Scopes' },
     addRole: { id: 'Tambah peran', en: 'Add role' },
     editRole: { id: 'Ubah nama peran', en: 'Rename role' },

@@ -8,12 +8,13 @@ function getStoredSession() {
   try {
     const session = JSON.parse(raw)
     // Shape-sniff guard, not a migration: a session cached before the
-    // resource.action permission-key refactor (or before the later
-    // role.* -> role_scope.* rename) won't have these fields at all.
-    // Rather than rendering with some permission fields silently undefined
-    // (falsy) — which fails safe but confusingly hides nav items until the
-    // user logs out/in again — force a clean re-login instead.
-    if (session && (!('user.view' in session) || !('role_scope.view' in session))) return null
+    // user_id -> id rename or the flat-booleans -> allowed_permissions
+    // collapse (2026-07-27, auth-contract.md) won't have these fields at
+    // all. Rather than rendering with `allowed_permissions` silently
+    // undefined (every hasPermission() check fails closed, confusingly
+    // hiding nav items until the user logs out/in again) — force a clean
+    // re-login instead.
+    if (session && (!('id' in session) || !Array.isArray(session.allowed_permissions))) return null
     return session
   } catch {
     return null
