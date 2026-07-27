@@ -510,11 +510,11 @@
 }
 
 .user-menu__chevron {
-  width: 12px;
-  height: 12px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
-  font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-sidebar);
+  stroke-width: 2.5;
 }
 
 .user-avatar {

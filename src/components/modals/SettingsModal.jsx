@@ -26,7 +26,7 @@ export default function SettingsModal({
 
         <div className="modal__row">
           <span className="modal__row-label">{t('settings.brightness')}</span>
-          <div className="theme-toggle">
+          <div className="theme-toggle theme-toggle--brightness">
             <button
               className={
                 'theme-toggle__option' +

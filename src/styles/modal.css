@@ -48,12 +48,8 @@
   color: var(--text-muted);
 }
 
-/* Fixed width shared with .font-select below — both toggle rows and both
-   dropdown rows sit under each other in the same modal, so they need to
-   line up to a common width rather than each sizing to its own content.
-   Sized for 3 captioned options (cool/neutral/warm) even though the
-   brightness toggle only uses 2, so both rows still line up once tone
-   grows a third option. */
+/* Each choice gets the same visual width. The two-choice brightness group
+   is consequently shorter than the three-choice tone group. */
 .theme-toggle {
   display: flex;
   gap: 4px;
@@ -61,6 +57,10 @@
   background: var(--surface-response);
   border-radius: 8px;
   padding: 3px;
+}
+
+.theme-toggle--brightness {
+  width: 186px;
 }
 
 .theme-toggle__option {
@@ -88,7 +88,8 @@
 }
 
 .font-select {
-  width: 280px;
+  width: auto;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-chat);
@@ -209,8 +210,7 @@
     gap: 6px;
   }
 
-  .theme-toggle,
-  .font-select {
-    width: 100%;
+  .theme-toggle {
+    max-width: 100%;
   }
 }
