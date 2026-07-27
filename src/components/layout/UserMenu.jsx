@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpen,
@@ -13,7 +14,6 @@ import SettingsModal from '../modals/SettingsModal.jsx'
 import ProfileModal from '../modals/ProfileModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
-import { useRoute } from '../../hooks/useRoute.js'
 import { canAccessConfigSection, canAccessFreshpedia, canAccessToolCatalog } from '../../config/permissions.js'
 
 export default function UserMenu({
@@ -29,7 +29,8 @@ export default function UserMenu({
 }) {
   const t = useT()
   const { session, logout } = useAuth()
-  const [path, navigate] = useRoute()
+  const { pathname: path } = useLocation()
+  const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)

@@ -1,16 +1,16 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AuthContext } from './AuthContext.js'
 import { authenticate } from '../services/authService.js'
 import { setUnauthorizedHandler } from '../services/api.js'
-import { useRoute } from '../hooks/useRoute.js'
 
 export function AuthProvider({ session, setSession, children }) {
-  const [, navigate] = useRoute()
+  const navigate = useNavigate()
 
-  function forceLogout() {
+  const forceLogout = useCallback(() => {
     setSession(null)
     navigate('/')
-  }
+  }, [navigate, setSession])
 
   // Registers once per mount, not per session change — a 401 firing mid-login
   // (before setSession's own closure below updates) still needs to clear
@@ -19,8 +19,7 @@ export function AuthProvider({ session, setSession, children }) {
   useEffect(() => {
     setUnauthorizedHandler(forceLogout)
     return () => setUnauthorizedHandler(null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [forceLogout])
 
   const value = {
     session,

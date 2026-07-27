@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import ConfigLayout from './ConfigLayout.jsx'
 import ConfigHome from './ConfigHome.jsx'
 import RolesPage from './RolesPage.jsx'
 import PermissionsPage from './PermissionsPage.jsx'
 import UsersPage from './UsersPage.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
-import { useRoute } from '../../hooks/useRoute.js'
 import { canAccessConfigSection, canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
 
 // Per-path reachability — independent booleans, one gate group per page.
@@ -29,7 +29,8 @@ const SUB_PAGE_TITLES = {
 
 export default function ConfigSection() {
   const { session } = useAuth()
-  const [path, navigate] = useRoute()
+  const { pathname: path } = useLocation()
+  const navigate = useNavigate()
   const isAuthorized = canAccessConfigSection(session)
   const isPageVisible = PAGE_VISIBLE_BY_PATH[path]
   const pageVisible = isPageVisible ? isPageVisible(session) : true
@@ -40,8 +41,7 @@ export default function ConfigSection() {
     } else if (!pageVisible) {
       navigate('/config')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthorized, pageVisible])
+  }, [isAuthorized, navigate, pageVisible])
 
   if (!isAuthorized || !pageVisible) return null
 

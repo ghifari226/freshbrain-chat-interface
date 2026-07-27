@@ -1,4 +1,5 @@
 import { lazy, Suspense, useRef, useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar.jsx'
 import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -10,7 +11,6 @@ import { useChatFont } from './hooks/useChatFont.js'
 import { useLanguage } from './hooks/useLanguage.js'
 import { useAuthSession } from './hooks/useAuthSession.js'
 import { useAuth } from './hooks/useAuth.js'
-import { useRoute } from './hooks/useRoute.js'
 import { LanguageProvider } from './contexts/LanguageProvider.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { strings } from './i18n/strings.js'
@@ -25,7 +25,8 @@ function makeId() {
 }
 
 function AuthenticatedApp({ language, setLanguage }) {
-  const [path, navigate] = useRoute()
+  const { pathname: path } = useLocation()
+  const navigate = useNavigate()
   const { session } = useAuth()
 
   const [theme, setTheme] = useTheme()
@@ -173,42 +174,17 @@ function AuthenticatedApp({ language, setLanguage }) {
     }
   }
 
-  let content
-  if (path.startsWith('/config')) {
-    content = (
-      <Suspense fallback={<div className="config-page" />}>
-        <MuiPage mode={theme}>
-          <ConfigSection />
-        </MuiPage>
-      </Suspense>
-    )
-  } else if (path === '/freshpedia') {
-    content = (
-      <Suspense fallback={<div className="config-page" />}>
-        <MuiPage mode={theme}>
-          <FreshpediaPage language={language} />
-        </MuiPage>
-      </Suspense>
-    )
-  } else if (path === '/tool-catalog') {
-    content = (
-      <Suspense fallback={<div className="config-page" />}>
-        <MuiPage mode={theme}>
-          <ToolCatalogPage />
-        </MuiPage>
-      </Suspense>
-    )
-  } else {
-    content = (
-      <ChatPanel
-        conversation={activeConversation}
-        isLoading={isLoading}
-        onSend={handleSend}
-        onFeedback={(messageId, feedback) => handleMessageFeedback(activeConversationId, messageId, feedback)}
-        inputRef={inputRef}
-      />
-    )
-  }
+  const chatPanel = (
+    <ChatPanel
+      conversation={activeConversation}
+      isLoading={isLoading}
+      onSend={handleSend}
+      onFeedback={(messageId, feedback) =>
+        handleMessageFeedback(activeConversationId, messageId, feedback)
+      }
+      inputRef={inputRef}
+    />
+  )
 
   return (
     <div className="app">
@@ -229,7 +205,41 @@ function AuthenticatedApp({ language, setLanguage }) {
         language={language}
         setLanguage={setLanguage}
       />
-      {content}
+      <Routes>
+        <Route path="/" element={chatPanel} />
+        <Route path="/chat/:conversationId" element={chatPanel} />
+        <Route
+          path="/config/*"
+          element={
+            <Suspense fallback={<div className="config-page" />}>
+              <MuiPage mode={theme}>
+                <ConfigSection />
+              </MuiPage>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/freshpedia"
+          element={
+            <Suspense fallback={<div className="config-page" />}>
+              <MuiPage mode={theme}>
+                <FreshpediaPage language={language} />
+              </MuiPage>
+            </Suspense>
+          }
+        />
+        <Route
+          path="/tool-catalog"
+          element={
+            <Suspense fallback={<div className="config-page" />}>
+              <MuiPage mode={theme}>
+                <ToolCatalogPage />
+              </MuiPage>
+            </Suspense>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   )
 }

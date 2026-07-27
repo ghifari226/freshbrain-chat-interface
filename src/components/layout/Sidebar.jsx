@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpen,
@@ -19,7 +20,6 @@ import SearchModal from '../modals/SearchModal.jsx'
 import SettingsModal from '../modals/SettingsModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
-import { useRoute } from '../../hooks/useRoute.js'
 import { canAccessFreshpedia, canAccessToolCatalog, canAccessConfigSection, canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
 
 export default function Sidebar({
@@ -41,7 +41,8 @@ export default function Sidebar({
 }) {
   const t = useT()
   const { session } = useAuth()
-  const [path, navigate] = useRoute()
+  const { pathname: path } = useLocation()
+  const navigate = useNavigate()
   const isChat = variant === 'chat'
   const [openMenuId, setOpenMenuId] = useState(null)
   const [isCollapsed, setIsCollapsed] = useState(

@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
-import { useRoute } from './useRoute.js'
+import { useNavigate } from 'react-router-dom'
 
 export function useAuthorizedPage(isAuthorized, fallbackPath = '/') {
-  const [, navigate] = useRoute()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!isAuthorized) navigate(fallbackPath)
