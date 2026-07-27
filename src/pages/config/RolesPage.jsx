@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { Tooltip, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import { getScopeCatalog } from '../../config/scopeCatalog.js'
-import { ROLE_LABEL_KEYS, LOCKED_ROLES } from '../../config/roles.js'
+import { LOCKED_ROLES } from '../../config/roles.js'
 import { createRole, getAllRoles, renameRole, updateRoleScopes } from '../../services/roleScopes.js'
 import { errorMessage, isCanceled } from '../../services/api.js'
 import { useT } from '../../hooks/useT.js'
@@ -138,14 +138,13 @@ export default function RolesPage({ session }) {
   const visibleRoles = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     const filtered = query
-      ? roles.filter((role) => t(ROLE_LABEL_KEYS[role] ?? role).toLowerCase().includes(query))
+      ? roles.filter((role) => role.toLowerCase().includes(query))
       : roles
     return [...filtered].sort((left, right) => {
       if (left === 'Superadmin') return -1
       if (right === 'Superadmin') return 1
       return left.localeCompare(right, 'en', { sensitivity: 'base' })
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roles, searchQuery])
 
   async function handleSaveRole(role) {
@@ -395,7 +394,7 @@ export default function RolesPage({ session }) {
                 ) : (
                   <>
                     <div className="role-card__name-group">
-                      <span className="role-card__name">{t(ROLE_LABEL_KEYS[role] ?? role)}</span>
+                      <span className="role-card__name">{role}</span>
                       {isSuperadmin && (
                         <span className="scope-pill scope-pill--fixed">{t('config.allAccess')}</span>
                       )}

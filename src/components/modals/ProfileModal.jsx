@@ -1,10 +1,8 @@
 import { X } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
-import { ROLE_LABEL_KEYS } from '../../config/roles.js'
 
 export default function ProfileModal({ onClose, session }) {
   const t = useT()
-  const roleLabel = ROLE_LABEL_KEYS[session?.role] ? t(ROLE_LABEL_KEYS[session.role]) : session?.role
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -28,7 +26,7 @@ export default function ProfileModal({ onClose, session }) {
 
         <div className="modal__row">
           <span className="modal__row-label">{t('auth.roleLabel')}</span>
-          <span>{roleLabel}</span>
+          <span>{session?.role}</span>
         </div>
 
         <p className="config-section__notice">{t('profile.editNotice')}</p>

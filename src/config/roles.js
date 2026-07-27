@@ -31,15 +31,6 @@ export const ROLE_SCOPES = {
   'Human Resource': [],
 }
 
-export const ROLE_LABEL_KEYS = {
-  Superadmin: 'auth.roleSuperadmin',
-  'Logistic Manager': 'auth.roleLogisticManager',
-  Finance: 'auth.roleFinance',
-  'Client Service Management': 'auth.roleClientServiceManagement',
-  Technology: 'auth.roleTechnology',
-  'Human Resource': 'auth.roleHumanResource',
-}
-
 // Only Superadmin has hardcoded meaning left (permanent "*" scope plus the
 // bootstrap-locked permissions in permissions.js) — the Roles admin page
 // can't be allowed to rename it, or those guarantees stop meaning
@@ -55,9 +46,9 @@ export const LOCKED_ROLES = ['Superadmin']
  * Role add/rename are UI-only for now — there's no `POST /config/roles`
  * in freshbrain-agreement's auth-contract.md (which explicitly documents
  * the role list as a fixed set). This mutates the shared ROLES/
- * ROLE_SCOPES/ROLE_LABEL_KEYS objects in place, so every existing
- * consumer (login's resolveScopes, the Users role picker, RolesPage) sees
- * the change immediately without any refetch plumbing.
+ * ROLE_SCOPES objects in place, so every existing consumer (login's
+ * resolveScopes, the Users role picker, RolesPage) sees the change
+ * immediately without any refetch plumbing.
  *
  * @param {string} name
  */
@@ -66,10 +57,6 @@ export function addRoleToCatalog(name) {
   if (!trimmed || ROLES.includes(trimmed)) return
   ROLES.push(trimmed)
   ROLE_SCOPES[trimmed] = []
-  // No real i18n copy for admin-created roles — the label key IS the raw
-  // name. useT's t() echoes back whatever it's given when the string isn't
-  // a resolvable translation path, so this just renders as plain text.
-  ROLE_LABEL_KEYS[trimmed] = trimmed
 }
 
 /**
@@ -98,8 +85,6 @@ export function renameRoleInCatalog(oldName, newName) {
   ROLES[index] = trimmed
   ROLE_SCOPES[trimmed] = ROLE_SCOPES[oldName] ?? []
   delete ROLE_SCOPES[oldName]
-  ROLE_LABEL_KEYS[trimmed] = trimmed
-  delete ROLE_LABEL_KEYS[oldName]
 }
 
 /**

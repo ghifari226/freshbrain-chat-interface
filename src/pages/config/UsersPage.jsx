@@ -22,7 +22,7 @@ import {
 } from '@mui/material'
 import { createUser, deleteUser, getAllUsers, updateUser } from '../../services/authService.js'
 import { errorMessage, isCanceled } from '../../services/api.js'
-import { ROLES, ROLE_LABEL_KEYS } from '../../config/roles.js'
+import { ROLES } from '../../config/roles.js'
 import {
   ALL_PERMISSIONS,
   SYSTEM_ACCESS_PERMISSIONS,
@@ -489,7 +489,7 @@ export default function UsersPage() {
               return (
                 <Chip
                   key={r}
-                  label={t(ROLE_LABEL_KEYS[r] ?? r)}
+                  label={r}
                   size="small"
                   clickable
                   onClick={() => toggleRoleFilter(r)}
@@ -570,7 +570,7 @@ export default function UsersPage() {
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.email}</TableCell>
                 <TableCell>{formatPhoneForDisplay(row.phone)}</TableCell>
-                <TableCell>{t(ROLE_LABEL_KEYS[row.role] ?? row.role)}</TableCell>
+                <TableCell>{row.role}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -674,7 +674,7 @@ export default function UsersPage() {
                 autoHighlight
                 options={roleOptions}
                 value={form.role}
-                getOptionLabel={(r) => t(ROLE_LABEL_KEYS[r] ?? r)}
+                getOptionLabel={(r) => r}
                 isOptionEqualToValue={(option, current) => option === current}
                 onChange={(_event, newValue) =>
                   setForm((prev) => ({ ...prev, role: newValue ?? prev.role }))

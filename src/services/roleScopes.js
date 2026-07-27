@@ -2,7 +2,7 @@
 // chat-gateway contract (auth-contract.md) — role catalog (list/add/rename)
 // plus scope assignment, the two responsibilities the contract's "Admin:
 // role & role scope management" section bundles into one resource. Mock
-// mode mutates ROLES/ROLE_SCOPES/ROLE_LABEL_KEYS locally (via config/roles.js,
+// mode mutates ROLES/ROLE_SCOPES locally (via config/roles.js,
 // the single source of truth those consumers already share); real mode uses
 // the shared Axios client. `signal` is only threaded through by getAllRoles
 // today — RolesPage.jsx doesn't pass one to the write calls, same gap noted
