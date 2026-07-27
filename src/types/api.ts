@@ -28,7 +28,7 @@ export interface ActorIdentity extends TokenActor {
 export interface ChatRequest {
   message: string
   conversation_id: string | null
-  user_id: string
+  id: string
   role: string
   allowed_scopes: string[]
   token?: string

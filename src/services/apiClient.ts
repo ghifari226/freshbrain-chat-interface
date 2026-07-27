@@ -1,6 +1,6 @@
 // ai-engine-only calls (POST /chat, /chat/title) — never chat-gateway, see
 // auth-contract.md's "Setiap request berikutnya" for the /chat wire shape
-// this mirrors (message/conversation_id/user_id/role/allowed_scopes, bearer
+// this mirrors (message/conversation_id/id/role/allowed_scopes, bearer
 // token). /chat/title has no contract doc yet — it's an ai-engine-side
 // convenience endpoint the frontend already calls, not yet written up in
 // freshbrain-agreement.
@@ -22,7 +22,7 @@ function makeId() {
 interface InternalChatRequest {
   message: string
   conversationId: string | null
-  userId: string
+  id: string
   role: string
   allowedScopes: string[]
   token?: string
@@ -32,7 +32,7 @@ interface InternalChatRequest {
 async function postChat({
   message,
   conversationId,
-  userId,
+  id,
   role,
   allowedScopes,
   token,
@@ -43,7 +43,7 @@ async function postChat({
     {
       message,
       conversation_id: conversationId ?? null,
-      user_id: userId,
+      id,
       role,
       allowed_scopes: allowedScopes,
     },
@@ -55,7 +55,7 @@ async function postChat({
 export async function sendMessage({
   message,
   conversation_id,
-  user_id,
+  id,
   role,
   allowed_scopes,
   token,
@@ -72,7 +72,7 @@ export async function sendMessage({
   const request = {
     message,
     conversationId: conversation_id,
-    userId: user_id,
+    id,
     role,
     allowedScopes: allowed_scopes,
     token,

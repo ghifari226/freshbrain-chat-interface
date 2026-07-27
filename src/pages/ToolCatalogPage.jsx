@@ -12,7 +12,7 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useAuthorizedPage } from '../hooks/useAuthorizedPage.js'
 import { useStatusFilters } from '../hooks/useStatusFilters.js'
 import { useT } from '../hooks/useT.js'
-import { canAccessToolCatalog } from '../config/permissions.js'
+import { canAccessToolCatalog, hasPermission } from '../config/permissions.js'
 import { getScopeCatalog } from '../config/scopeCatalog.js'
 import {
   createToolCatalogEntry,
@@ -26,9 +26,9 @@ export default function ToolCatalogPage() {
   const { session } = useAuth()
   const isAuthorized = useAuthorizedPage(canAccessToolCatalog(session))
 
-  const canViewProduction = Boolean(session?.['tool.view'])
-  const canViewStaging = Boolean(session?.['staging.test'])
-  const canViewRequest = Boolean(session?.['tool.request'])
+  const canViewProduction = hasPermission(session, 'tool.view')
+  const canViewStaging = hasPermission(session, 'staging.test')
+  const canViewRequest = hasPermission(session, 'tool.request')
   const statusFilters = useStatusFilters({
     canViewProduction,
     canViewStaging,

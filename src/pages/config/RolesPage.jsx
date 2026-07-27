@@ -13,6 +13,7 @@ import {
 import { Tooltip, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import { getScopeCatalog } from '../../config/scopeCatalog.js'
 import { LOCKED_ROLES } from '../../config/roles.js'
+import { hasPermission } from '../../config/permissions.js'
 import { createRole, getAllRoles, renameRole, updateRoleScopes } from '../../services/roleScopes.ts'
 import { errorMessage, isCanceled } from '../../services/api.ts'
 import { useT } from '../../hooks/useT.js'
@@ -59,9 +60,9 @@ function SystemCheckbox({ state, onChange, disabled }) {
 // independent of every other card's state.
 export default function RolesPage({ session }) {
   const t = useT()
-  const canAdd = Boolean(session?.['role_scope.add_role'])
-  const canEditName = Boolean(session?.['role_scope.edit_role'])
-  const canAssignScopes = Boolean(session?.['role_scope.assign_scopes'])
+  const canAdd = hasPermission(session, 'role_scope.add_role')
+  const canEditName = hasPermission(session, 'role_scope.edit_role')
+  const canAssignScopes = hasPermission(session, 'role_scope.assign_scopes')
   const canEditAnything = canAdd || canEditName || canAssignScopes
 
   const [catalog, setCatalog] = useState([])

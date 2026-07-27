@@ -13,16 +13,23 @@
 
 import { USE_MOCK_API } from '../config/appConfig.js'
 import { ROLE_SCOPES } from '../config/roles.js'
-import { ALL_PERMISSIONS, SUPERADMIN_LOCKED_PERMISSIONS } from '../config/permissions.js'
+import {
+  ALL_PERMISSIONS,
+  SUPERADMIN_LOCKED_PERMISSIONS,
+  permissionFlagsToArray,
+  permissionsArrayToFlags,
+} from '../config/permissions.js'
 import { authHeaders, gatewayApi } from './api.ts'
 import { mockDelay } from './mockDelay.ts'
 
 /**
  * The 17 Family 2/3 permission booleans from permission-catalog.md — dot-key
- * names, always read/written via bracket notation, never dot access (the
- * dots aren't valid in a plain identifier). config/permissions.js's
- * ALL_PERMISSIONS is the actual source of truth this list has to stay in
- * sync with; this typedef is documentation, not enforcement.
+ * names. Storage-only shape (MOCK_USERS rows); the wire shape collapses
+ * these to `allowed_permissions: string[]` (see Session/UserDirectoryEntry
+ * below) via permissionFlagsToArray/permissionsArrayToFlags at every
+ * read/write boundary in this file. config/permissions.js's ALL_PERMISSIONS
+ * is the actual source of truth this list has to stay in sync with; this
+ * typedef is documentation, not enforcement.
  * @typedef {{
  *   'permission.view': boolean,
  *   'permission.edit': boolean,
@@ -41,33 +48,35 @@ import { mockDelay } from './mockDelay.ts'
  *   'freshpedia.request': boolean,
  *   'freshpedia.change_status': boolean,
  *   'staging.test': boolean,
- * }} Permissions
+ * }} PermissionFlags
  */
 
 /**
  * POST /login's 200 response shape (auth-contract.md) — also what
  * useAuth's `session` looks like everywhere else in the app, since it's
  * stored/passed around verbatim from here.
- * @typedef {Permissions & {
- *   user_id: string,
+ * @typedef {{
+ *   id: string,
  *   name: string,
  *   email: string,
  *   phone: string,
  *   role: string,
  *   allowed_scopes: string[],
+ *   allowed_permissions: string[],
  *   token: string,
  * }} Session
  */
 
 /**
  * One element of GET /config/users' 200 response array (auth-contract.md) —
- * same shape as Session minus the login-only fields (user_id, allowed_scopes,
+ * same shape as Session minus the login-only fields (id, allowed_scopes,
  * token: none of those belong on "some other user's" directory row).
- * @typedef {Permissions & {
+ * @typedef {{
  *   name: string,
  *   email: string,
  *   phone: string,
  *   role: string,
+ *   allowed_permissions: string[],
  * }} UserDirectoryEntry
  */
 
@@ -174,13 +183,13 @@ function resolveScopes(role) {
 // the only place that data should live.
 function toSession(user) {
   return {
-    user_id: user.email,
+    id: user.email,
     name: user.name,
     email: user.email,
     phone: user.phone,
     role: user.role,
     allowed_scopes: resolveScopes(user.role),
-    ...shapeUserPermissions(user),
+    allowed_permissions: permissionFlagsToArray(shapeUserPermissions(user)),
     token: 'mock-jwt-token',
   }
 }
@@ -191,7 +200,7 @@ function toDirectoryEntry(user) {
     email: user.email,
     phone: user.phone,
     role: user.role,
-    ...shapeUserPermissions(user),
+    allowed_permissions: permissionFlagsToArray(shapeUserPermissions(user)),
   }
 }
 
@@ -297,7 +306,7 @@ export async function createUser(
  * live, not cached session state" rule.
  *
  * @param {string} email - target user being updated
- * @param {{ name?: string, phone?: string, role?: string } & Partial<Permissions>} updates
+ * @param {{ name?: string, phone?: string, role?: string, allowed_permissions?: string[] }} updates
  * @param {{ email: string, token?: string }} actor - the calling session's own email
  * @returns {Promise<UserDirectoryEntry>}
  */
@@ -324,7 +333,19 @@ export async function updateUser(email, updates, actor, { signal } = {}) {
   }
   const actorPermissions = shapeUserPermissions(actorUser)
 
-  const touchedPermissionFields = ALL_PERMISSIONS.filter((field) => updates[field] !== undefined)
+  // allowed_permissions, when sent, is a full replace (auth-contract.md,
+  // same convention as roles.allowed_scopes) — diff against the currently
+  // stored flags to find which of the 17 fields actually changed, since
+  // every guard below reasons about individual fields, not the array as a
+  // whole.
+  const currentFlags = shapeUserPermissions(user)
+  const nextFlags =
+    updates.allowed_permissions !== undefined
+      ? permissionsArrayToFlags(updates.allowed_permissions)
+      : currentFlags
+  const touchedPermissionFields = ALL_PERMISSIONS.filter(
+    (field) => Boolean(nextFlags[field]) !== Boolean(currentFlags[field]),
+  )
   const touchesProfileOrRole =
     updates.name !== undefined || updates.phone !== undefined || updates.role !== undefined
 
@@ -341,14 +362,14 @@ export async function updateUser(email, updates, actor, { signal } = {}) {
   // Superadmin-lock write protection — only for a Superadmin target
   // (current role, since a role-change update hasn't been applied yet at
   // this point): these locked field(s) only ever flip as a side effect of
-  // a role change for Superadmin, never a direct boolean write by anyone.
-  // Every other role's copies of these same field(s) are ordinary editable
-  // booleans — this is exactly what "don't lock anything to Technology"
-  // means in practice.
-  if (user.role === 'Superadmin') {
+  // a role change for Superadmin, never removable via a direct
+  // allowed_permissions write by anyone. Every other role's copies of these
+  // same field(s) are ordinary editable booleans — this is exactly what
+  // "don't lock anything to Technology" means in practice.
+  if (user.role === 'Superadmin' && updates.allowed_permissions !== undefined) {
     for (const field of SUPERADMIN_LOCKED_PERMISSIONS) {
-      if (updates[field] !== undefined) {
-        throw new Error(`${field} cannot be set directly — it follows role`)
+      if (nextFlags[field] !== true) {
+        throw new Error(`${field} cannot be removed directly — it follows role`)
       }
     }
   }
@@ -366,12 +387,12 @@ export async function updateUser(email, updates, actor, { signal } = {}) {
     }
   }
 
-  // Self-escalation guard: editing your own row can never flip a boolean
-  // you don't already hold from false to true. Demotion (true -> false) on
-  // yourself is always allowed.
+  // Self-escalation guard: editing your own row can never add a permission
+  // key you don't already hold to your own allowed_permissions. Removing a
+  // key you already hold on yourself is always allowed.
   if (email === actor.email) {
     for (const field of touchedPermissionFields) {
-      if (updates[field] === true && !actorPermissions[field]) {
+      if (nextFlags[field] === true && !actorPermissions[field]) {
         throw new Error('Cannot grant a permission you do not already hold')
       }
     }
@@ -381,7 +402,7 @@ export async function updateUser(email, updates, actor, { signal } = {}) {
   if (updates.phone !== undefined) user.phone = updates.phone
   if (updates.role !== undefined) user.role = updates.role
   for (const field of touchedPermissionFields) {
-    user[field] = updates[field]
+    user[field] = nextFlags[field]
   }
 
   return toDirectoryEntry(user)

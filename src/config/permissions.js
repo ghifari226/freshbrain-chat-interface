@@ -1,9 +1,11 @@
-// The full permission catalog, `resource.action` string keys — flat booleans
-// on the `users` row (or the equivalent shape once chat-gateway exists),
-// fully separate from allowed_scopes (roles.js's ROLE_SCOPES), which gates
-// chat-time data/tool access, not any of this. Keys contain dots, so they're
-// always read/written via bracket notation (`session?.['role_scope.view']`), never
-// dot access.
+// The full permission catalog, `resource.action` string keys — stored as
+// flat boolean columns on the `users` row (indexed, type-safe queries), but
+// exposed over the wire as `allowed_permissions: string[]` (only the true
+// ones), same convention as allowed_scopes — see permission-catalog.md's
+// "Kenapa boolean, bukan array" for why storage and wire shape differ.
+// Fully separate from allowed_scopes (roles.js's ROLE_SCOPES), which gates
+// chat-time data/tool access, not any of this. Keys contain dots, so
+// hasPermission() below (never dot access) is the one place that reads them.
 //
 // Two display groups only now — "Chat capability access" (the three
 // end-user chat surfaces, shown first) and "System Access" (role/
@@ -130,40 +132,44 @@ export function getPermissionCatalog() {
 }
 
 /**
- * @param {Record<string, boolean> | undefined} permissions
+ * The one place every other check in this module (and every direct call
+ * site elsewhere — pages/components that need a single field rather than
+ * one of the OR-groups below) reads `allowed_permissions` — never dot
+ * access, the key itself contains a literal `.`.
+ *
+ * @param {{ allowed_permissions?: string[] } | undefined | null} bag
+ * @param {string} key
  */
+export function hasPermission(bag, key) {
+  return Boolean(bag?.allowed_permissions?.includes(key))
+}
+
+/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewUsers(permissions) {
-  const p = permissions ?? {}
-  return Boolean(
-    p['user.view'] || p['user.add'] || p['user.edit'] || p['user.delete'] || p['user.assign_permissions'],
+  return ['user.view', 'user.add', 'user.edit', 'user.delete', 'user.assign_permissions'].some(
+    (field) => hasPermission(permissions, field),
   )
 }
 
-/**
- * @param {Record<string, boolean> | undefined} permissions
- */
+/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewRoles(permissions) {
-  const p = permissions ?? {}
-  return Boolean(
-    p['role_scope.view'] || p['role_scope.add_role'] || p['role_scope.edit_role'] || p['role_scope.assign_scopes'],
-  )
+  return [
+    'role_scope.view',
+    'role_scope.add_role',
+    'role_scope.edit_role',
+    'role_scope.assign_scopes',
+  ].some((field) => hasPermission(permissions, field))
 }
 
-/**
- * @param {Record<string, boolean> | undefined} permissions
- */
+/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewPermissions(permissions) {
-  const p = permissions ?? {}
-  return Boolean(p['permission.view'] || p['permission.edit'])
+  return hasPermission(permissions, 'permission.view') || hasPermission(permissions, 'permission.edit')
 }
 
-// Any of the 18 true => can reach /config at all (nav-menu gate).
-/**
- * @param {Record<string, boolean> | undefined} permissions
- */
+// Any of the 18 present => can reach /config at all (nav-menu gate).
+/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canAccessConfigSection(permissions) {
-  const p = permissions ?? {}
-  return ALL_PERMISSIONS.some((field) => Boolean(p[field]))
+  return Boolean(permissions?.allowed_permissions?.length)
 }
 
 /**
@@ -171,18 +177,19 @@ export function canAccessConfigSection(permissions) {
  * once, there's no more per-group split now that config_access_permission_edit
  * and chat_access_permission_edit have merged into this one flag.
  *
- * @param {Record<string, boolean> | undefined} actorPermissions
+ * @param {{ allowed_permissions?: string[] } | undefined} actorPermissions
  */
 export function canAssignPermissions(actorPermissions) {
-  return Boolean(actorPermissions?.['user.assign_permissions'])
+  return hasPermission(actorPermissions, 'user.assign_permissions')
 }
 
-/**
- * @param {Record<string, boolean> | undefined} permissions
- */
+/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canAccessFreshpedia(permissions) {
-  const p = permissions ?? {}
-  return Boolean(p['freshpedia.view'] || p['staging.test'] || p['freshpedia.request'])
+  return (
+    hasPermission(permissions, 'freshpedia.view') ||
+    hasPermission(permissions, 'staging.test') ||
+    hasPermission(permissions, 'freshpedia.request')
+  )
 }
 
 /**
@@ -193,16 +200,35 @@ export function canAccessFreshpedia(permissions) {
  * in both FreshpediaPage.jsx (UI) and services/freshpedia.js (mock
  * write-path enforcement), same shape as canAssignPermissions.
  *
- * @param {Record<string, boolean> | undefined} permissions
+ * @param {{ allowed_permissions?: string[] } | undefined} permissions
  */
 export function canChangeFreshpediaStatus(permissions) {
-  return Boolean(permissions?.['freshpedia.change_status'])
+  return hasPermission(permissions, 'freshpedia.change_status')
+}
+
+/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
+export function canAccessToolCatalog(permissions) {
+  return (
+    hasPermission(permissions, 'tool.view') ||
+    hasPermission(permissions, 'staging.test') ||
+    hasPermission(permissions, 'tool.request')
+  )
 }
 
 /**
- * @param {Record<string, boolean> | undefined} permissions
+ * Boundary helpers only — UsersPage's Shield dialog edits permissions as a
+ * per-field checkbox grid (flags), but the wire/session shape is an array.
+ * Convert at the edges; never store the flags form anywhere persistent.
+ *
+ * @param {string[] | undefined} allowedPermissions
+ * @returns {Record<string, boolean>}
  */
-export function canAccessToolCatalog(permissions) {
-  const p = permissions ?? {}
-  return Boolean(p['tool.view'] || p['staging.test'] || p['tool.request'])
+export function permissionsArrayToFlags(allowedPermissions) {
+  const set = new Set(allowedPermissions ?? [])
+  return Object.fromEntries(ALL_PERMISSIONS.map((key) => [key, set.has(key)]))
+}
+
+/** @param {Record<string, boolean>} flags */
+export function permissionFlagsToArray(flags) {
+  return ALL_PERMISSIONS.filter((key) => Boolean(flags[key]))
 }

@@ -17,24 +17,29 @@ export type PermissionKey =
   | 'tool.request'
   | 'staging.test'
 
+// Storage-only shape (MOCK_USERS rows) — the wire shape (Session,
+// UserDirectoryEntry below) collapses these to `allowed_permissions:
+// PermissionKey[]` instead, see authService.js.
 export type Permissions = Record<PermissionKey, boolean>
 export type PartialPermissions = Partial<Permissions>
 
-export interface Session extends Permissions {
-  user_id: string
+export interface Session {
+  id: string
   name: string
   email: string
   phone: string
   role: string
   allowed_scopes: string[]
+  allowed_permissions: PermissionKey[]
   token: string
 }
 
-export interface UserDirectoryEntry extends Permissions {
+export interface UserDirectoryEntry {
   name: string
   email: string
   phone: string
   role: string
+  allowed_permissions: PermissionKey[]
 }
 
 export type CatalogStatus = 'request' | 'staging' | 'production'

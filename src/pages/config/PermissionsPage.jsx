@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material'
-import { PERMISSION_GROUPS, getPermissionCatalog, updatePermissionInCatalog } from '../../config/permissions.js'
+import { PERMISSION_GROUPS, getPermissionCatalog, updatePermissionInCatalog, hasPermission } from '../../config/permissions.js'
 import { useT, resolveLabelEntry } from '../../hooks/useT.js'
 import { errorMessage } from '../../services/api.ts'
 
@@ -29,7 +29,7 @@ const FILTER_CHIPS = [
 // the key as a literal string).
 export default function PermissionsPage({ session }) {
   const t = useT()
-  const canEdit = Boolean(session?.['permission.edit'])
+  const canEdit = hasPermission(session, 'permission.edit')
   const [permissions, setPermissions] = useState(getPermissionCatalog)
   const [formTarget, setFormTarget] = useState(null)
   const [form, setForm] = useState({ key: '', group: '', labelId: '', labelEn: '' })

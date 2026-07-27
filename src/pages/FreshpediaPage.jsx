@@ -13,7 +13,7 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useAuthorizedPage } from '../hooks/useAuthorizedPage.js'
 import { useStatusFilters } from '../hooks/useStatusFilters.js'
 import { useT } from '../hooks/useT.js'
-import { canAccessFreshpedia, canChangeFreshpediaStatus } from '../config/permissions.js'
+import { canAccessFreshpedia, canChangeFreshpediaStatus, hasPermission } from '../config/permissions.js'
 import {
   createFreshpediaEntry,
   getAllFreshpediaEntries,
@@ -27,9 +27,9 @@ export default function FreshpediaPage({ language }) {
   const { session } = useAuth()
   const isAuthorized = useAuthorizedPage(canAccessFreshpedia(session))
 
-  const canViewProduction = Boolean(session?.['freshpedia.view'])
-  const canViewStaging = Boolean(session?.['staging.test'])
-  const canViewRequest = Boolean(session?.['freshpedia.request'])
+  const canViewProduction = hasPermission(session, 'freshpedia.view')
+  const canViewStaging = hasPermission(session, 'staging.test')
+  const canViewRequest = hasPermission(session, 'freshpedia.request')
   const canChangeStatus = canChangeFreshpediaStatus(session)
   const statusFilters = useStatusFilters({
     canViewProduction,

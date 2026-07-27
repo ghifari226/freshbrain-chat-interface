@@ -138,7 +138,7 @@ function AuthenticatedApp({ language, setLanguage }) {
       const response = await sendMessage({
         message: text,
         conversation_id: backendConversationId,
-        user_id: session?.user_id,
+        id: session?.id,
         role: session?.role,
         allowed_scopes: session?.allowed_scopes,
         token: session?.token,

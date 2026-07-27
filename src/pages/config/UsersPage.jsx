@@ -30,6 +30,9 @@ import {
   PERMISSION_LABEL_KEYS,
   SUPERADMIN_LOCKED_PERMISSIONS,
   canAssignPermissions,
+  hasPermission,
+  permissionsArrayToFlags,
+  permissionFlagsToArray,
 } from '../../config/permissions.js'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
@@ -40,8 +43,19 @@ import { useAuth } from '../../hooks/useAuth.js'
 const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superadmin') }
 
 // Order-independent — see the identical concern in RolesPage's scopesEqual.
+// Both args are flag-shaped ({ 'user.view': boolean, ... }), never the
+// wire-shaped allowed_permissions array directly — see flagsForUser below.
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
+}
+
+// Boundary helper: every directory-entry-shaped user object in this file
+// (users state, permissionsDialogUser) carries `allowed_permissions` as an
+// array (auth-contract.md's wire shape) — this dialog's checkbox grid still
+// works in per-field flags internally, so every read of a `users` row for
+// that purpose goes through here first.
+function flagsForUser(user) {
+  return permissionsArrayToFlags(user?.allowed_permissions)
 }
 
 function digitsOnly(value) {
@@ -158,9 +172,9 @@ function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldL
 export default function UsersPage() {
   const t = useT()
   const { session, updateSession } = useAuth()
-  const canAdd = Boolean(session?.['user.add'])
-  const canEdit = Boolean(session?.['user.edit'])
-  const canDelete = Boolean(session?.['user.delete'])
+  const canAdd = hasPermission(session, 'user.add')
+  const canEdit = hasPermission(session, 'user.edit')
+  const canDelete = hasPermission(session, 'user.delete')
   const canAssign = canAssignPermissions(session)
   const actorForUpdate = useMemo(
     () => ({ email: session?.email, token: session?.token }),
@@ -208,9 +222,9 @@ export default function UsersPage() {
   // Derived from `users`, not a snapshot, so the dialog's title/base data is
   // never stale.
   const permissionsDialogUser = users.find((u) => u.email === permissionsDialogEmail) ?? null
-  const dialogPermissions = pendingPermissions[permissionsDialogEmail] ?? permissionsDialogUser ?? {}
+  const dialogPermissions = pendingPermissions[permissionsDialogEmail] ?? flagsForUser(permissionsDialogUser)
   const isPermissionsDialogDirty = permissionsDialogUser
-    ? !permissionsEqual(dialogPermissions, permissionsDialogUser)
+    ? !permissionsEqual(dialogPermissions, flagsForUser(permissionsDialogUser))
     : false
 
   function isSuperadminLockedField(field) {
@@ -223,7 +237,7 @@ export default function UsersPage() {
   // the dialog can't even open on someone else without user.assign_permissions)
   // anyone else's.
   function isSelfEscalationBlocked(field) {
-    return permissionsDialogEmail === session?.email && !session?.[field]
+    return permissionsDialogEmail === session?.email && !hasPermission(session, field)
   }
 
   // Built from the actual data rather than ROLES — every MOCK_USERS role
@@ -398,7 +412,7 @@ export default function UsersPage() {
   function handleTogglePermission(email, field) {
     setPendingPermissions((prev) => {
       const user = users.find((u) => u.email === email)
-      const current = prev[email] ?? user ?? {}
+      const current = prev[email] ?? flagsForUser(user)
       return { ...prev, [email]: { ...current, [field]: !current[field] } }
     })
   }
@@ -406,7 +420,7 @@ export default function UsersPage() {
   function handleToggleAllPermissions(email, fields, nextValue) {
     setPendingPermissions((prev) => {
       const user = users.find((u) => u.email === email)
-      const current = prev[email] ?? user ?? {}
+      const current = prev[email] ?? flagsForUser(user)
       const next = { ...current }
       for (const field of fields) next[field] = nextValue
       return { ...prev, [email]: next }
@@ -422,25 +436,18 @@ export default function UsersPage() {
 
   // The only thing that actually calls updateUser for permissions — see
   // handleTogglePermission above, which only ever touches the local draft.
-  // Sends only the fields that actually differ from the target's
-  // last-synced row (not all 18), so a partial save never accidentally
-  // re-submits unchanged values.
+  // allowed_permissions is a full replace on the wire (auth-contract.md,
+  // same convention as roles.allowed_scopes), so this always sends the
+  // dialog's complete draft, not just the fields that changed — the diffing
+  // now happens server-side (mock: authService.js's updateUser) against the
+  // last-synced row.
   async function handleSavePermissions(email) {
     const next = pendingPermissions[email]
     if (!next) return
-    const original = users.find((u) => u.email === email) ?? {}
-    const updates = {}
-    for (const field of ALL_PERMISSIONS) {
-      if (Boolean(next[field]) !== Boolean(original[field])) {
-        updates[field] = Boolean(next[field])
-      }
-    }
-    const updated = await updateUser(email, updates, actorForUpdate)
+    const updated = await updateUser(email, { allowed_permissions: permissionFlagsToArray(next) }, actorForUpdate)
     setUsers((prev) => prev.map((u) => (u.email === email ? updated : u)))
     if (email === session?.email) {
-      const patch = {}
-      for (const field of ALL_PERMISSIONS) patch[field] = updated[field]
-      updateSession(patch)
+      updateSession({ allowed_permissions: updated.allowed_permissions })
     }
     discardPendingPermissions(email)
   }

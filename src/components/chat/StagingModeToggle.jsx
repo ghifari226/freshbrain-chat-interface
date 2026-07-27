@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth.js'
 import { Eye, EyeOff } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
+import { hasPermission } from '../../config/permissions.js'
 
 // staging.test is its own independent, per-individual toggle (not derived
 // from Freshpedia/Tool Catalog view access) — see permission-catalog.md.
@@ -14,7 +15,7 @@ export default function StagingModeToggle() {
   const t = useT()
   const [isStaging, setIsStaging] = useState(false)
 
-  const canPreviewStaging = Boolean(session?.['staging.test'])
+  const canPreviewStaging = hasPermission(session, 'staging.test')
 
   if (!canPreviewStaging) return null
 
