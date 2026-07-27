@@ -1,0 +1,36 @@
+/* dev-doc branch only — live gateway JSON preview boxes for Freddy. */
+.auth-devdoc {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.gateway-json-preview {
+  background: #fff;
+  border: 1px solid var(--border-color, #e2e2e2);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.gateway-json-preview__title {
+  color: var(--danger);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.gateway-json-preview__body {
+  color: #1a1a1a;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}

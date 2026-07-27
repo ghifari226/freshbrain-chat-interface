@@ -2,6 +2,26 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth.js'
 import { useT } from '../hooks/useT.js'
 import { strings } from '../i18n/strings.js'
+import GatewayJsonPreview from '../components/devdoc/GatewayJsonPreview.jsx'
+import { ALL_PERMISSIONS } from '../config/permissions.js'
+
+// dev-doc only — static example of POST /login's 200 response (auth-contract.md).
+// Shown next to the live request preview so Freddy sees both sides of the
+// interaction without needing a real backend running. `id` is a real
+// uuid-shaped string (not the old 'usr_a1b2c3' mock prefix) so the format
+// itself is visible, not just the key name. `allowed_permissions` is spread
+// from ALL_PERMISSIONS (Larry is Superadmin, all true) instead of hardcoded
+// so this example can never silently drift from the actual catalog.
+const EXAMPLE_LOGIN_RESPONSE = {
+  id: 'a1b2c3d4-5e6f-4a1b-8c2d-3e4f5a6b7c8d',
+  name: 'Larry Ridwan',
+  email: 'larry.ridwan@freshfactory.id',
+  phone: '6281110000001',
+  role: 'Superadmin',
+  allowed_scopes: ['wms.inventory', 'wms.inbound', 'wms.fulfillment', 'tms.shipment'],
+  allowed_permissions: [...ALL_PERMISSIONS],
+  token: 'eyJhbGciOiJIUzI1NiIs...',
+}
 
 export default function LoginPage({ language, setLanguage }) {
   const { login } = useAuth()
@@ -137,6 +157,17 @@ export default function LoginPage({ language, setLanguage }) {
             </button>
           </form>
         </div>
+      </div>
+
+      <div className="auth-devdoc">
+        <GatewayJsonPreview
+          title="POST /login — Request (live)"
+          data={{ email, password: 'x'.repeat(password.length) }}
+        />
+        <GatewayJsonPreview
+          title="POST /login — Response 200 (example)"
+          data={EXAMPLE_LOGIN_RESPONSE}
+        />
       </div>
 
       <div className="auth-family">
