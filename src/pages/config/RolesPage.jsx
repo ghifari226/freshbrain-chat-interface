@@ -166,16 +166,16 @@ export default function RolesPage({ session }) {
   // savedRoleScopes (the last-synced state), not the possibly-dirty
   // roleScopes draft — GET reflects what the server actually has.
   const gatewayRolesResponse = useMemo(
-    () => roles.map((name) => ({ name, allowed_scopes: savedRoleScopes[name] ?? [] })),
-    [roles, savedRoleScopes],
+    () => roles.map((name) => ({ id: roleIdByName[name], name, allowed_scopes: savedRoleScopes[name] ?? [] })),
+    [roles, savedRoleScopes, roleIdByName],
   )
 
-  // dev-doc only — PATCH /roles/{name}'s request body (auth-contract.md).
+  // dev-doc only — PATCH /roles/{id}'s request body (auth-contract.md).
   // Renaming and scope-assignment are two independent PATCH calls this page
   // never combines into one request, so this reflects whichever is
   // currently "in flight": an open rename form wins over the last scope
   // checkbox clicked, since it's the more deliberate/explicit action.
-  const gatewayRolesPatchTarget = renamingRole ?? lastTouchedScopeRole
+  const gatewayRolesPatchTarget = roleIdByName[renamingRole ?? lastTouchedScopeRole ?? '']
   const gatewayRolesPatchPayload = renamingRole
     ? { name: renameDraft }
     : lastTouchedScopeRole
@@ -591,7 +591,7 @@ export default function RolesPage({ session }) {
       <div className="config-devdoc">
         <GatewayJsonPreview title="GET /roles — Response (live)" data={gatewayRolesResponse} />
         <GatewayJsonPreview
-          title={`PATCH /roles/${gatewayRolesPatchTarget ?? '{name}'} — Payload (live)`}
+          title={`PATCH /roles/${gatewayRolesPatchTarget ?? '{id}'} — Payload (live)`}
           data={gatewayRolesPatchPayload}
         />
       </div>
