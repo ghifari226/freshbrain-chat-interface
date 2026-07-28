@@ -46,28 +46,37 @@ export type CatalogStatus = 'request' | 'staging' | 'production'
 export type FreshpediaEntryType = 'definition' | 'document' | 'alias'
 export type LocalizedText = { id: string; en: string }
 
+// createdBy/updatedBy are users.id (uid, see authService.js's MOCK_USERS)
+// — normalized 2026-07-29, was submittedBy/submittedByEmail (name+email,
+// never actually rendered anywhere in the UI). `status` is always
+// staging/production for entries from GET /freshpedia, always request for
+// GET /freshpedia-request — see freshpedia-contract.md.
 export interface FreshpediaEntry {
   id: string
   title: string
   type: FreshpediaEntryType
   status: CatalogStatus
+  createdBy: string
+  createdAt: string
+  updatedBy: string
   updatedAt: string
-  submittedBy: string
-  submittedByEmail: string
   content?: string | LocalizedText
   fileName?: string
   aliasTargetId?: string
   aliasPhrase?: string
 }
 
+// createdBy/updatedBy are users.id (uid) — same normalization as
+// FreshpediaEntry above, 2026-07-29.
 export interface ToolCatalogEntry {
   id: string
   system: string
   name: string
   status: CatalogStatus
+  createdBy: string
+  createdAt: string
+  updatedBy: string
   updatedAt: string
-  submittedBy: string
-  submittedByEmail: string
   description: string
   exampleQuestions: string[]
 }

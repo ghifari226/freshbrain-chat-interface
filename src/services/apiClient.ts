@@ -13,7 +13,7 @@ import type {
   FeedbackResponse,
   RequestOptions,
 } from '../types/api.ts'
-import { aiApi, authHeaders } from './api.ts'
+import { aiEngineApi, authHeaders } from './api.ts'
 import { mockDelay } from './mockDelay.ts'
 
 function makeId() {
@@ -44,7 +44,7 @@ async function postChat({
   token,
   signal,
 }: InternalChatRequest): Promise<ChatResponse> {
-  const { data } = await aiApi.post<ChatResponse>(
+  const { data } = await aiEngineApi.post<ChatResponse>(
     '/chat',
     {
       message,
@@ -123,7 +123,7 @@ export async function sendFeedback({
     return { id: makeId() }
   }
 
-  const { data } = await aiApi.post<FeedbackResponse>(
+  const { data } = await aiEngineApi.post<FeedbackResponse>(
     '/feedback',
     {
       message_id,
@@ -145,7 +145,7 @@ export async function generateTitle(
   { signal }: RequestOptions = {},
 ): Promise<string> {
   if (!USE_MOCK_API) {
-    const { data } = await aiApi.post<{ title: string }>('/chat/title', { message }, { signal })
+    const { data } = await aiEngineApi.post<{ title: string }>('/chat/title', { message }, { signal })
     return data.title
   }
 

@@ -1,15 +1,25 @@
-// Freshpedia CRUD + status transitions against chat-gateway — no dedicated
-// contract doc exists for this yet (only auth/roles/permissions are written
-// up in freshbrain-agreement), so this file and its call sites in
-// FreshpediaPage.jsx are the closest thing to a spec right now.
+// Freshpedia CRUD + status transitions against ai-engine (moved off
+// chat-gateway 2026-07-28 — Freshpedia's entries are ai-engine's knowledge
+// base content, not an auth/identity concern; chat-gateway still owns the
+// freshpedia.* permission values themselves, just not this data). Contract
+// lives at freshbrain-agreement's freshpedia-contract.md.
+//
+// Split into two collections (2026-07-29), matching the contract:
+// `/freshpedia` (published — staging+production) and `/freshpedia-request`
+// (the submission queue — request status only). An entry is born in
+// `/freshpedia-request` and *leaves* it when promoted — promotion itself
+// (`POST /freshpedia-request/{id}/status`) is ai-engine/FastAPI-docs-only,
+// never chat-interface-triggered, so there's no function for it here at
+// all — see the contract doc for that endpoint.
+//
 // USE_MOCK_API selects the in-memory MOCK_ENTRIES below or the real Axios
 // client explicitly, same pattern as authService.js. `signal` is only
-// actually threaded through by FreshpediaPage's list load (getAllFreshpediaEntries)
-// today — the create/update/status calls accept it too but no caller
-// passes one yet, so cancellation only cancels the initial fetch, not a
-// pending write.
+// actually threaded through by FreshpediaPage's list loads today — the
+// create/update/status calls accept it too but no caller passes one yet,
+// so cancellation only cancels the initial fetch, not a pending write.
 import { USE_MOCK_API } from '../config/appConfig.js'
-import { authHeaders, gatewayApi } from './api.ts'
+import { authHeaders, aiEngineApi } from './api.ts'
+import { hasPermission } from '../config/permissions.js'
 import { mockDelay } from './mockDelay.ts'
 
 /**
@@ -17,15 +27,18 @@ import { mockDelay } from './mockDelay.ts'
  * `aliasTargetId`+`aliasPhrase` are mutually exclusive, which of the three
  * is present depends on `type` (see EntryForm/entryDescriptor in
  * FreshpediaPage.jsx, the only place that branches on `type` to know which
- * one to read).
+ * one to read). `createdBy`/`updatedBy` are `users.id` (uid, see
+ * authService.js's MOCK_USERS) — chat-interface has no lookup to resolve
+ * these to a display name today, that's a future concern, not this file's.
  * @typedef {{
  *   id: string,
  *   title: string,
  *   type: 'definition' | 'document' | 'alias',
  *   status: 'request' | 'staging' | 'production',
+ *   createdBy: string,
+ *   createdAt: string,
+ *   updatedBy: string,
  *   updatedAt: string,
- *   submittedBy: string,
- *   submittedByEmail: string,
  *   content?: string | { id: string, en: string },
  *   fileName?: string,
  *   aliasTargetId?: string,
@@ -33,160 +46,195 @@ import { mockDelay } from './mockDelay.ts'
  * }} FreshpediaEntry
  */
 
-function makeId() {
-  return Math.random().toString(36).slice(2, 10)
-}
-
 function toEntry(row) {
   return { ...row }
 }
 
-// Only forward transitions plus one demotion step back. request->staging
-// stays supported here even though the UI no longer shows a button for it
-// (Promote to Staging was removed) — Promote to Production on Staging and
-// Demote to Staging on Production are the two buttons the UI shows now.
+// Only staging<->production — the only two transitions
+// `POST /freshpedia/{id}/status` (this file, chat-interface-facing) ever
+// allows, matching the only two buttons FreshpediaEntryList.jsx renders
+// (Promote to Production, Demote to Staging). Promoting *out of*
+// /freshpedia-request is a different endpoint entirely, see the header
+// comment above.
 const ALLOWED_TRANSITIONS = {
-  request: ['staging'],
   staging: ['production'],
   production: ['staging'],
 }
 
+// Ghifari's and Delanda's users.id, from authService.js's MOCK_USERS —
+// reused here so createdBy/updatedBy actually resolve to a real user.
+const GHIFARI_UID = 'b7e2d5f1-0000-4c22-9d33-000000000002'
+const DELANDA_UID = 'b7e2d5f1-0000-4c22-9d33-000000000003'
+
 // Module-level, mutable — same role as MOCK_USERS in auth.js. Resets on
-// reload; no backend persistence yet.
+// reload; no backend persistence yet. `id` is a fixed literal uid per row
+// (stable across HMR/reload, unlike crypto.randomUUID() — same convention
+// as roles.js's ROLE_IDS/authService.js's MOCK_USERS); createFreshpediaEntry
+// generates a fresh one for genuinely new entries.
 const MOCK_ENTRIES = [
   {
-    id: 'e1',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000001',
     title: 'Jumlah Gudang Fisik',
     type: 'definition',
     status: 'production',
+    createdBy: GHIFARI_UID,
+    createdAt: '2026-07-10T09:00:00Z',
+    updatedBy: GHIFARI_UID,
     updatedAt: '2026-07-10T09:00:00Z',
-    submittedBy: 'Ghifari',
-    submittedByEmail: 'ghifari@freshfactory.id',
     content: {
       en: 'The count of physical warehouse locations Fresh Factory currently operates. Referenced whenever FreshBrain answers a "how many warehouses" question — see the mock chat example: "Saat ini terdapat total 45 warehouse."',
       id: 'Jumlah lokasi gudang fisik yang saat ini dioperasikan oleh Fresh Factory. Dirujuk setiap kali FreshBrain menjawab pertanyaan "berapa jumlah gudang" — lihat contoh chat: "Saat ini terdapat total 45 warehouse."',
     },
   },
   {
-    id: 'e2',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000002',
     title: 'Warehouse Management System',
     type: 'definition',
     status: 'production',
+    createdBy: GHIFARI_UID,
+    createdAt: '2026-07-09T09:00:00Z',
+    updatedBy: GHIFARI_UID,
     updatedAt: '2026-07-09T09:00:00Z',
-    submittedBy: 'Ghifari',
-    submittedByEmail: 'ghifari@freshfactory.id',
     content: {
       en: 'The system that tracks inventory, inbound receiving, and fulfillment across Fresh Factory\'s warehouses.',
       id: 'Sistem yang melacak inventaris, penerimaan barang masuk, dan fulfillment di seluruh gudang Fresh Factory.',
     },
   },
   {
-    id: 'e3',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000003',
     title: 'WMS',
     type: 'alias',
     status: 'production',
+    createdBy: GHIFARI_UID,
+    createdAt: '2026-07-09T09:05:00Z',
+    updatedBy: GHIFARI_UID,
     updatedAt: '2026-07-09T09:05:00Z',
-    submittedBy: 'Ghifari',
-    submittedByEmail: 'ghifari@freshfactory.id',
-    aliasTargetId: 'e2',
+    aliasTargetId: 'c9d4e1a0-0000-4f11-9a22-000000000002',
     aliasPhrase: 'Singkatan umum untuk Warehouse Management System.',
   },
   {
-    id: 'e4',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000004',
     title: 'Cross-Docking',
     type: 'definition',
     status: 'staging',
+    createdBy: DELANDA_UID,
+    createdAt: '2026-07-15T11:00:00Z',
+    updatedBy: DELANDA_UID,
     updatedAt: '2026-07-15T11:00:00Z',
-    submittedBy: 'Delanda Pramuwidia',
-    submittedByEmail: 'delapramuwidia@gmail.com',
     content: {
       en: 'Unloading goods from inbound shipments and loading them directly onto outbound transport, with little or no warehouse storage in between.',
       id: 'Menurunkan barang dari pengiriman masuk lalu langsung memuatnya ke transportasi keluar, dengan penyimpanan gudang minimal atau tanpa penyimpanan sama sekali.',
     },
   },
   {
-    id: 'e5',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000005',
     title: 'Panduan Tata Letak Gudang',
     type: 'document',
     status: 'production',
+    createdBy: GHIFARI_UID,
+    createdAt: '2026-07-08T09:00:00Z',
+    updatedBy: GHIFARI_UID,
     updatedAt: '2026-07-08T09:00:00Z',
-    submittedBy: 'Ghifari',
-    submittedByEmail: 'ghifari@freshfactory.id',
     fileName: 'panduan-tata-letak-gudang.pdf',
   },
   {
-    id: 'e6',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000006',
     title: 'SOP Retur Barang',
     type: 'document',
     status: 'staging',
+    createdBy: DELANDA_UID,
+    createdAt: '2026-07-16T14:30:00Z',
+    updatedBy: DELANDA_UID,
     updatedAt: '2026-07-16T14:30:00Z',
-    submittedBy: 'Delanda Pramuwidia',
-    submittedByEmail: 'delapramuwidia@gmail.com',
     fileName: 'sop-retur-barang.pdf',
   },
   {
-    id: 'e7',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000007',
     title: 'Fulfillment Rate',
     type: 'definition',
     status: 'request',
+    createdBy: GHIFARI_UID,
+    createdAt: '2026-07-20T10:15:00Z',
+    updatedBy: GHIFARI_UID,
     updatedAt: '2026-07-20T10:15:00Z',
-    submittedBy: 'Ghifari',
-    submittedByEmail: 'ghifari@freshfactory.id',
     content: {
       en: 'The share of order lines shipped complete and on the first attempt, without split shipments or backorders.',
       id: 'Persentase baris pesanan yang dikirim lengkap dan pada percobaan pertama, tanpa pengiriman terpisah atau backorder.',
     },
   },
   {
-    id: 'e8',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000008',
     title: 'Transport Management System',
     type: 'definition',
     status: 'request',
+    createdBy: GHIFARI_UID,
+    createdAt: '2026-07-19T16:40:00Z',
+    updatedBy: GHIFARI_UID,
     updatedAt: '2026-07-19T16:40:00Z',
-    submittedBy: 'Ghifari',
-    submittedByEmail: 'ghifari@freshfactory.id',
     content: {
       en: 'The system that plans and tracks outbound shipments across carriers and routes.',
       id: 'Sistem yang merencanakan dan melacak pengiriman keluar di berbagai kurir dan rute.',
     },
   },
   {
-    id: 'e9',
+    id: 'c9d4e1a0-0000-4f11-9a22-000000000009',
     title: 'TMS',
     type: 'alias',
     status: 'request',
+    createdBy: GHIFARI_UID,
+    createdAt: '2026-07-19T16:45:00Z',
+    updatedBy: GHIFARI_UID,
     updatedAt: '2026-07-19T16:45:00Z',
-    submittedBy: 'Ghifari',
-    submittedByEmail: 'ghifari@freshfactory.id',
-    aliasTargetId: 'e8',
+    aliasTargetId: 'c9d4e1a0-0000-4f11-9a22-000000000008',
     aliasPhrase: 'Singkatan umum untuk Transport Management System.',
   },
 ]
 
 /**
+ * `/freshpedia` — published entries only (staging+production). Never
+ * returns a request-status row; see getFreshpediaRequestEntries for those.
  * @returns {Promise<FreshpediaEntry[]>}
  */
-export async function getAllFreshpediaEntries({ signal, token } = {}) {
+export async function getFreshpediaEntries({ signal, token } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.get(
+    const { data } = await aiEngineApi.get(
       '/freshpedia',
       { signal, headers: authHeaders(token) },
     )
     return data
   }
   await mockDelay(500, 900, signal)
-  return MOCK_ENTRIES.map(toEntry)
+  return MOCK_ENTRIES.filter((entry) => entry.status !== 'request').map(toEntry)
 }
 
 /**
+ * `/freshpedia-request` — the submission queue. Always `status: "request"`.
+ * @returns {Promise<FreshpediaEntry[]>}
+ */
+export async function getFreshpediaRequestEntries({ signal, token } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await aiEngineApi.get(
+      '/freshpedia-request',
+      { signal, headers: authHeaders(token) },
+    )
+    return data
+  }
+  await mockDelay(500, 900, signal)
+  return MOCK_ENTRIES.filter((entry) => entry.status === 'request').map(toEntry)
+}
+
+/**
+ * Entries are always born in `/freshpedia-request` — contributors can
+ * never self-promote straight into the published collection.
+ *
  * @param {{ title: string, type: 'definition'|'document'|'alias', content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} input
- * @param {{ email: string, name: string, token?: string, 'freshpedia.request'?: boolean }} actor
+ * @param {{ id: string, token?: string, allowed_permissions?: string[] }} actor
  * @returns {Promise<FreshpediaEntry>}
  */
 export async function createFreshpediaEntry(input, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.post(
-      '/freshpedia',
+    const { data } = await aiEngineApi.post(
+      '/freshpedia-request',
       input,
       { signal, headers: authHeaders(actor?.token) },
     )
@@ -195,19 +243,20 @@ export async function createFreshpediaEntry(input, actor, { signal } = {}) {
 
   await mockDelay(500, 900, signal)
 
-  if (!actor?.['freshpedia.request']) {
+  if (!hasPermission(actor, 'freshpedia.request')) {
     throw new Error('You do not have permission to submit Freshpedia entries')
   }
 
+  const now = new Date().toISOString()
   const entry = {
-    id: makeId(),
+    id: crypto.randomUUID(),
     title: input.title,
     type: input.type,
-    // Always request on create — contributors can never self-promote.
     status: 'request',
-    updatedAt: new Date().toISOString(),
-    submittedBy: actor.name,
-    submittedByEmail: actor.email,
+    createdBy: actor.id,
+    createdAt: now,
+    updatedBy: actor.id,
+    updatedAt: now,
     content: input.type === 'definition' ? input.content ?? '' : undefined,
     fileName: input.type === 'document' ? input.fileName ?? '' : undefined,
     aliasTargetId: input.type === 'alias' ? input.aliasTargetId ?? null : undefined,
@@ -217,20 +266,38 @@ export async function createFreshpediaEntry(input, actor, { signal } = {}) {
   return toEntry(entry)
 }
 
+// Shared by updateFreshpediaEntry/updateFreshpediaRequestEntry below —
+// applies the editable fields and stamps updatedBy/updatedAt. `status`
+// never goes through here (see updateFreshpediaEntryStatus): both PATCH
+// endpoints reject it, they only ever touch content fields.
+function applyFieldUpdates(entry, updates, actor) {
+  if (updates.status !== undefined) {
+    throw new Error('status cannot be set directly — use updateFreshpediaEntryStatus')
+  }
+  if (updates.title !== undefined) entry.title = updates.title
+  if (updates.content !== undefined) entry.content = updates.content
+  if (updates.fileName !== undefined) entry.fileName = updates.fileName
+  if (updates.aliasTargetId !== undefined) entry.aliasTargetId = updates.aliasTargetId
+  if (updates.aliasPhrase !== undefined) entry.aliasPhrase = updates.aliasPhrase
+  entry.updatedBy = actor.id
+  entry.updatedAt = new Date().toISOString()
+}
+
 /**
- * Editable by anyone holding freshpedia.request while still pending, or by
- * anyone holding freshpedia.change_status at any status — not restricted
- * to the entry's own submitter, any contributor can edit any pending
- * entry.
+ * `PATCH /freshpedia/{id}` — published entries only (staging+production).
+ * 404s if `{id}` is actually a request-status entry — modeling the real
+ * two-collection boundary, not just a convenience split. Only
+ * freshpedia.change_status holders can edit a published entry; use
+ * updateFreshpediaRequestEntry for pending ones.
  *
  * @param {string} id
  * @param {{ title?: string, content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} updates
- * @param {{ email: string, token?: string, 'freshpedia.request'?: boolean, 'freshpedia.change_status'?: boolean }} actor
+ * @param {{ id: string, token?: string, allowed_permissions?: string[] }} actor
  * @returns {Promise<FreshpediaEntry>}
  */
 export async function updateFreshpediaEntry(id, updates, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.patch(
+    const { data } = await aiEngineApi.patch(
       `/freshpedia/${encodeURIComponent(id)}`,
       updates,
       { signal, headers: authHeaders(actor?.token) },
@@ -240,39 +307,68 @@ export async function updateFreshpediaEntry(id, updates, actor, { signal } = {})
 
   await mockDelay(500, 900, signal)
 
-  const entry = MOCK_ENTRIES.find((e) => e.id === id)
+  const entry = MOCK_ENTRIES.find((e) => e.id === id && e.status !== 'request')
   if (!entry) throw new Error('Entry not found')
 
-  const canChangeStatus = Boolean(actor?.['freshpedia.change_status'])
-  if (!canChangeStatus && !(actor?.['freshpedia.request'] && entry.status === 'request')) {
+  if (!hasPermission(actor, 'freshpedia.change_status')) {
     throw new Error('You do not have permission to edit this entry')
   }
-  if (updates.status !== undefined) {
-    throw new Error('status cannot be set directly — use updateFreshpediaEntryStatus')
-  }
 
-  if (updates.title !== undefined) entry.title = updates.title
-  if (updates.content !== undefined) entry.content = updates.content
-  if (updates.fileName !== undefined) entry.fileName = updates.fileName
-  if (updates.aliasTargetId !== undefined) entry.aliasTargetId = updates.aliasTargetId
-  if (updates.aliasPhrase !== undefined) entry.aliasPhrase = updates.aliasPhrase
-  entry.updatedAt = new Date().toISOString()
-
+  applyFieldUpdates(entry, updates, actor)
   return toEntry(entry)
 }
 
 /**
- * freshpedia.change_status-only status move: request→staging,
- * staging→production, or production→staging (demote).
+ * `PATCH /freshpedia-request/{id}` — pending entries only. 404s if `{id}`
+ * is actually a published entry (mirror-image of updateFreshpediaEntry's
+ * guard). Editable by anyone holding freshpedia.request (any contributor,
+ * not just the original submitter) or freshpedia.change_status.
+ *
+ * @param {string} id
+ * @param {{ title?: string, content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} updates
+ * @param {{ id: string, token?: string, allowed_permissions?: string[] }} actor
+ * @returns {Promise<FreshpediaEntry>}
+ */
+export async function updateFreshpediaRequestEntry(id, updates, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await aiEngineApi.patch(
+      `/freshpedia-request/${encodeURIComponent(id)}`,
+      updates,
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
+  }
+
+  await mockDelay(500, 900, signal)
+
+  const entry = MOCK_ENTRIES.find((e) => e.id === id && e.status === 'request')
+  if (!entry) throw new Error('Entry not found')
+
+  if (!hasPermission(actor, 'freshpedia.change_status') && !hasPermission(actor, 'freshpedia.request')) {
+    throw new Error('You do not have permission to edit this entry')
+  }
+
+  applyFieldUpdates(entry, updates, actor)
+  return toEntry(entry)
+}
+
+/**
+ * `POST /freshpedia/{id}/status` — freshpedia.change_status-only move
+ * between the two published tiers: staging→production or
+ * production→staging (demote). Promoting an entry *out of*
+ * `/freshpedia-request` is a different endpoint entirely
+ * (`POST /freshpedia-request/{id}/status`, ai-engine/FastAPI-docs-only,
+ * chat-interface never calls it — see this file's header comment and
+ * freshpedia-contract.md).
  *
  * @param {string} id
  * @param {'staging'|'production'} status
- * @param {{ token?: string, 'freshpedia.change_status'?: boolean }} actor
+ * @param {{ token?: string, allowed_permissions?: string[] }} actor
  * @returns {Promise<FreshpediaEntry>}
  */
 export async function updateFreshpediaEntryStatus(id, status, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.post(
+    const { data } = await aiEngineApi.post(
       `/freshpedia/${encodeURIComponent(id)}/status`,
       { status },
       { signal, headers: authHeaders(actor?.token) },
@@ -282,11 +378,11 @@ export async function updateFreshpediaEntryStatus(id, status, actor, { signal } 
 
   await mockDelay(500, 900, signal)
 
-  if (!actor?.['freshpedia.change_status']) {
+  if (!hasPermission(actor, 'freshpedia.change_status')) {
     throw new Error('You do not have permission to change entry status')
   }
 
-  const entry = MOCK_ENTRIES.find((e) => e.id === id)
+  const entry = MOCK_ENTRIES.find((e) => e.id === id && e.status !== 'request')
   if (!entry) throw new Error('Entry not found')
 
   if (!ALLOWED_TRANSITIONS[entry.status]?.includes(status)) {
@@ -294,6 +390,7 @@ export async function updateFreshpediaEntryStatus(id, status, actor, { signal } 
   }
 
   entry.status = status
+  entry.updatedBy = actor.id
   entry.updatedAt = new Date().toISOString()
   return toEntry(entry)
 }
