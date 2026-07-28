@@ -1,4 +1,4 @@
-// Matches GET/POST /config/roles and PATCH /config/roles/{name} in the
+// Matches GET/POST /roles and PATCH /roles/{name} in the
 // chat-gateway contract (auth-contract.md) — role catalog (list/add/rename)
 // plus scope assignment, the two responsibilities the contract's "Admin:
 // role & role scope management" section bundles into one resource. Mock
@@ -21,7 +21,7 @@ export async function getAllRoles(
   { signal, token }: AuthenticatedRequestOptions = {},
 ): Promise<RoleScope[]> {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.get<RoleScope[]>('/config/roles', {
+    const { data } = await gatewayApi.get<RoleScope[]>('/roles', {
       signal,
       headers: authHeaders(token),
     })
@@ -33,7 +33,7 @@ export async function getAllRoles(
 }
 
 // Creates a role with `allowed_scopes: []` (assigned afterward via
-// updateRoleScopes) — matches POST /config/roles's 201 response shape.
+// updateRoleScopes) — matches POST /roles's 201 response shape.
 export async function createRole(
   name: string,
   actor: TokenActor | null | undefined,
@@ -41,7 +41,7 @@ export async function createRole(
 ): Promise<RoleScope> {
   if (!USE_MOCK_API) {
     const { data } = await gatewayApi.post<RoleScope>(
-      '/config/roles',
+      '/roles',
       { name },
       { signal, headers: authHeaders(actor?.token) },
     )
@@ -69,7 +69,7 @@ export async function renameRole(
 ): Promise<RoleScope> {
   if (!USE_MOCK_API) {
     const { data } = await gatewayApi.patch<RoleScope>(
-      `/config/roles/${encodeURIComponent(oldName)}`,
+      `/roles/${encodeURIComponent(oldName)}`,
       { name: newName },
       { signal, headers: authHeaders(actor?.token) },
     )
@@ -90,7 +90,7 @@ export async function updateRoleScopes(
 ): Promise<RoleScope> {
   if (!USE_MOCK_API) {
     const { data } = await gatewayApi.patch<RoleScope>(
-      `/config/roles/${encodeURIComponent(name)}`,
+      `/roles/${encodeURIComponent(name)}`,
       { allowed_scopes: allowedScopes },
       { signal, headers: authHeaders(actor?.token) },
     )
