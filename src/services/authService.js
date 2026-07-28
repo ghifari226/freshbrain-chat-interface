@@ -205,7 +205,9 @@ function toSession(user) {
     role: user.role,
     allowed_scopes: resolveScopes(user.role),
     allowed_permissions: permissionFlagsToArray(shapeUserPermissions(user)),
-    token: 'mock-jwt-token',
+    // mock:<user_id> — cross-checked by ai-engine's verify_mock_token
+    // (auth.py), a temporary stand-in for chat-gateway's real signing.
+    token: `mock:${user.id}`,
   }
 }
 

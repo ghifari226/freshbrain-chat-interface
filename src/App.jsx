@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import Sidebar from './components/layout/Sidebar.jsx'
 import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
-import { sendMessage, generateTitle } from './services/apiClient.ts'
+import { sendMessage, sendFeedback, generateTitle } from './services/apiClient.ts'
 import { makeMockConversations } from './mocks/mockConversations.js'
 import { useTheme } from './hooks/useTheme.js'
 import { useTone } from './hooks/useTone.js'
@@ -88,6 +88,31 @@ function AuthenticatedApp({ language, setLanguage }) {
           : c,
       ),
     )
+
+    // Only submit complete feedback — never the intermediate "down clicked,
+    // reason not yet chosen" state, and never a cancel/toggle-off (feedback
+    // is an append-only log, toggling the UI off doesn't retract a row).
+    const isComplete = feedback?.rating === 'up' || (feedback?.rating === 'down' && feedback.reason)
+    if (!isComplete) return
+
+    const conversation = conversations.find((c) => c.id === conversationId)
+    const message = conversation?.messages.find((m) => m.id === messageId)
+    if (!conversation?.backendId || !message?.backendMessageId) return
+
+    sendFeedback({
+      message_id: message.backendMessageId,
+      conversation_id: conversation.backendId,
+      user_id: session?.id,
+      role: session?.role,
+      rating: feedback.rating,
+      reason: feedback.reason,
+      comment: feedback.comment,
+      token: session?.token,
+    }).catch((error) => {
+      // Best-effort — MessageFeedback.jsx has no error slot, a failed
+      // submission must never disrupt the chat UI.
+      console.error('Failed to submit feedback', error)
+    })
   }
 
   async function handleSend(text) {
@@ -138,7 +163,7 @@ function AuthenticatedApp({ language, setLanguage }) {
       const response = await sendMessage({
         message: text,
         conversation_id: backendConversationId,
-        id: session?.id,
+        user_id: session?.id,
         role: session?.role,
         allowed_scopes: session?.allowed_scopes,
         token: session?.token,
@@ -148,6 +173,7 @@ function AuthenticatedApp({ language, setLanguage }) {
         role: 'assistant',
         text: response.answer,
         createdAt: new Date().toISOString(),
+        backendMessageId: response.message_id,
       }
       setConversations((prev) =>
         prev.map((c) =>

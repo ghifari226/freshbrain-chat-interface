@@ -28,7 +28,7 @@ export interface ActorIdentity extends TokenActor {
 export interface ChatRequest {
   message: string
   conversation_id: string | null
-  id: string
+  user_id: string
   role: string
   allowed_scopes: string[]
   token?: string
@@ -38,6 +38,27 @@ export interface ChatRequest {
 export interface ChatResponse {
   answer: string
   conversation_id: string
+  message_id: string
+}
+
+// POST /feedback's request shape (auth-contract.md) — role is a snapshot at
+// submission time, same convention as ChatRequest.role. reason is required
+// when rating is 'down', enforced both client-side (MessageFeedback.jsx's
+// disabled submit button) and server-side.
+export interface FeedbackRequest {
+  message_id: string
+  conversation_id: string
+  user_id: string
+  role: string
+  rating: 'up' | 'down'
+  reason: string | null
+  comment: string | null
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface FeedbackResponse {
+  id: string
 }
 
 export interface LoginRequest {
