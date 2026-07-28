@@ -92,13 +92,25 @@ export interface RoleScope {
 
 export type MessageRole = 'user' | 'assistant'
 
+export type FeedbackRating = 'up' | 'down'
+
+export interface MessageFeedback {
+  rating: FeedbackRating
+  reason: string | null
+  comment: string | null
+}
+
 export interface ChatMessage {
   id: string
   role: MessageRole
   text: string
   createdAt: string
   isError?: boolean
-  feedback?: string
+  feedback?: MessageFeedback
+  // The message's own id as returned by POST /chat (main.py's ChatResponse) —
+  // distinct from `id` above, which is a local makeId() React key. This is
+  // what feedback submissions reference.
+  backendMessageId?: string
 }
 
 export interface Conversation {

@@ -1,12 +1,18 @@
-// ai-engine-only calls (POST /chat, /chat/title) — never chat-gateway, see
-// auth-contract.md's "Setiap request berikutnya" for the /chat wire shape
-// this mirrors (message/conversation_id/id/role/allowed_scopes, bearer
-// token). /chat/title has no contract doc yet — it's an ai-engine-side
-// convenience endpoint the frontend already calls, not yet written up in
-// freshbrain-agreement.
+// ai-engine-only calls (POST /chat, /chat/title, POST /feedback) — never
+// chat-gateway, see auth-contract.md's "Setiap request berikutnya" for the
+// /chat wire shape this mirrors (message/conversation_id/user_id/role/
+// allowed_scopes, bearer token). /chat/title has no contract doc yet — it's
+// an ai-engine-side convenience endpoint the frontend already calls, not yet
+// written up in freshbrain-agreement.
 import { USE_MOCK_API } from '../config/appConfig.js'
 import axios from 'axios'
-import type { ChatRequest, ChatResponse, RequestOptions } from '../types/api.ts'
+import type {
+  ChatRequest,
+  ChatResponse,
+  FeedbackRequest,
+  FeedbackResponse,
+  RequestOptions,
+} from '../types/api.ts'
 import { aiEngineApi, authHeaders } from './api.ts'
 import { mockDelay } from './mockDelay.ts'
 
@@ -22,7 +28,7 @@ function makeId() {
 interface InternalChatRequest {
   message: string
   conversationId: string | null
-  id: string
+  userId: string
   role: string
   allowedScopes: string[]
   token?: string
@@ -32,7 +38,7 @@ interface InternalChatRequest {
 async function postChat({
   message,
   conversationId,
-  id,
+  userId,
   role,
   allowedScopes,
   token,
@@ -43,7 +49,7 @@ async function postChat({
     {
       message,
       conversation_id: conversationId ?? null,
-      id,
+      user_id: userId,
       role,
       allowed_scopes: allowedScopes,
     },
@@ -55,7 +61,7 @@ async function postChat({
 export async function sendMessage({
   message,
   conversation_id,
-  id,
+  user_id,
   role,
   allowed_scopes,
   token,
@@ -66,13 +72,14 @@ export async function sendMessage({
     return {
       answer: `You said: "${message}" (Tidak dapat terhubung ke ai-engine)`,
       conversation_id: conversation_id ?? makeId(),
+      message_id: makeId(),
     }
   }
 
   const request = {
     message,
     conversationId: conversation_id,
-    id,
+    userId: user_id,
     role,
     allowedScopes: allowed_scopes,
     token,
@@ -94,6 +101,42 @@ export async function sendMessage({
     }
     throw error
   }
+}
+
+// Fire-and-forget from the caller's perspective: App.jsx's
+// handleMessageFeedback catches and logs rather than surfacing errors, since
+// MessageFeedback.jsx has no error slot — a failed submission must never
+// disrupt the chat UI.
+export async function sendFeedback({
+  message_id,
+  conversation_id,
+  user_id,
+  role,
+  rating,
+  reason,
+  comment,
+  token,
+  signal,
+}: FeedbackRequest): Promise<FeedbackResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(200, 500, signal)
+    return { id: makeId() }
+  }
+
+  const { data } = await aiEngineApi.post<FeedbackResponse>(
+    '/feedback',
+    {
+      message_id,
+      conversation_id,
+      user_id,
+      role,
+      rating,
+      reason,
+      comment,
+    },
+    { signal, headers: authHeaders(token) },
+  )
+  return data
 }
 
 // No auth-contract.md entry for this one — see the header note above.
