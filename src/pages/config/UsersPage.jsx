@@ -36,6 +36,7 @@ import {
 } from '../../config/permissions.js'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
+import GatewayJsonPreview from '../../components/devdoc/GatewayJsonPreview.jsx'
 
 // Superadmin is ROLES[0] but is never assignable through this form (see
 // roleOptions below) — defaulting to it here would silently create a
@@ -99,6 +100,13 @@ function formatPhoneForDisplay(phone) {
 function significantPhoneDigits(localPart) {
   const digits = digitsOnly(localPart)
   return digits.startsWith('0') ? digits.slice(1) : digits
+}
+
+// The exact transform handleSubmitUserForm applies before sending `phone`
+// to createUser/updateUser — factored out so the dev-doc live payload
+// preview can never drift from what's actually submitted.
+function wirePhone(localPart) {
+  return localPart ? `62${significantPhoneDigits(localPart)}` : ''
 }
 
 const MIN_PHONE_DIGITS = 9
@@ -226,6 +234,26 @@ export default function UsersPage() {
   const isPermissionsDialogDirty = permissionsDialogUser
     ? !permissionsEqual(dialogPermissions, flagsForUser(permissionsDialogUser))
     : false
+
+  // dev-doc only — GET /users' 200 response (auth-contract.md). `users` is
+  // already exactly that shape (it's what getAllUsers returned), no
+  // reshaping needed.
+  const gatewayUsersResponse = users
+
+  // dev-doc only — POST /users' request body when adding, or PATCH
+  // /users/{id}'s when editing an existing row (auth-contract.md) — the
+  // Add/Edit dialog shares one form for both. wirePhone matches
+  // handleSubmitUserForm's actual transform exactly, so this can never
+  // silently drift from what's really sent.
+  const gatewayUserFormPayload =
+    userFormTarget === 'new'
+      ? { name: form.name.trim(), email: form.email.trim(), phone: wirePhone(form.phone), role: form.role }
+      : { name: form.name.trim(), phone: wirePhone(form.phone), role: form.role }
+
+  // dev-doc only — PATCH /users/{id}'s request body for the Shield
+  // dialog's save (auth-contract.md) — always a full allowed_permissions
+  // replace, same as handleSavePermissions actually sends.
+  const gatewayPermissionsPatchPayload = { allowed_permissions: permissionFlagsToArray(dialogPermissions) }
 
   function isSuperadminLockedField(field) {
     return permissionsDialogUser?.role === 'Superadmin' && SUPERADMIN_LOCKED_PERMISSIONS.includes(field)
@@ -360,7 +388,7 @@ export default function UsersPage() {
           {
             name: form.name.trim(),
             email: form.email.trim(),
-            phone: form.phone ? `62${significantPhoneDigits(form.phone)}` : '',
+            phone: wirePhone(form.phone),
             role: form.role,
           },
           session,
@@ -372,7 +400,7 @@ export default function UsersPage() {
         const id = userFormTarget
         const updated = await updateUser(
           id,
-          { name: form.name.trim(), phone: form.phone ? `62${significantPhoneDigits(form.phone)}` : '', role: form.role },
+          { name: form.name.trim(), phone: wirePhone(form.phone), role: form.role },
           actorForUpdate,
         )
         setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)))
@@ -594,6 +622,10 @@ export default function UsersPage() {
         />
       )}
 
+      <div className="config-devdoc">
+        <GatewayJsonPreview title="GET /users — Response (live)" data={gatewayUsersResponse} />
+      </div>
+
       <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog} fullWidth maxWidth="sm">
         <DialogTitle>{isEditMode ? editingUser?.name : t('config.addUser')}</DialogTitle>
         <DialogContent>
@@ -695,6 +727,10 @@ export default function UsersPage() {
                 {userFormTarget === 'new' ? t('auth.' + formError) : formError}
               </span>
             )}
+            <GatewayJsonPreview
+              title={userFormTarget === 'new' ? 'POST /users — Payload (live)' : `PATCH /users/${userFormTarget} — Payload (live)`}
+              data={gatewayUserFormPayload}
+            />
           </form>
         </DialogContent>
         <DialogActions>
@@ -709,6 +745,10 @@ export default function UsersPage() {
         <DialogTitle>{t('config.deleteUser')}</DialogTitle>
         <DialogContent>
           <p>{t('config.deleteUserConfirm').replace('%s', deleteTarget?.name ?? '')}</p>
+          {/* dev-doc only — DELETE has no request body, so just the endpoint+id, no JSON. */}
+          <div className="gateway-json-preview">
+            <div className="gateway-json-preview__title">{`DELETE /users/${deleteTarget?.id ?? '{id}'}`}</div>
+          </div>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteTarget(null)}>{t('config.cancelEdit')}</Button>
@@ -743,6 +783,10 @@ export default function UsersPage() {
               t={t}
             />
           </div>
+          <GatewayJsonPreview
+            title={`PATCH /users/${permissionsDialogUserId ?? '{id}'} — Payload (live)`}
+            data={gatewayPermissionsPatchPayload}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={closePermissionsDialog}>{t('config.cancelEdit')}</Button>
