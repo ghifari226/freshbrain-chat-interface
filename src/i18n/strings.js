@@ -119,7 +119,8 @@ export const strings = {
     rolesTitle: { id: 'Cakupan peran', en: 'Role Scopes' },
     addRole: { id: 'Tambah peran', en: 'Add role' },
     editRole: { id: 'Ubah nama peran', en: 'Rename role' },
-    roleNamePlaceholder: { id: 'contoh: Regional Manager', en: 'e.g. Regional Manager' },
+    roleNameLabel: { id: 'Nama peran', en: 'Role name' },
+    roleNamePlaceholder: { id: 'Nama peran', en: 'Role name' },
     roleNameTaken: { id: 'Peran dengan nama ini sudah ada', en: 'A role with this name already exists' },
     roleLockedNotice: {
       id: 'Peran ini dibutuhkan sistem dan tidak dapat diubah nama.',

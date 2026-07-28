@@ -553,7 +553,7 @@ export default function RolesPage({ session }) {
           <form id="role-form" className="auth-form config-add-form" onSubmit={handleAddRole}>
             <div className="form-field">
               <label className="form-field__label" htmlFor="role-name">
-                {t('config.nameLabel')}
+                {t('config.roleNameLabel')}
               </label>
               <input
                 id="role-name"
