@@ -16,8 +16,9 @@ import { canAccessToolCatalog, hasPermission } from '../config/permissions.js'
 import { getScopeCatalog } from '../config/scopeCatalog.js'
 import {
   createToolCatalogEntry,
-  getAllToolCatalogEntries,
-  updateToolCatalogEntry,
+  getToolCatalogEntries,
+  getToolCatalogRequestEntries,
+  updateToolCatalogRequestEntry,
 } from '../services/toolCatalog.js'
 import { errorMessage, isCanceled } from '../services/api.ts'
 
@@ -46,15 +47,24 @@ export default function ToolCatalogPage() {
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Two collections, one list — same pattern as FreshpediaPage.jsx:
+  // /tool-catalog (published) and /tool-catalog-request (pending) are
+  // fetched separately and merged into one `entries` array. The request
+  // fetch only fires when canViewRequest is already true, same gate the
+  // "Request" chip and Add Entry button use.
   useEffect(() => {
     const controller = new AbortController()
-    getAllToolCatalogEntries({ signal: controller.signal, token: session?.token })
-      .then(setEntries)
+    const requests = [getToolCatalogEntries({ signal: controller.signal, token: session?.token })]
+    if (canViewRequest) {
+      requests.push(getToolCatalogRequestEntries({ signal: controller.signal, token: session?.token }))
+    }
+    Promise.all(requests)
+      .then((results) => setEntries(results.flat()))
       .catch((error) => {
         if (!isCanceled(error)) setLoadError(errorMessage(error))
       })
     return () => controller.abort()
-  }, [session?.token])
+  }, [session?.token, canViewRequest])
 
   useEffect(() => {
     let cancelled = false
@@ -129,7 +139,11 @@ export default function ToolCatalogPage() {
         const created = await createToolCatalogEntry(form, session)
         setEntries((current) => [...current, created])
       } else {
-        const updated = await updateToolCatalogEntry(entryFormTarget, form, session)
+        // Only ever a request-status entry — openEditEntryDialog is only
+        // reachable from the Request view (ToolCatalogTable.jsx's
+        // isRequestView guard on the edit button), unlike Freshpedia
+        // there's no published-entry edit path to branch to.
+        const updated = await updateToolCatalogRequestEntry(entryFormTarget, form, session)
         setEntries((current) =>
           current.map((entry) => (entry.id === entryFormTarget ? updated : entry)),
         )

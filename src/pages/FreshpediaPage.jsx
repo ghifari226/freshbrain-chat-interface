@@ -16,9 +16,11 @@ import { useT } from '../hooks/useT.js'
 import { canAccessFreshpedia, canChangeFreshpediaStatus, hasPermission } from '../config/permissions.js'
 import {
   createFreshpediaEntry,
-  getAllFreshpediaEntries,
+  getFreshpediaEntries,
+  getFreshpediaRequestEntries,
   updateFreshpediaEntryStatus,
   updateFreshpediaEntry,
+  updateFreshpediaRequestEntry,
 } from '../services/freshpedia.js'
 import { errorMessage, isCanceled } from '../services/api.ts'
 
@@ -48,11 +50,23 @@ export default function FreshpediaPage({ language }) {
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Two collections, one list: /freshpedia (published) and
+  // /freshpedia-request (pending) are fetched separately and merged into
+  // one `entries` array — everything downstream (visibleEntries, the
+  // Production/Staging/Request chips) already treats entries uniformly by
+  // `.status` regardless of which endpoint they came from. The request
+  // fetch only fires when canViewRequest is already true, same gate the
+  // "Request" chip and Add Entry button use — matches the access the old
+  // single-endpoint fetch effectively had.
   useEffect(() => {
     const controller = new AbortController()
-    getAllFreshpediaEntries({ signal: controller.signal, token: session?.token })
-      .then((data) => {
-        setEntries(data)
+    const requests = [getFreshpediaEntries({ signal: controller.signal, token: session?.token })]
+    if (canViewRequest) {
+      requests.push(getFreshpediaRequestEntries({ signal: controller.signal, token: session?.token }))
+    }
+    Promise.all(requests)
+      .then((results) => {
+        setEntries(results.flat())
         setEntriesLoaded(true)
       })
       .catch((error) => {
@@ -62,7 +76,7 @@ export default function FreshpediaPage({ language }) {
         }
       })
     return () => controller.abort()
-  }, [session?.token])
+  }, [session?.token, canViewRequest])
 
   const visibleEntries = useMemo(() => {
     const locale = language === 'id' ? 'id' : 'en'
@@ -122,7 +136,12 @@ export default function FreshpediaPage({ language }) {
         const created = await createFreshpediaEntry(form, session)
         setEntries((current) => [...current, created])
       } else {
-        const updated = await updateFreshpediaEntry(entryFormTarget, form, session)
+        // Which PATCH endpoint depends on which collection the entry is
+        // currently in — a request-status entry lives in
+        // /freshpedia-request, everything else in /freshpedia.
+        const target = entries.find((entry) => entry.id === entryFormTarget)
+        const update = target?.status === 'request' ? updateFreshpediaRequestEntry : updateFreshpediaEntry
+        const updated = await update(entryFormTarget, form, session)
         setEntries((current) =>
           current.map((entry) => (entry.id === entryFormTarget ? updated : entry)),
         )
