@@ -177,8 +177,8 @@ export default function UsersPage() {
   const canDelete = hasPermission(session, 'user.delete')
   const canAssign = canAssignPermissions(session)
   const actorForUpdate = useMemo(
-    () => ({ email: session?.email, token: session?.token }),
-    [session?.email, session?.token],
+    () => ({ id: session?.id, token: session?.token }),
+    [session?.id, session?.token],
   )
   // Superadmin is visible in the table (existing Superadmin users show their
   // real role) but never assignable through this picker — bootstrap-locked,
@@ -198,19 +198,19 @@ export default function UsersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetLink, setResetLink] = useState(null)
   const [isCopied, setIsCopied] = useState(false)
-  // Add and Edit share one dialog/form: null (closed), 'new', or the email
+  // Add and Edit share one dialog/form: null (closed), 'new', or the id
   // of the row being edited — so both flows are the same UI/UX, not two
   // different code paths that could drift apart.
   const [userFormTarget, setUserFormTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
-  const [permissionsDialogEmail, setPermissionsDialogEmail] = useState(null)
+  const [permissionsDialogUserId, setPermissionsDialogUserId] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortDirection, setSortDirection] = useState('asc')
   const [page, setPage] = useState(0)
   // Empty set = no role filter applied (show everyone). Chips are additive
   // (OR within roles), combined with searchQuery as AND.
   const [selectedRoles, setSelectedRoles] = useState(new Set())
-  // Draft permission edits, keyed by email — toggling a checkbox only ever
+  // Draft permission edits, keyed by user id — toggling a checkbox only ever
   // touches this, never the API. The upload/cancel icons inside the Shield
   // dialog's title (shown only while dirty) are the only things that either
   // commit this via updateUser or discard it — closing the dialog any other
@@ -218,11 +218,11 @@ export default function UsersPage() {
   // a silently-pending edit left behind once the dialog isn't open.
   const [pendingPermissions, setPendingPermissions] = useState({})
   const isEditMode = Boolean(userFormTarget) && userFormTarget !== 'new'
-  const editingUser = isEditMode ? users.find((u) => u.email === userFormTarget) : null
+  const editingUser = isEditMode ? users.find((u) => u.id === userFormTarget) : null
   // Derived from `users`, not a snapshot, so the dialog's title/base data is
   // never stale.
-  const permissionsDialogUser = users.find((u) => u.email === permissionsDialogEmail) ?? null
-  const dialogPermissions = pendingPermissions[permissionsDialogEmail] ?? flagsForUser(permissionsDialogUser)
+  const permissionsDialogUser = users.find((u) => u.id === permissionsDialogUserId) ?? null
+  const dialogPermissions = pendingPermissions[permissionsDialogUserId] ?? flagsForUser(permissionsDialogUser)
   const isPermissionsDialogDirty = permissionsDialogUser
     ? !permissionsEqual(dialogPermissions, flagsForUser(permissionsDialogUser))
     : false
@@ -237,7 +237,7 @@ export default function UsersPage() {
   // the dialog can't even open on someone else without user.assign_permissions)
   // anyone else's.
   function isSelfEscalationBlocked(field) {
-    return permissionsDialogEmail === session?.email && !hasPermission(session, field)
+    return permissionsDialogUserId === session?.id && !hasPermission(session, field)
   }
 
   // Built from the actual data rather than ROLES — every MOCK_USERS role
@@ -330,7 +330,7 @@ export default function UsersPage() {
     setForm({ name: row.name, email: row.email, phone: localPhoneDigitsFromStored(row.phone), role: row.role })
     setFormError('')
     setFieldErrors({})
-    setUserFormTarget(row.email)
+    setUserFormTarget(row.id)
   }
 
   function closeUserFormDialog() {
@@ -369,18 +369,18 @@ export default function UsersPage() {
         setResetLink(`/reset/${resetToken}`)
         setIsCopied(false)
       } else {
-        const email = userFormTarget
+        const id = userFormTarget
         const updated = await updateUser(
-          email,
+          id,
           { name: form.name.trim(), phone: form.phone ? `62${significantPhoneDigits(form.phone)}` : '', role: form.role },
           actorForUpdate,
         )
-        setUsers((prev) => prev.map((u) => (u.email === email ? updated : u)))
+        setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)))
         // Only `name` is safe to patch live here — `updated` (from
         // toDirectoryEntry) doesn't carry allowed_scopes, so patching `role`
         // without it would leave the session's role and allowed_scopes
         // pointing at different roles until the next login.
-        if (email === session?.email) updateSession({ name: updated.name })
+        if (id === session?.id) updateSession({ name: updated.name })
       }
       setForm(EMPTY_FORM)
       setUserFormTarget(null)
@@ -404,32 +404,32 @@ export default function UsersPage() {
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return
-    await deleteUser(deleteTarget.email, actorForUpdate)
-    setUsers((prev) => prev.filter((u) => u.email !== deleteTarget.email))
+    await deleteUser(deleteTarget.id, actorForUpdate)
+    setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id))
     setDeleteTarget(null)
   }
 
-  function handleTogglePermission(email, field) {
+  function handleTogglePermission(userId, field) {
     setPendingPermissions((prev) => {
-      const user = users.find((u) => u.email === email)
-      const current = prev[email] ?? flagsForUser(user)
-      return { ...prev, [email]: { ...current, [field]: !current[field] } }
+      const user = users.find((u) => u.id === userId)
+      const current = prev[userId] ?? flagsForUser(user)
+      return { ...prev, [userId]: { ...current, [field]: !current[field] } }
     })
   }
 
-  function handleToggleAllPermissions(email, fields, nextValue) {
+  function handleToggleAllPermissions(userId, fields, nextValue) {
     setPendingPermissions((prev) => {
-      const user = users.find((u) => u.email === email)
-      const current = prev[email] ?? flagsForUser(user)
+      const user = users.find((u) => u.id === userId)
+      const current = prev[userId] ?? flagsForUser(user)
       const next = { ...current }
       for (const field of fields) next[field] = nextValue
-      return { ...prev, [email]: next }
+      return { ...prev, [userId]: next }
     })
   }
 
-  function discardPendingPermissions(email) {
+  function discardPendingPermissions(userId) {
     setPendingPermissions((prev) => {
-      const { [email]: _discard, ...rest } = prev
+      const { [userId]: _discard, ...rest } = prev
       return rest
     })
   }
@@ -441,20 +441,20 @@ export default function UsersPage() {
   // dialog's complete draft, not just the fields that changed — the diffing
   // now happens server-side (mock: authService.js's updateUser) against the
   // last-synced row.
-  async function handleSavePermissions(email) {
-    const next = pendingPermissions[email]
+  async function handleSavePermissions(userId) {
+    const next = pendingPermissions[userId]
     if (!next) return
-    const updated = await updateUser(email, { allowed_permissions: permissionFlagsToArray(next) }, actorForUpdate)
-    setUsers((prev) => prev.map((u) => (u.email === email ? updated : u)))
-    if (email === session?.email) {
+    const updated = await updateUser(userId, { allowed_permissions: permissionFlagsToArray(next) }, actorForUpdate)
+    setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)))
+    if (userId === session?.id) {
       updateSession({ allowed_permissions: updated.allowed_permissions })
     }
-    discardPendingPermissions(email)
+    discardPendingPermissions(userId)
   }
 
   function closePermissionsDialog() {
-    if (permissionsDialogEmail) discardPendingPermissions(permissionsDialogEmail)
-    setPermissionsDialogEmail(null)
+    if (permissionsDialogUserId) discardPendingPermissions(permissionsDialogUserId)
+    setPermissionsDialogUserId(null)
   }
 
   return (
@@ -540,7 +540,7 @@ export default function UsersPage() {
           </TableHead>
           <TableBody>
             {visibleUsers.map((row) => (
-              <TableRow key={row.email} hover>
+              <TableRow key={row.id} hover>
                 {(canAssign || canEdit || canDelete) && (
                   <TableCell className="data-table__actions-cell">
                     <div className="data-table__actions">
@@ -553,7 +553,7 @@ export default function UsersPage() {
                       )}
                       {canAssign && (
                         <Tooltip title={t('permissions.sectionLabel')}>
-                          <IconButton size="small" onClick={() => setPermissionsDialogEmail(row.email)}>
+                          <IconButton size="small" onClick={() => setPermissionsDialogUserId(row.id)}>
                             <ShieldCheck className="table-action-icon" />
                           </IconButton>
                         </Tooltip>
@@ -563,7 +563,7 @@ export default function UsersPage() {
                           <span>
                             <IconButton
                               size="small"
-                              disabled={row.email === session?.email}
+                              disabled={row.id === session?.id}
                               onClick={() => setDeleteTarget(row)}
                             >
                               <Trash2 className="table-action-icon icon-button--danger" />
@@ -728,8 +728,8 @@ export default function UsersPage() {
               dialogPermissions={dialogPermissions}
               isFieldLocked={isSuperadminLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
-              onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
-              onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogEmail, fields, next)}
+              onToggle={(field) => handleTogglePermission(permissionsDialogUserId, field)}
+              onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogUserId, fields, next)}
               t={t}
             />
             <PermissionCheckboxGroup
@@ -738,8 +738,8 @@ export default function UsersPage() {
               dialogPermissions={dialogPermissions}
               isFieldLocked={isSuperadminLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
-              onToggle={(field) => handleTogglePermission(permissionsDialogEmail, field)}
-              onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogEmail, fields, next)}
+              onToggle={(field) => handleTogglePermission(permissionsDialogUserId, field)}
+              onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogUserId, fields, next)}
               t={t}
             />
           </div>
@@ -750,8 +750,8 @@ export default function UsersPage() {
             variant="contained"
             disabled={!isPermissionsDialogDirty}
             onClick={async () => {
-              await handleSavePermissions(permissionsDialogEmail)
-              setPermissionsDialogEmail(null)
+              await handleSavePermissions(permissionsDialogUserId)
+              setPermissionsDialogUserId(null)
             }}
           >
             {t('config.saveUser')}

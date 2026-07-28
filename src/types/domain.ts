@@ -72,9 +72,11 @@ export interface ToolCatalogEntry {
   exampleQuestions: string[]
 }
 
-// GET/PATCH /config/roles' response shape (auth-contract.md) — one row of
-// the role catalog, name plus its resolved Family 1 scope list.
+// GET/PATCH /roles' response shape (auth-contract.md) — one row of
+// the role catalog: id (PATCH /roles/{id}'s path identifier, not name —
+// name is the field rename edits), plus its resolved Family 1 scope list.
 export interface RoleScope {
+  id: string
   name: string
   allowed_scopes: string[]
 }

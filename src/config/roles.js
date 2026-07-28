@@ -1,5 +1,5 @@
 // Role metadata shared by auth (default scopes on login/register) and the
-// /config/roles admin view. Single source of truth so the two don't drift.
+// /roles admin view. Single source of truth so the two don't drift.
 
 // Renamed 2026-07-24: CEO -> Superadmin (now also the bootstrap-locked
 // role, see permissions.js's SUPERADMIN_LOCKED_PERMISSIONS), Ops Manager ->
@@ -31,6 +31,31 @@ export const ROLE_SCOPES = {
   'Human Resource': [],
 }
 
+// roles.id (roles.md's `CREATE TABLE roles`) — the `PATCH /roles/{id}`
+// path identifier (normalized 2026-07-28, see auth-contract.md; endpoint
+// previously used `{name}`, unsafe since `name` is exactly the field
+// rename edits). Name-keyed, re-keyed on rename same as ROLE_SCOPES (see
+// renameRoleInCatalog) — the id VALUE survives a rename even though this
+// map's key doesn't. Seed rows get fixed literal ids (stable across
+// HMR/reload, unlike crypto.randomUUID()); addRoleToCatalog generates a
+// fresh one for genuinely new roles.
+export const ROLE_IDS = {
+  Superadmin: 'a3f1c2d4-0000-4a11-8b11-000000000001',
+  'Logistic Manager': 'a3f1c2d4-0000-4a11-8b11-000000000002',
+  Finance: 'a3f1c2d4-0000-4a11-8b11-000000000003',
+  'Client Service Management': 'a3f1c2d4-0000-4a11-8b11-000000000004',
+  Technology: 'a3f1c2d4-0000-4a11-8b11-000000000005',
+  'Human Resource': 'a3f1c2d4-0000-4a11-8b11-000000000006',
+}
+
+/**
+ * @param {string} id
+ * @returns {string | undefined}
+ */
+export function roleNameForId(id) {
+  return Object.entries(ROLE_IDS).find(([, roleId]) => roleId === id)?.[0]
+}
+
 // Only Superadmin has hardcoded meaning left (permanent "*" scope plus the
 // bootstrap-locked permissions in permissions.js) — the Roles admin page
 // can't be allowed to rename it, or those guarantees stop meaning
@@ -43,12 +68,9 @@ export const ROLE_SCOPES = {
 export const LOCKED_ROLES = ['Superadmin']
 
 /**
- * Role add/rename are UI-only for now — there's no `POST /config/roles`
- * in freshbrain-agreement's auth-contract.md (which explicitly documents
- * the role list as a fixed set). This mutates the shared ROLES/
- * ROLE_SCOPES objects in place, so every existing consumer (login's
- * resolveScopes, the Users role picker, RolesPage) sees the change
- * immediately without any refetch plumbing.
+ * Mutates the shared ROLES/ROLE_SCOPES/ROLE_IDS objects in place, so every
+ * existing consumer (login's resolveScopes, the Users role picker,
+ * RolesPage) sees the change immediately without any refetch plumbing.
  *
  * @param {string} name
  */
@@ -57,6 +79,7 @@ export function addRoleToCatalog(name) {
   if (!trimmed || ROLES.includes(trimmed)) return
   ROLES.push(trimmed)
   ROLE_SCOPES[trimmed] = []
+  ROLE_IDS[trimmed] = crypto.randomUUID()
 }
 
 /**
@@ -85,13 +108,16 @@ export function renameRoleInCatalog(oldName, newName) {
   ROLES[index] = trimmed
   ROLE_SCOPES[trimmed] = ROLE_SCOPES[oldName] ?? []
   delete ROLE_SCOPES[oldName]
+  ROLE_IDS[trimmed] = ROLE_IDS[oldName] ?? crypto.randomUUID()
+  delete ROLE_IDS[oldName]
 }
 
 /**
- * @returns {{ name: string, allowedScopes: string[], locked: boolean }[]}
+ * @returns {{ id: string, name: string, allowedScopes: string[], locked: boolean }[]}
  */
 export function getRoleCatalog() {
   return ROLES.map((name) => ({
+    id: ROLE_IDS[name],
     name,
     allowedScopes: ROLE_SCOPES[name] ?? [],
     locked: LOCKED_ROLES.includes(name),
