@@ -16,10 +16,6 @@ import type {
 import { aiEngineApi, authHeaders } from './api.ts'
 import { mockDelay } from './mockDelay.ts'
 
-function makeId() {
-  return Math.random().toString(36).slice(2, 10)
-}
-
 // Internal helper only — camelCase params here, translated to the
 // contract's snake_case body just before the request goes out. sendMessage
 // (below) is the actual exported surface and takes snake_case params
@@ -71,8 +67,8 @@ export async function sendMessage({
     await mockDelay(900, 1500, signal)
     return {
       answer: `You said: "${message}" (Tidak dapat terhubung ke ai-engine)`,
-      conversation_id: conversation_id ?? makeId(),
-      message_id: makeId(),
+      conversation_id: conversation_id ?? crypto.randomUUID(),
+      message_id: crypto.randomUUID(),
     }
   }
 
@@ -120,7 +116,7 @@ export async function sendFeedback({
 }: FeedbackRequest): Promise<FeedbackResponse> {
   if (USE_MOCK_API) {
     await mockDelay(200, 500, signal)
-    return { id: makeId() }
+    return { id: crypto.randomUUID() }
   }
 
   const { data } = await aiEngineApi.post<FeedbackResponse>(

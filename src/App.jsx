@@ -20,10 +20,6 @@ const ConfigSection = lazy(() => import('./pages/config/ConfigSection.jsx'))
 const FreshpediaPage = lazy(() => import('./pages/FreshpediaPage.jsx'))
 const ToolCatalogPage = lazy(() => import('./pages/ToolCatalogPage.jsx'))
 
-function makeId() {
-  return Math.random().toString(36).slice(2, 10)
-}
-
 function AuthenticatedApp({ language, setLanguage }) {
   const { pathname: path } = useLocation()
   const navigate = useNavigate()
@@ -116,7 +112,7 @@ function AuthenticatedApp({ language, setLanguage }) {
   }
 
   async function handleSend(text) {
-    const userMessage = { id: makeId(), role: 'user', text, createdAt: new Date().toISOString() }
+    const userMessage = { id: crypto.randomUUID(), role: 'user', text, createdAt: new Date().toISOString() }
     const isFirstMessage = !activeConversation || activeConversation.messages.length === 0
     let conversationId = activeConversation?.id
     // The backend only assigns a real conversation id once it has persisted
@@ -131,7 +127,7 @@ function AuthenticatedApp({ language, setLanguage }) {
         ),
       )
     } else {
-      conversationId = makeId()
+      conversationId = crypto.randomUUID()
       setConversations((prev) => [
         {
           id: conversationId,
@@ -169,7 +165,7 @@ function AuthenticatedApp({ language, setLanguage }) {
         token: session?.token,
       })
       const assistantMessage = {
-        id: makeId(),
+        id: crypto.randomUUID(),
         role: 'assistant',
         text: response.answer,
         createdAt: new Date().toISOString(),
@@ -184,7 +180,7 @@ function AuthenticatedApp({ language, setLanguage }) {
       )
     } catch (error) {
       const errorMessage = {
-        id: makeId(),
+        id: crypto.randomUUID(),
         role: 'assistant',
         text: error.message || 'Something went wrong. Please try again.',
         isError: true,
