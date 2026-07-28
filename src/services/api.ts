@@ -1,10 +1,11 @@
 // Shared low-level Axios plumbing only — no domain logic lives here. Every
-// services/*.js file imports aiApi/gatewayApi/authHeaders from here instead
-// of constructing its own client, so base URL/timeout/auth-header shape stay
-// in one place. Domain calls (chat, Freshpedia, Tool Catalog, auth/users/
-// roles) each live in their own service file and branch on
-// config/appConfig.js's USE_MOCK_API themselves — this file doesn't know or
-// care whether mocking is on.
+// services/*.js file imports aiEngineApi/gatewayApi/authHeaders from here
+// instead of constructing its own client, so base URL/timeout/auth-header
+// shape stay in one place. Domain calls (chat, Freshpedia, Tool Catalog —
+// all three ai-engine's domain now, see appConfig.js — vs. auth/users/
+// roles/permissions on chat-gateway) each live in their own service file
+// and branch on config/appConfig.js's USE_MOCK_API themselves — this file
+// doesn't know or care whether mocking is on.
 import axios, { type AxiosError } from 'axios'
 import {
   AI_ENGINE_BASE_URL,
@@ -12,7 +13,7 @@ import {
   CHAT_GATEWAY_BASE_URL,
 } from '../config/appConfig.js'
 
-export const aiApi = axios.create({
+export const aiEngineApi = axios.create({
   baseURL: AI_ENGINE_BASE_URL,
   timeout: API_TIMEOUT_MS,
 })
@@ -24,15 +25,16 @@ export const gatewayApi = axios.create({
 
 let onUnauthorized: (() => void) | null = null
 
-// Registers the single global callback fired whenever aiApi or gatewayApi
-// gets back a 401 — AuthProvider wires this to a full logout (clear session,
-// navigate to /) so a revoked/expired token bounces the user to the login
-// page immediately instead of leaving them on a page that just keeps
-// silently failing. Deliberately just "force logout on 401", nothing about
-// proactive expiry/refresh — auth-contract.md hasn't settled JWT lifetime or
-// revocation timing yet, so there's nothing to build against there. Never
-// fires under USE_MOCK_API: mock calls reject with plain Error()s, not a
-// real Axios response, so they never match the 401 check below.
+// Registers the single global callback fired whenever aiEngineApi or
+// gatewayApi gets back a 401 — AuthProvider wires this to a full logout
+// (clear session, navigate to /) so a revoked/expired token bounces the
+// user to the login page immediately instead of leaving them on a page
+// that just keeps silently failing. Deliberately just "force logout on
+// 401", nothing about proactive expiry/refresh — auth-contract.md hasn't
+// settled JWT lifetime or revocation timing yet, so there's nothing to
+// build against there. Never fires under USE_MOCK_API: mock calls reject
+// with plain Error()s, not a real Axios response, so they never match the
+// 401 check below.
 export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler
 }
@@ -44,7 +46,7 @@ function handleResponseError(error: AxiosError) {
   return Promise.reject(error)
 }
 
-aiApi.interceptors.response.use((response) => response, handleResponseError)
+aiEngineApi.interceptors.response.use((response) => response, handleResponseError)
 gatewayApi.interceptors.response.use((response) => response, handleResponseError)
 
 export function authHeaders(token?: string) {
