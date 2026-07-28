@@ -17,6 +17,7 @@ import { hasPermission } from '../../config/permissions.js'
 import { createRole, getAllRoles, renameRole, updateRoleScopes } from '../../services/roleScopes.ts'
 import { errorMessage, isCanceled } from '../../services/api.ts'
 import { useT } from '../../hooks/useT.js'
+import GatewayJsonPreview from '../../components/devdoc/GatewayJsonPreview.jsx'
 
 // Order-independent — toggling systems/sub-scopes rebuilds the array via
 // filter+push, so plain array/reference equality would false-positive as
@@ -88,6 +89,11 @@ export default function RolesPage({ session }) {
   const [renamingRole, setRenamingRole] = useState(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [renameError, setRenameError] = useState('')
+  // dev-doc only — which role's scope checkboxes were last clicked, so the
+  // PATCH preview below the grid has something concrete to show (renaming
+  // takes priority over this when both are "in flight", see
+  // gatewayRolesPatchPreview below).
+  const [lastTouchedScopeRole, setLastTouchedScopeRole] = useState(null)
   // Which systems are expanded, per role — { [role]: Set<system> }. Not
   // present/empty = collapsed, which is also the default for every card.
   const [expandedByRole, setExpandedByRole] = useState({})
@@ -148,6 +154,26 @@ export default function RolesPage({ session }) {
     })
   }, [roles, searchQuery])
 
+  // dev-doc only — GET /roles' 200 response (auth-contract.md). Shaped from
+  // savedRoleScopes (the last-synced state), not the possibly-dirty
+  // roleScopes draft — GET reflects what the server actually has.
+  const gatewayRolesResponse = useMemo(
+    () => roles.map((name) => ({ name, allowed_scopes: savedRoleScopes[name] ?? [] })),
+    [roles, savedRoleScopes],
+  )
+
+  // dev-doc only — PATCH /roles/{name}'s request body (auth-contract.md).
+  // Renaming and scope-assignment are two independent PATCH calls this page
+  // never combines into one request, so this reflects whichever is
+  // currently "in flight": an open rename form wins over the last scope
+  // checkbox clicked, since it's the more deliberate/explicit action.
+  const gatewayRolesPatchTarget = renamingRole ?? lastTouchedScopeRole
+  const gatewayRolesPatchPayload = renamingRole
+    ? { name: renameDraft }
+    : lastTouchedScopeRole
+      ? { allowed_scopes: roleScopes[lastTouchedScopeRole] ?? [] }
+      : {}
+
   async function handleSaveRole(role) {
     const scopes = [...(roleScopes[role] ?? [])]
     try {
@@ -185,6 +211,7 @@ export default function RolesPage({ session }) {
   }
 
   function toggleSystem(role, entry) {
+    setLastTouchedScopeRole(role)
     setRoleScopes((prev) => {
       const scopes = prev[role] ?? []
       const fullScopeKeys = entry.subScopes.map((sub) => `${entry.system}.${sub}`)
@@ -202,6 +229,7 @@ export default function RolesPage({ session }) {
   }
 
   function toggleSubScope(role, entry, sub) {
+    setLastTouchedScopeRole(role)
     setRoleScopes((prev) => {
       const scopes = prev[role] ?? []
       const fullScope = `${entry.system}.${sub}`
@@ -547,6 +575,14 @@ export default function RolesPage({ session }) {
         })}
       </div>
 
+      <div className="config-devdoc">
+        <GatewayJsonPreview title="GET /roles — Response (live)" data={gatewayRolesResponse} />
+        <GatewayJsonPreview
+          title={`PATCH /roles/${gatewayRolesPatchTarget ?? '{name}'} — Payload (live)`}
+          data={gatewayRolesPatchPayload}
+        />
+      </div>
+
       <Dialog open={isAdding} onClose={() => setIsAdding(false)} fullWidth maxWidth="xs">
         <DialogTitle>{t('config.addRole')}</DialogTitle>
         <DialogContent>
@@ -566,6 +602,7 @@ export default function RolesPage({ session }) {
               />
             </div>
             {addError && <span className="form-field__error">{addError}</span>}
+            <GatewayJsonPreview title="POST /roles — Payload (live)" data={{ name: newRoleName }} />
           </form>
         </DialogContent>
         <DialogActions>
