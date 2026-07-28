@@ -76,6 +76,13 @@ export default function RolesPage({ session }) {
   const [loadError, setLoadError] = useState('')
   const [roleScopes, setRoleScopes] = useState({})
   const [savedRoleScopes, setSavedRoleScopes] = useState({})
+  // roles.id (PATCH /roles/{id}'s path identifier, auth-contract.md) —
+  // name-keyed like roleScopes/savedRoleScopes, re-keyed on rename the same
+  // way (see handleRenameSubmit). Display/search/sort throughout this page
+  // stays name-based (that's what a human picks a role by); id only ever
+  // matters at the three points that call the service layer
+  // (renameRole/updateRoleScopes/the id createRole returns).
+  const [roleIdByName, setRoleIdByName] = useState({})
   // Keyed by role — multiple cards can be dirty (and one can fail to save)
   // independently of each other, unlike renameError which only ever applies
   // to the single role currently in rename mode.
@@ -116,6 +123,7 @@ export default function RolesPage({ session }) {
         const scopesByName = Object.fromEntries(data.map((r) => [r.name, r.allowed_scopes]))
         setRoleScopes(scopesByName)
         setSavedRoleScopes(scopesByName)
+        setRoleIdByName(Object.fromEntries(data.map((r) => [r.name, r.id])))
       })
       .catch((error) => {
         if (!isCanceled(error)) setLoadError(errorMessage(error))
@@ -177,7 +185,7 @@ export default function RolesPage({ session }) {
   async function handleSaveRole(role) {
     const scopes = [...(roleScopes[role] ?? [])]
     try {
-      await updateRoleScopes(role, scopes, session)
+      await updateRoleScopes(roleIdByName[role], scopes, session)
       setSavedRoleScopes((prev) => ({ ...prev, [role]: scopes }))
       clearScopeSaveError(role)
     } catch (error) {
@@ -299,6 +307,7 @@ export default function RolesPage({ session }) {
       setRoles((prev) => [...prev, created.name])
       setRoleScopes((prev) => ({ ...prev, [created.name]: created.allowed_scopes }))
       setSavedRoleScopes((prev) => ({ ...prev, [created.name]: created.allowed_scopes }))
+      setRoleIdByName((prev) => ({ ...prev, [created.name]: created.id }))
       setIsAdding(false)
     } catch {
       // Duplicate name is really the only realistic failure mode here (same
@@ -317,7 +326,7 @@ export default function RolesPage({ session }) {
   async function handleRenameSubmit(event, oldName) {
     event.preventDefault()
     try {
-      const renamed = await renameRole(oldName, renameDraft, session)
+      const renamed = await renameRole(roleIdByName[oldName], renameDraft, session)
       setRoles((prev) => prev.map((role) => (role === oldName ? renamed.name : role)))
       setRoleScopes((prev) => {
         const { [oldName]: scopes, ...rest } = prev
@@ -326,6 +335,10 @@ export default function RolesPage({ session }) {
       setSavedRoleScopes((prev) => {
         const { [oldName]: scopes, ...rest } = prev
         return { ...rest, [renamed.name]: renamed.allowed_scopes ?? scopes ?? [] }
+      })
+      setRoleIdByName((prev) => {
+        const { [oldName]: id, ...rest } = prev
+        return { ...rest, [renamed.name]: renamed.id ?? id }
       })
       setRenamingRole(null)
     } catch (error) {

@@ -6,7 +6,7 @@
 // passes one yet.
 //
 // No username, by design — this isn't a social product, email + password
-// is the login identity. MOCK_USERS also backs the /config/users admin
+// is the login identity. MOCK_USERS also backs the /users admin
 // directory below (getAllUsers/createUser/updateUser) — self-service
 // registration has been removed in favor of admin-managed user creation,
 // so this is now the only place new mock accounts come from.
@@ -68,10 +68,13 @@ import { mockDelay } from './mockDelay.ts'
  */
 
 /**
- * One element of GET /config/users' 200 response array (auth-contract.md) —
- * same shape as Session minus the login-only fields (id, allowed_scopes,
- * token: none of those belong on "some other user's" directory row).
+ * One element of GET /users' 200 response array (auth-contract.md) — same
+ * shape as Session minus the login-only fields (allowed_scopes, token:
+ * neither belongs on "some other user's" directory row; `id` stays,
+ * unlike those two, since it's also PATCH/DELETE /users/{id}'s path
+ * identifier — normalized 2026-07-28, was `{email}` before).
  * @typedef {{
+ *   id: string,
  *   name: string,
  *   email: string,
  *   phone: string,
@@ -94,8 +97,15 @@ function allTruePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, true]))
 }
 
+// id: users.id (auth-contract.md's /login and /users response field, also
+// the PATCH/DELETE /users/{id} path identifier — normalized 2026-07-28,
+// see roles.js's ROLE_IDS for the same pattern applied to roles). Fixed
+// literal per seed row (stable across HMR/reload, unlike
+// crypto.randomUUID()); createUser generates a fresh one for genuinely new
+// users.
 const MOCK_USERS = [
   {
+    id: 'b7e2d5f1-0000-4c22-9d33-000000000001',
     email: 'larry.ridwan@freshfactory.id',
     password: 'freshbrain',
     name: 'Larry Ridwan',
@@ -104,6 +114,7 @@ const MOCK_USERS = [
     ...allTruePermissions(),
   },
   {
+    id: 'b7e2d5f1-0000-4c22-9d33-000000000002',
     email: 'ghifari@freshfactory.id',
     password: 'freshbrain',
     name: 'Ghifari',
@@ -112,6 +123,7 @@ const MOCK_USERS = [
     ...allTruePermissions(),
   },
   {
+    id: 'b7e2d5f1-0000-4c22-9d33-000000000003',
     email: 'delapramuwidia@gmail.com',
     password: 'freshbrain',
     name: 'Delanda Pramuwidia',
@@ -120,6 +132,7 @@ const MOCK_USERS = [
     ...allFalsePermissions(),
   },
   {
+    id: 'b7e2d5f1-0000-4c22-9d33-000000000004',
     email: 'shabrinanisayulianti@gmail.com',
     password: 'freshbrain',
     name: 'Shabrina Nisa Yulianti',
@@ -128,6 +141,7 @@ const MOCK_USERS = [
     ...allFalsePermissions(),
   },
   {
+    id: 'b7e2d5f1-0000-4c22-9d33-000000000005',
     email: 'admin',
     password: 'admin',
     name: 'Admin',
@@ -136,6 +150,7 @@ const MOCK_USERS = [
     ...allTruePermissions(),
   },
   {
+    id: 'b7e2d5f1-0000-4c22-9d33-000000000006',
     email: 'user',
     password: 'user',
     name: 'User',
@@ -183,7 +198,7 @@ function resolveScopes(role) {
 // the only place that data should live.
 function toSession(user) {
   return {
-    id: user.email,
+    id: user.id,
     name: user.name,
     email: user.email,
     phone: user.phone,
@@ -196,6 +211,7 @@ function toSession(user) {
 
 function toDirectoryEntry(user) {
   return {
+    id: user.id,
     name: user.name,
     email: user.email,
     phone: user.phone,
@@ -235,7 +251,7 @@ export async function authenticate(email, password, { signal } = {}) {
 export async function getAllUsers({ signal, token } = {}) {
   if (!USE_MOCK_API) {
     const { data } = await gatewayApi.get(
-      '/config/users',
+      '/users',
       { signal, headers: authHeaders(token) },
     )
     return data
@@ -272,7 +288,7 @@ export async function createUser(
 ) {
   if (!USE_MOCK_API) {
     const { data } = await gatewayApi.post(
-      '/config/users',
+      '/users',
       { name, email, phone, role },
       { signal, headers: authHeaders(actor?.token) },
     )
@@ -287,6 +303,7 @@ export async function createUser(
 
   const resetToken = makeResetToken()
   const user = {
+    id: crypto.randomUUID(),
     password: null,
     name,
     email,
@@ -300,20 +317,20 @@ export async function createUser(
 
 /**
  * The mock stand-in for chat-gateway's write-path enforcement (see
- * auth-contract.md's PATCH /config/users/{email} rules). `actor` is always
- * re-read fresh from MOCK_USERS by email here — the caller's
+ * auth-contract.md's PATCH /users/{id} rules). `actor` is always
+ * re-read fresh from MOCK_USERS by id here — the caller's
  * `actor.permissions`, if any, is never trusted, matching the "re-validate
  * live, not cached session state" rule.
  *
- * @param {string} email - target user being updated
+ * @param {string} id - target user being updated
  * @param {{ name?: string, phone?: string, role?: string, allowed_permissions?: string[] }} updates
- * @param {{ email: string, token?: string }} actor - the calling session's own email
+ * @param {{ id: string, token?: string }} actor - the calling session's own id
  * @returns {Promise<UserDirectoryEntry>}
  */
-export async function updateUser(email, updates, actor, { signal } = {}) {
+export async function updateUser(id, updates, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
     const { data } = await gatewayApi.patch(
-      `/config/users/${encodeURIComponent(email)}`,
+      `/users/${encodeURIComponent(id)}`,
       updates,
       { signal, headers: authHeaders(actor?.token) },
     )
@@ -322,12 +339,12 @@ export async function updateUser(email, updates, actor, { signal } = {}) {
 
   await mockDelay(500, 900, signal)
 
-  const user = MOCK_USERS.find((u) => u.email === email)
+  const user = MOCK_USERS.find((u) => u.id === id)
   if (!user) {
     throw new Error('User not found')
   }
 
-  const actorUser = MOCK_USERS.find((u) => u.email === actor?.email)
+  const actorUser = MOCK_USERS.find((u) => u.id === actor?.id)
   if (!actorUser) {
     throw new Error('Actor not found')
   }
@@ -390,7 +407,7 @@ export async function updateUser(email, updates, actor, { signal } = {}) {
   // Self-escalation guard: editing your own row can never add a permission
   // key you don't already hold to your own allowed_permissions. Removing a
   // key you already hold on yourself is always allowed.
-  if (email === actor.email) {
+  if (id === actor.id) {
     for (const field of touchedPermissionFields) {
       if (nextFlags[field] === true && !actorPermissions[field]) {
         throw new Error('Cannot grant a permission you do not already hold')
@@ -409,20 +426,20 @@ export async function updateUser(email, updates, actor, { signal } = {}) {
 }
 
 /**
- * No `DELETE /config/users/{email}` documented in auth-contract.md yet.
+ * No `DELETE /users/{id}` documented in auth-contract.md yet.
  * The mock contract below is gated by `user.delete`,
  * re-validated live like updateUser's writes. An actor can never delete
  * their own row (self-lockout guard, mirrors the self-escalation guard
  * above) — there's no cascade to reassign a self-deleted admin's work.
  *
- * @param {string} email
- * @param {{ email: string, token?: string }} actor
+ * @param {string} id
+ * @param {{ id: string, token?: string }} actor
  * @returns {Promise<void>}
  */
-export async function deleteUser(email, actor, { signal } = {}) {
+export async function deleteUser(id, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
     await gatewayApi.delete(
-      `/config/users/${encodeURIComponent(email)}`,
+      `/users/${encodeURIComponent(id)}`,
       { signal, headers: authHeaders(actor?.token) },
     )
     return
@@ -430,16 +447,16 @@ export async function deleteUser(email, actor, { signal } = {}) {
 
   await mockDelay(500, 900, signal)
 
-  if (email === actor?.email) {
+  if (id === actor?.id) {
     throw new Error('You cannot delete your own account')
   }
 
-  const actorUser = MOCK_USERS.find((u) => u.email === actor?.email)
+  const actorUser = MOCK_USERS.find((u) => u.id === actor?.id)
   if (!actorUser || !shapeUserPermissions(actorUser)['user.delete']) {
     throw new Error('You do not have permission to delete users')
   }
 
-  const index = MOCK_USERS.findIndex((u) => u.email === email)
+  const index = MOCK_USERS.findIndex((u) => u.id === id)
   if (index === -1) {
     throw new Error('User not found')
   }
