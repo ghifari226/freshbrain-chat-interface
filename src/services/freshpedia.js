@@ -1,7 +1,8 @@
-// Freshpedia CRUD + status transitions against chat-gateway — no dedicated
-// contract doc exists for this yet (only auth/roles/permissions are written
-// up in freshbrain-agreement), so this file and its call sites in
-// FreshpediaPage.jsx are the closest thing to a spec right now.
+// Freshpedia CRUD + status transitions against ai-engine (moved off
+// chat-gateway 2026-07-28 — Freshpedia's entries are ai-engine's knowledge
+// base content, not an auth/identity concern; chat-gateway still owns the
+// freshpedia.* permission values themselves, just not this data). Contract
+// lives at freshbrain-agreement's freshpedia-contract.md.
 // USE_MOCK_API selects the in-memory MOCK_ENTRIES below or the real Axios
 // client explicitly, same pattern as authService.js. `signal` is only
 // actually threaded through by FreshpediaPage's list load (getAllFreshpediaEntries)
@@ -9,7 +10,8 @@
 // passes one yet, so cancellation only cancels the initial fetch, not a
 // pending write.
 import { USE_MOCK_API } from '../config/appConfig.js'
-import { authHeaders, gatewayApi } from './api.ts'
+import { authHeaders, aiEngineApi } from './api.ts'
+import { hasPermission } from '../config/permissions.js'
 import { mockDelay } from './mockDelay.ts'
 
 /**
@@ -168,7 +170,7 @@ const MOCK_ENTRIES = [
  */
 export async function getAllFreshpediaEntries({ signal, token } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.get(
+    const { data } = await aiEngineApi.get(
       '/freshpedia',
       { signal, headers: authHeaders(token) },
     )
@@ -180,12 +182,12 @@ export async function getAllFreshpediaEntries({ signal, token } = {}) {
 
 /**
  * @param {{ title: string, type: 'definition'|'document'|'alias', content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} input
- * @param {{ email: string, name: string, token?: string, 'freshpedia.request'?: boolean }} actor
+ * @param {{ email: string, name: string, token?: string, allowed_permissions?: string[] }} actor
  * @returns {Promise<FreshpediaEntry>}
  */
 export async function createFreshpediaEntry(input, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.post(
+    const { data } = await aiEngineApi.post(
       '/freshpedia',
       input,
       { signal, headers: authHeaders(actor?.token) },
@@ -195,7 +197,7 @@ export async function createFreshpediaEntry(input, actor, { signal } = {}) {
 
   await mockDelay(500, 900, signal)
 
-  if (!actor?.['freshpedia.request']) {
+  if (!hasPermission(actor, 'freshpedia.request')) {
     throw new Error('You do not have permission to submit Freshpedia entries')
   }
 
@@ -225,12 +227,12 @@ export async function createFreshpediaEntry(input, actor, { signal } = {}) {
  *
  * @param {string} id
  * @param {{ title?: string, content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} updates
- * @param {{ email: string, token?: string, 'freshpedia.request'?: boolean, 'freshpedia.change_status'?: boolean }} actor
+ * @param {{ email: string, token?: string, allowed_permissions?: string[] }} actor
  * @returns {Promise<FreshpediaEntry>}
  */
 export async function updateFreshpediaEntry(id, updates, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.patch(
+    const { data } = await aiEngineApi.patch(
       `/freshpedia/${encodeURIComponent(id)}`,
       updates,
       { signal, headers: authHeaders(actor?.token) },
@@ -243,8 +245,8 @@ export async function updateFreshpediaEntry(id, updates, actor, { signal } = {})
   const entry = MOCK_ENTRIES.find((e) => e.id === id)
   if (!entry) throw new Error('Entry not found')
 
-  const canChangeStatus = Boolean(actor?.['freshpedia.change_status'])
-  if (!canChangeStatus && !(actor?.['freshpedia.request'] && entry.status === 'request')) {
+  const canChangeStatus = hasPermission(actor, 'freshpedia.change_status')
+  if (!canChangeStatus && !(hasPermission(actor, 'freshpedia.request') && entry.status === 'request')) {
     throw new Error('You do not have permission to edit this entry')
   }
   if (updates.status !== undefined) {
@@ -267,12 +269,12 @@ export async function updateFreshpediaEntry(id, updates, actor, { signal } = {})
  *
  * @param {string} id
  * @param {'staging'|'production'} status
- * @param {{ token?: string, 'freshpedia.change_status'?: boolean }} actor
+ * @param {{ token?: string, allowed_permissions?: string[] }} actor
  * @returns {Promise<FreshpediaEntry>}
  */
 export async function updateFreshpediaEntryStatus(id, status, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.post(
+    const { data } = await aiEngineApi.post(
       `/freshpedia/${encodeURIComponent(id)}/status`,
       { status },
       { signal, headers: authHeaders(actor?.token) },
@@ -282,7 +284,7 @@ export async function updateFreshpediaEntryStatus(id, status, actor, { signal } 
 
   await mockDelay(500, 900, signal)
 
-  if (!actor?.['freshpedia.change_status']) {
+  if (!hasPermission(actor, 'freshpedia.change_status')) {
     throw new Error('You do not have permission to change entry status')
   }
 

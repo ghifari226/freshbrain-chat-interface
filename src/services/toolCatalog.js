@@ -1,14 +1,20 @@
-// Tool Catalog CRUD against chat-gateway — same shape as freshpedia.js
-// (USE_MOCK_API branch, MOCK_TOOLS in place of MOCK_ENTRIES), but no
-// change_status endpoint: per permission-catalog.md's open questions, Tool
-// Catalog has no promote/demote path at all yet, mocked or real — a
-// `request` entry can only be edited while pending, never moved to
-// staging/production from this file or the UI. No dedicated contract doc
-// exists for Tool Catalog either. `signal` is only actually threaded
-// through by ToolCatalogPage's list load (getAllToolCatalogEntries) today —
-// create/update accept it too but no caller passes one yet.
+// Tool Catalog CRUD against ai-engine (moved off chat-gateway 2026-07-28 —
+// same reasoning as freshpedia.js: the tool registry is ai-engine's own
+// content, tightly coupled to its actual tool implementations under
+// be/freshbrain-ai-engine/tools/, not an auth/identity concern; chat-gateway
+// still owns the tool.* permission values themselves, just not this data).
+// Same shape as freshpedia.js (USE_MOCK_API branch, MOCK_TOOLS in place of
+// MOCK_ENTRIES), but no change_status endpoint: per permission-catalog.md's
+// open questions, Tool Catalog has no promote/demote path at all yet,
+// mocked or real — a `request` entry can only be edited while pending,
+// never moved to staging/production from this file or the UI. Contract
+// lives at freshbrain-agreement's tool-catalog-contract.md. `signal` is
+// only actually threaded through by ToolCatalogPage's list load
+// (getAllToolCatalogEntries) today — create/update accept it too but no
+// caller passes one yet.
 import { USE_MOCK_API } from '../config/appConfig.js'
-import { authHeaders, gatewayApi } from './api.ts'
+import { authHeaders, aiEngineApi } from './api.ts'
+import { hasPermission } from '../config/permissions.js'
 import { mockDelay } from './mockDelay.ts'
 
 /**
@@ -163,7 +169,7 @@ const MOCK_TOOLS = [
  */
 export async function getAllToolCatalogEntries({ signal, token } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.get(
+    const { data } = await aiEngineApi.get(
       '/tool-catalog',
       { signal, headers: authHeaders(token) },
     )
@@ -175,12 +181,12 @@ export async function getAllToolCatalogEntries({ signal, token } = {}) {
 
 /**
  * @param {{ system: string, name: string, description: string, exampleQuestions: string[] }} input
- * @param {{ email: string, name: string, token?: string, 'tool.request'?: boolean }} actor
+ * @param {{ email: string, name: string, token?: string, allowed_permissions?: string[] }} actor
  * @returns {Promise<ToolCatalogEntry>}
  */
 export async function createToolCatalogEntry(input, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.post(
+    const { data } = await aiEngineApi.post(
       '/tool-catalog',
       input,
       { signal, headers: authHeaders(actor?.token) },
@@ -190,7 +196,7 @@ export async function createToolCatalogEntry(input, actor, { signal } = {}) {
 
   await mockDelay(500, 900, signal)
 
-  if (!actor?.['tool.request']) {
+  if (!hasPermission(actor, 'tool.request')) {
     throw new Error('You do not have permission to submit tool requests')
   }
 
@@ -218,12 +224,12 @@ export async function createToolCatalogEntry(input, actor, { signal } = {}) {
  *
  * @param {string} id
  * @param {{ system?: string, name?: string, description?: string, exampleQuestions?: string[] }} updates
- * @param {{ email: string, token?: string, 'tool.request'?: boolean }} actor
+ * @param {{ email: string, token?: string, allowed_permissions?: string[] }} actor
  * @returns {Promise<ToolCatalogEntry>}
  */
 export async function updateToolCatalogEntry(id, updates, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
-    const { data } = await gatewayApi.patch(
+    const { data } = await aiEngineApi.patch(
       `/tool-catalog/${encodeURIComponent(id)}`,
       updates,
       { signal, headers: authHeaders(actor?.token) },
@@ -236,7 +242,7 @@ export async function updateToolCatalogEntry(id, updates, actor, { signal } = {}
   const entry = MOCK_TOOLS.find((e) => e.id === id)
   if (!entry) throw new Error('Entry not found')
 
-  if (!actor?.['tool.request'] || entry.status !== 'request') {
+  if (!hasPermission(actor, 'tool.request') || entry.status !== 'request') {
     throw new Error('You do not have permission to edit this entry')
   }
   if (updates.status !== undefined) {
