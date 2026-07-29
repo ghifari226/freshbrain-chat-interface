@@ -1,10 +1,16 @@
-import { lazy, Suspense, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar.jsx'
 import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
-import { sendMessage, sendFeedback, generateTitle } from './services/apiClient.ts'
-import { makeMockConversations } from './mocks/mockConversations.js'
+import {
+  sendMessage,
+  sendFeedback,
+  generateTitle,
+  listConversations,
+  renameConversation,
+  deleteConversation,
+} from './services/apiClient.ts'
 import { useTheme } from './hooks/useTheme.js'
 import { useTone } from './hooks/useTone.js'
 import { useChatFont } from './hooks/useChatFont.js'
@@ -28,9 +34,23 @@ function AuthenticatedApp({ language, setLanguage }) {
   const [theme, setTheme] = useTheme()
   const [tone, setTone] = useTone()
   const [chatFont, setChatFont] = useChatFont()
-  const [conversations, setConversations] = useState(() => makeMockConversations())
+  const [conversations, setConversations] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef(null)
+
+  // Fires once on mount — conversations aren't seeded locally anymore, they
+  // come from GET /conversations (mocked).
+  useEffect(() => {
+    listConversations({ user_id: session?.id, role: session?.role, token: session?.token })
+      .then((response) => {
+        setConversations(response.conversations)
+      })
+      .catch(() => {
+        // Best-effort — an empty sidebar is a safe, visible-enough failure
+        // mode; nothing else in the app depends on this resolving.
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // The URL is the source of truth for which conversation is open —
   // /chat/<id> — rather than duplicating that as separate React state that
@@ -61,15 +81,47 @@ function AuthenticatedApp({ language, setLanguage }) {
     setConversations((prev) =>
       prev.map((c) => (c.id === conversationId ? { ...c, title } : c)),
     )
+
+    // Nothing server-side to rename for a conversation that hasn't been
+    // sent to POST /chat yet — same guard style as handleMessageFeedback's
+    // backendId/backendMessageId check below.
+    const conversation = conversations.find((c) => c.id === conversationId)
+    if (!conversation?.backendId) return
+
+    renameConversation({
+      conversation_id: conversation.backendId,
+      title,
+      user_id: session?.id,
+      role: session?.role,
+      token: session?.token,
+    }).catch((error) => {
+      // Best-effort — the rename already applied optimistically above; a
+      // failed server-side rename doesn't roll it back in this mock.
+      console.error('Failed to rename conversation', error)
+    })
   }
 
   function handleDeleteConversation(conversationId) {
+    const conversation = conversations.find((c) => c.id === conversationId)
+
     setConversations((prev) => {
       const next = prev.filter((c) => c.id !== conversationId)
       if (conversationId === activeConversationId) {
         navigate(next[0] ? '/chat/' + next[0].id : '/')
       }
       return next
+    })
+
+    if (!conversation?.backendId) return
+
+    deleteConversation({
+      conversation_id: conversation.backendId,
+      user_id: session?.id,
+      role: session?.role,
+      token: session?.token,
+    }).catch((error) => {
+      // Best-effort — same rationale as handleRenameConversation above.
+      console.error('Failed to delete conversation', error)
     })
   }
 

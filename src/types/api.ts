@@ -1,4 +1,5 @@
 import type {
+  Conversation,
   FreshpediaEntryType,
   PartialPermissions,
   Session,
@@ -85,6 +86,56 @@ export interface TitleRequest {
 
 export interface TitleResponse {
   title: string
+}
+
+// GET /conversations — no auth-contract.md entry yet, same convention as
+// /chat/title. A query, not a body: user_id/role travel as query params
+// (see apiClient.ts's listConversations), token stays header-only as usual.
+// Returns full Conversation objects (messages included) since there's no
+// separate message-pagination endpoint — the sidebar list and a loaded
+// conversation's history are the same object, not two fetches.
+export interface ListConversationsRequest {
+  user_id: string
+  role: string
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface ConversationsListResponse {
+  conversations: Conversation[]
+}
+
+// PATCH /conversations/{id} — conversation_id is always a real backendId
+// here (never null); renaming a conversation that hasn't been sent to
+// POST /chat yet has nothing server-side to rename, so App.jsx only calls
+// this once a conversation has one (same guard style as
+// handleMessageFeedback's backendId/backendMessageId check).
+export interface RenameConversationRequest {
+  conversation_id: string
+  title: string
+  user_id: string
+  role: string
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface RenameConversationResponse {
+  conversation_id: string
+  title: string
+}
+
+// DELETE /conversations/{id} — same conversation_id/guard convention as
+// RenameConversationRequest above.
+export interface DeleteConversationRequest {
+  conversation_id: string
+  user_id: string
+  role: string
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface DeleteConversationResponse {
+  conversation_id: string
 }
 
 export interface LoginRequest {

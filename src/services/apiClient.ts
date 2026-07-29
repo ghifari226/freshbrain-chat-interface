@@ -9,12 +9,20 @@ import axios from 'axios'
 import type {
   ChatRequest,
   ChatResponse,
+  ConversationsListResponse,
+  DeleteConversationRequest,
+  DeleteConversationResponse,
   FeedbackRequest,
   FeedbackResponse,
+  ListConversationsRequest,
+  RenameConversationRequest,
+  RenameConversationResponse,
   TitleRequest,
   TitleResponse,
 } from '../types/api.ts'
+import type { Conversation } from '../types/domain.ts'
 import { aiEngineApi, authHeaders } from './api.ts'
+import { makeMockConversations } from '../mocks/mockConversations.js'
 import { mockDelay } from './mockDelay.ts'
 
 // Internal helper only — camelCase params here, translated to the
@@ -176,4 +184,71 @@ export async function generateTitle({
   const summary = words.slice(0, 6).join(' ')
   const title = summary.charAt(0).toUpperCase() + summary.slice(1)
   return words.length > 6 ? `${title}…` : title
+}
+
+// No auth-contract.md entry for this one — see the header note above. A
+// query, not a body — user_id/role travel as query params, matching a GET's
+// shape (see ListConversationsRequest's doc comment in types/api.ts).
+export async function listConversations({
+  user_id,
+  role,
+  token,
+  signal,
+}: ListConversationsRequest): Promise<ConversationsListResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(400, 900, signal)
+    // makeMockConversations.js is plain JS (untyped) — same js/ts boundary
+    // cast used for ROLE_SCOPES/ROLE_IDS in roleScopes.ts.
+    return { conversations: makeMockConversations() as Conversation[] }
+  }
+
+  const { data } = await aiEngineApi.get<ConversationsListResponse>('/conversations', {
+    signal,
+    headers: authHeaders(token),
+    params: { user_id, role },
+  })
+  return data
+}
+
+// No auth-contract.md entry for this one — see the header note above.
+export async function renameConversation({
+  conversation_id,
+  title,
+  user_id,
+  role,
+  token,
+  signal,
+}: RenameConversationRequest): Promise<RenameConversationResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(200, 500, signal)
+    return { conversation_id, title }
+  }
+
+  const { data } = await aiEngineApi.patch<RenameConversationResponse>(
+    `/conversations/${conversation_id}`,
+    { title, user_id, role },
+    { signal, headers: authHeaders(token) },
+  )
+  return data
+}
+
+// No auth-contract.md entry for this one — see the header note above.
+export async function deleteConversation({
+  conversation_id,
+  user_id,
+  role,
+  token,
+  signal,
+}: DeleteConversationRequest): Promise<DeleteConversationResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(200, 500, signal)
+    return { conversation_id }
+  }
+
+  const { data } = await aiEngineApi.delete<DeleteConversationResponse>(`/conversations/${conversation_id}`, {
+    signal,
+    headers: authHeaders(token),
+    data: { user_id, role },
+  })
+  return data
 }
