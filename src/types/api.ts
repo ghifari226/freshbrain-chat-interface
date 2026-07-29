@@ -39,6 +39,15 @@ export interface ChatResponse {
   answer: string
   conversation_id: string
   message_id: string
+  // Only ever populated on a message after the first one — the first
+  // message's title comes from the separate, decoupled POST /chat/title
+  // call (TitleRequest below) so the visible answer never waits on title
+  // generation. Absent/undefined on most turns; present when ai-engine
+  // detects a mid-conversation rename request (e.g. "rename this to X")
+  // and decided to update the conversation's title as a side effect of
+  // answering — the frontend just applies it if present, no separate
+  // endpoint involved.
+  title?: string
 }
 
 // POST /feedback's request shape (auth-contract.md) — role is a snapshot at
@@ -59,6 +68,23 @@ export interface FeedbackRequest {
 
 export interface FeedbackResponse {
   id: string
+}
+
+// POST /chat/title's request shape — no auth-contract.md entry yet, see
+// apiClient.ts's header note. Scoped to the conversation, not the user:
+// conversation_id is null for the only case the frontend calls this today
+// (naming a brand-new conversation, before /chat's response assigns a
+// backendId) — no user_id/role, unlike ChatRequest/FeedbackRequest, since
+// titling has no RBAC/scope-gated-answer angle.
+export interface TitleRequest {
+  message: string
+  conversation_id: string | null
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface TitleResponse {
+  title: string
 }
 
 export interface LoginRequest {

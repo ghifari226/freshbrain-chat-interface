@@ -11,7 +11,8 @@ import type {
   ChatResponse,
   FeedbackRequest,
   FeedbackResponse,
-  RequestOptions,
+  TitleRequest,
+  TitleResponse,
 } from '../types/api.ts'
 import { aiEngineApi, authHeaders } from './api.ts'
 import { mockDelay } from './mockDelay.ts'
@@ -54,6 +55,20 @@ async function postChat({
   return data
 }
 
+// dev-doc mock only — ai-engine's real rename-intent detection is an LLM
+// call we can't fake meaningfully; this keyword match exists purely so
+// ChatResponse.title's listen-and-apply path (App.jsx) is demoable end to
+// end without a real backend. Only ever checked for messages on an
+// existing conversation — see sendMessage below, matching the doc comment
+// on ChatResponse.title in types/api.ts.
+const RENAME_INTENT_PATTERN =
+  /(?:rename (?:this (?:thread|conversation|chat) )?to|(?:ganti|ubah) judul(?:nya)? (?:jadi|ke))\s+["']?([^"'.!]+?)["']?[.!]*$/i
+
+function matchRenameIntent(message: string): string | null {
+  const match = message.trim().match(RENAME_INTENT_PATTERN)
+  return match ? match[1].trim() : null
+}
+
 export async function sendMessage({
   message,
   conversation_id,
@@ -65,10 +80,15 @@ export async function sendMessage({
 }: ChatRequest): Promise<ChatResponse> {
   if (USE_MOCK_API) {
     await mockDelay(900, 1500, signal)
+    // Only checked on an existing conversation — the first message's title
+    // always comes from the separate POST /chat/title call instead (see
+    // ChatResponse.title's doc comment in types/api.ts).
+    const renamedTitle = conversation_id ? matchRenameIntent(message) : null
     return {
       answer: `You said: "${message}" (Tidak dapat terhubung ke ai-engine)`,
       conversation_id: conversation_id ?? crypto.randomUUID(),
       message_id: crypto.randomUUID(),
+      ...(renamedTitle ? { title: renamedTitle } : {}),
     }
   }
 
@@ -136,12 +156,18 @@ export async function sendFeedback({
 }
 
 // No auth-contract.md entry for this one — see the header note above.
-export async function generateTitle(
-  message: string,
-  { signal }: RequestOptions = {},
-): Promise<string> {
+export async function generateTitle({
+  message,
+  conversation_id,
+  token,
+  signal,
+}: TitleRequest): Promise<string> {
   if (!USE_MOCK_API) {
-    const { data } = await aiEngineApi.post<{ title: string }>('/chat/title', { message }, { signal })
+    const { data } = await aiEngineApi.post<TitleResponse>(
+      '/chat/title',
+      { message, conversation_id },
+      { signal, headers: authHeaders(token) },
+    )
     return data.title
   }
 

@@ -142,7 +142,7 @@ function AuthenticatedApp({ language, setLanguage }) {
     }
 
     if (isFirstMessage) {
-      generateTitle(text)
+      generateTitle({ message: text, conversation_id: backendConversationId, token: session?.token })
         .then((title) => {
           setConversations((prev) =>
             prev.map((c) => (c.id === conversationId ? { ...c, title } : c)),
@@ -174,7 +174,17 @@ function AuthenticatedApp({ language, setLanguage }) {
       setConversations((prev) =>
         prev.map((c) =>
           c.id === conversationId
-            ? { ...c, backendId: response.conversation_id, messages: [...c.messages, assistantMessage] }
+            ? {
+                ...c,
+                backendId: response.conversation_id,
+                // Only ever set on a message after the first one — see
+                // ChatResponse.title's doc comment in types/api.ts. Applied
+                // unconditionally whenever present; no separate rename
+                // endpoint or confirmation step, ai-engine's response is
+                // the source of truth for the title from here on.
+                ...(response.title ? { title: response.title } : {}),
+                messages: [...c.messages, assistantMessage],
+              }
             : c,
         ),
       )
