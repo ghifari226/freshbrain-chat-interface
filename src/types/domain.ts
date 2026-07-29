@@ -114,8 +114,10 @@ export interface ChatMessage {
 }
 
 export interface Conversation {
+  // Always the real, backend-assigned conversation id — the frontend never
+  // generates one (App.jsx's handleSend holds the first exchange in
+  // pendingMessages, un-routed, until POST /chat's response provides this).
   id: string
-  backendId: string | null
   title: string
   timestamp: string
   messages: ChatMessage[]
