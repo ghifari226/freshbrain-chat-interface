@@ -23,6 +23,7 @@ export const strings = {
     accountMenu: { id: 'Menu akun', en: 'Account menu' },
     viewProfile: { id: 'Lihat profil', en: 'View profile' },
     settings: { id: 'Pengaturan', en: 'Settings' },
+    admin: { id: 'Admin', en: 'Admin' },
     freshpedia: { id: 'Freshpedia', en: 'Freshpedia' },
     toolCatalog: { id: 'Katalog Tool', en: 'Tool Catalog' },
     accessConfig: { id: 'Konfigurasi Akses', en: 'Access Configuration' },

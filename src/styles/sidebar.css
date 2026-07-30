@@ -264,17 +264,6 @@
   color: var(--text-muted);
 }
 
-/* Back to Chat specifically (not New Chat, which shares .conversation-item--new
-   but stays neutral) — accent-colored to call out the app's main feature,
-   the chat itself, from wherever else you've navigated to. */
-.conversation-item--accent {
-  color: var(--accent);
-}
-
-.conversation-item--accent .conversation-item__icon {
-  color: var(--accent);
-}
-
 .sidebar-section {
   flex: 1;
   overflow-y: auto;
@@ -350,13 +339,6 @@
   color: inherit;
 }
 
-/* Sets Settings apart from Freshpedia/Tool Catalog/Access Config above it,
-   the same "lil bit of space" .conversation-item--new's margin-bottom
-   already gives Back to Chat above the nav list. */
-.sidebar-nav__item--settings {
-  margin-top: 8px;
-}
-
 .sidebar-nav__children {
   display: flex;
   flex-direction: column;
@@ -366,7 +348,9 @@
 }
 
 .sidebar-nav__child-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   text-align: left;
   border: none;
@@ -375,6 +359,17 @@
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 13px;
+}
+
+.sidebar-nav__child-item-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+:where([data-theme='dark']) .sidebar-nav__child-item-icon {
+  color: inherit;
 }
 
 .sidebar-nav__child-item:hover,
@@ -521,8 +516,9 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--surface-response);
-  color: var(--text-muted);
+  /* Mid blue from the login gradient — reads as blue, not near-black navy. */
+  background: #1c6fb0;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -531,8 +527,8 @@
 }
 
 .user-avatar svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 .menu--user {

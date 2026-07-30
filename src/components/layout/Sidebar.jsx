@@ -10,14 +10,15 @@ import {
   PanelLeftOpen,
   Search,
   SquarePen,
-  Settings,
   ShieldCheck,
+  ShieldCogCorner,
+  UserCog,
+  UsersRound,
   Wrench,
 } from 'lucide-react'
 import ConversationItem from '../chat/ConversationItem.jsx'
 import UserMenu from './UserMenu.jsx'
 import SearchModal from '../modals/SearchModal.jsx'
-import SettingsModal from '../modals/SettingsModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { canAccessFreshpedia, canAccessToolCatalog, canAccessConfigSection, canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
@@ -50,8 +51,7 @@ export default function Sidebar({
   )
   const [isRecentsOpen, setIsRecentsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isSettingsFromNav, setIsSettingsFromNav] = useState(false)
-  // Expanded nav variant's inline children list: independent open/closed
+  // Expanded nav variant's Access Config accordion: independent open/closed
   // state (seeded from whether you're currently under /config, so landing
   // directly on e.g. /config/users via URL still shows it expanded), not
   // purely route-derived — see handleConfigNavClick below for why. The
@@ -269,7 +269,7 @@ export default function Sidebar({
                     aria-label={t('userMenu.accessConfig')}
                     onClick={(event) => selectFromConfigFlyout('/config', event)}
                   >
-                    <ShieldCheck />
+                    <ShieldCogCorner />
                   </button>
 
                   <div className="menu menu--recents">
@@ -278,6 +278,7 @@ export default function Sidebar({
                         className="menu__item"
                         onClick={(event) => selectFromConfigFlyout('/config/permissions', event)}
                       >
+                        <ShieldCheck className="menu__item-icon" />
                         <span className="menu__item-text">{t('config.navPermissions')}</span>
                       </button>
                     )}
@@ -286,6 +287,7 @@ export default function Sidebar({
                         className="menu__item"
                         onClick={(event) => selectFromConfigFlyout('/config/roles', event)}
                       >
+                        <UsersRound className="menu__item-icon" />
                         <span className="menu__item-text">{t('config.navRoles')}</span>
                       </button>
                     )}
@@ -294,21 +296,13 @@ export default function Sidebar({
                         className="menu__item"
                         onClick={(event) => selectFromConfigFlyout('/config/users', event)}
                       >
+                        <UserCog className="menu__item-icon" />
                         <span className="menu__item-text">{t('config.navUsers')}</span>
                       </button>
                     )}
                   </div>
                 </div>
               )}
-
-              <button
-                className="icon-button"
-                aria-label={t('userMenu.settings')}
-                data-tooltip={t('userMenu.settings')}
-                onClick={() => setIsSettingsFromNav(true)}
-              >
-                <Settings />
-              </button>
             </>
           )}
 
@@ -398,7 +392,7 @@ export default function Sidebar({
             </>
           ) : (
             <>
-              <button className="conversation-item conversation-item--new conversation-item--accent" onClick={() => navigate('/')}>
+              <button className="conversation-item conversation-item--new" onClick={() => navigate('/')}>
                 <ArrowLeft className="conversation-item__icon" />
                 <span className="conversation-item__title">{t('config.backToChat')}</span>
               </button>
@@ -438,7 +432,7 @@ export default function Sidebar({
                         }
                         onClick={handleConfigNavClick}
                       >
-                        <ShieldCheck className="sidebar-nav__item-icon" />
+                        <ShieldCogCorner className="sidebar-nav__item-icon" />
                         <span className="sidebar-nav__item-label">{t('userMenu.accessConfig')}</span>
                         {isConfigNavOpen ? (
                           <ChevronUp className="sidebar-nav__item-chevron" />
@@ -457,7 +451,8 @@ export default function Sidebar({
                               }
                               onClick={() => navigate('/config/permissions')}
                             >
-                              {t('config.navPermissions')}
+                              <ShieldCheck className="sidebar-nav__child-item-icon" />
+                              <span>{t('config.navPermissions')}</span>
                             </button>
                           )}
                           {canSeeRoles && (
@@ -468,7 +463,8 @@ export default function Sidebar({
                               }
                               onClick={() => navigate('/config/roles')}
                             >
-                              {t('config.navRoles')}
+                              <UsersRound className="sidebar-nav__child-item-icon" />
+                              <span>{t('config.navRoles')}</span>
                             </button>
                           )}
                           {canSeeUsers && (
@@ -479,21 +475,14 @@ export default function Sidebar({
                               }
                               onClick={() => navigate('/config/users')}
                             >
-                              {t('config.navUsers')}
+                              <UserCog className="sidebar-nav__child-item-icon" />
+                              <span>{t('config.navUsers')}</span>
                             </button>
                           )}
                         </div>
                       )}
                     </div>
                   )}
-
-                  <button
-                    className="sidebar-nav__item sidebar-nav__item--settings"
-                    onClick={() => setIsSettingsFromNav(true)}
-                  >
-                    <Settings className="sidebar-nav__item-icon" />
-                    <span className="sidebar-nav__item-label">{t('userMenu.settings')}</span>
-                  </button>
                 </nav>
               </div>
             </>
@@ -517,20 +506,6 @@ export default function Sidebar({
           conversations={conversations}
           onSelect={selectFromSearch}
           onClose={() => setIsSearchOpen(false)}
-        />
-      )}
-
-      {isSettingsFromNav && (
-        <SettingsModal
-          onClose={() => setIsSettingsFromNav(false)}
-          theme={theme}
-          setTheme={setTheme}
-          tone={tone}
-          setTone={setTone}
-          chatFont={chatFont}
-          setChatFont={setChatFont}
-          language={language}
-          setLanguage={setLanguage}
         />
       )}
     </aside>
