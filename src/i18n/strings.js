@@ -68,6 +68,8 @@ export const strings = {
     },
   },
   feedback: {
+    copy: { id: 'Salin', en: 'Copy' },
+    copied: { id: 'Tersalin', en: 'Copied' },
     thumbsUp: { id: 'Respons bagus', en: 'Good response' },
     thumbsDown: { id: 'Respons kurang baik', en: 'Bad response' },
     reasonPrompt: { id: 'Apa yang salah?', en: 'What went wrong?' },

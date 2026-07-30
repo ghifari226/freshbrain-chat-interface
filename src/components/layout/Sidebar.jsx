@@ -8,8 +8,8 @@ import {
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
-  Plus,
   Search,
+  SquarePen,
   Settings,
   ShieldCheck,
   Wrench,
@@ -177,7 +177,7 @@ export default function Sidebar({
                 data-tooltip={t('sidebar.newChat')}
                 onClick={onNewChat}
               >
-                <Plus />
+                <SquarePen />
               </button>
 
               <button
@@ -373,7 +373,7 @@ export default function Sidebar({
           {isChat ? (
             <>
               <button className="conversation-item conversation-item--new" onClick={onNewChat}>
-                <Plus className="conversation-item__icon" />
+                <SquarePen className="conversation-item__icon" />
                 <span className="conversation-item__title">{t('sidebar.newChat')}</span>
               </button>
 

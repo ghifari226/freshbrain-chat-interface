@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
+import MessageCopyButton from './MessageCopyButton.jsx'
 
 const REASONS = [
   'reasonWrongData',
@@ -9,7 +10,7 @@ const REASONS = [
   'reasonOther',
 ]
 
-export default function MessageFeedback({ feedback, onChange }) {
+export default function MessageFeedback({ text, feedback, onChange }) {
   const t = useT()
   const [isReasonOpen, setIsReasonOpen] = useState(false)
   const [selectedReason, setSelectedReason] = useState(null)
@@ -60,12 +61,10 @@ export default function MessageFeedback({ feedback, onChange }) {
   return (
     <div className="message-feedback" ref={wrapRef}>
       <div className={'message-feedback__actions' + (isActive ? ' message-feedback__actions--open' : '')}>
+        <MessageCopyButton text={text} />
         <button
           type="button"
-          className={
-            'icon-button message-feedback__button' +
-            (feedback?.rating === 'up' ? ' message-feedback__button--up' : '')
-          }
+          className="icon-button message-feedback__button"
           aria-label={t('feedback.thumbsUp')}
           aria-pressed={feedback?.rating === 'up'}
           onClick={handleThumbsUp}
@@ -74,10 +73,7 @@ export default function MessageFeedback({ feedback, onChange }) {
         </button>
         <button
           type="button"
-          className={
-            'icon-button message-feedback__button' +
-            (feedback?.rating === 'down' ? ' message-feedback__button--down' : '')
-          }
+          className="icon-button message-feedback__button"
           aria-label={t('feedback.thumbsDown')}
           aria-pressed={feedback?.rating === 'down'}
           onClick={handleThumbsDown}

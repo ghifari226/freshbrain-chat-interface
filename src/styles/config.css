@@ -311,6 +311,12 @@
   flex-shrink: 0;
 }
 
+/* Save/cancel sit next to the filled pencil — bump their glyph so the
+   stroke-only icons read at the same visual weight. */
+.role-card__header-actions .icon-button--pending {
+  font-size: 18px;
+}
+
 .role-card__rename-form {
   display: flex;
   align-items: center;
