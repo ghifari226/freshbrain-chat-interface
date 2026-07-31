@@ -10,7 +10,7 @@ export default function MessageCopyButton({ text }) {
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 2500)
+      window.setTimeout(() => setCopied(false), 2000)
     } catch {
       // Clipboard can fail in insecure contexts — leave the button idle.
     }

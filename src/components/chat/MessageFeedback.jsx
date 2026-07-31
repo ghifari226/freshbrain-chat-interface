@@ -4,6 +4,7 @@ import { useT } from '../../hooks/useT.js'
 import MessageCopyButton from './MessageCopyButton.jsx'
 
 const REASONS = [
+  'reasonNeedsAnswer',
   'reasonWrongData',
   'reasonIncomplete',
   'reasonMisunderstood',

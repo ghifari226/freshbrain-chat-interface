@@ -2,13 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
-  BookOpen,
   ChevronDown,
-  ChevronUp,
   LogOut,
   Settings,
   UserShield,
-  CircleUserRound,
+  UserRound,
 } from 'lucide-react'
 import SettingsModal from '../modals/SettingsModal.jsx'
 import ProfileModal from '../modals/ProfileModal.jsx'
@@ -66,7 +64,7 @@ export default function UserMenu({
             }}
           >
             <span className="user-avatar">
-              <CircleUserRound />
+              <UserRound fill="currentColor" stroke="none" />
             </span>
             <span className="menu__profile-name">{session?.name}</span>
           </button>
@@ -126,7 +124,7 @@ export default function UserMenu({
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className="user-avatar">
-          <CircleUserRound />
+          <UserRound fill="currentColor" />
         </span>
         {!collapsed && (
           <>
