@@ -92,18 +92,32 @@ export interface RoleScope {
 
 export type MessageRole = 'user' | 'assistant'
 
+export type FeedbackRating = 'up' | 'down'
+
+export interface MessageFeedback {
+  rating: FeedbackRating
+  reason: string | null
+  comment: string | null
+}
+
 export interface ChatMessage {
   id: string
   role: MessageRole
   text: string
   createdAt: string
   isError?: boolean
-  feedback?: string
+  feedback?: MessageFeedback
+  // The message's own id as returned by POST /chat (main.py's ChatResponse) —
+  // distinct from `id` above, which is a local makeId() React key. This is
+  // what feedback submissions reference.
+  backendMessageId?: string
 }
 
 export interface Conversation {
+  // Always the real, backend-assigned conversation id — the frontend never
+  // generates one (App.jsx's handleSend holds the first exchange in
+  // pendingMessages, un-routed, until POST /chat's response provides this).
   id: string
-  backendId: string | null
   title: string
   timestamp: string
   messages: ChatMessage[]

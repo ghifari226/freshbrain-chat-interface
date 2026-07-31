@@ -1,4 +1,4 @@
-import { ShieldCheck, UserRoundCog, UsersRound } from 'lucide-react'
+import { ShieldCheck, UserCog, UsersRound } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 import { canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
 
@@ -26,7 +26,7 @@ export default function ConfigHome({ navigate, session }) {
 
         {canViewUsers(session) && (
           <button className="config-card" onClick={() => navigate('/config/users')}>
-            <UserRoundCog className="config-card__icon" />
+            <UserCog className="config-card__icon" />
             <span className="config-card__title">{t('config.usersCardTitle')}</span>
             <span className="config-card__desc">{t('config.usersCardDesc')}</span>
           </button>

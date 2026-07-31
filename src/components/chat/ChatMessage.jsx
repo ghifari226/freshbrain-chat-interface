@@ -1,3 +1,4 @@
+import MessageCopyButton from './MessageCopyButton.jsx'
 import MessageFeedback from './MessageFeedback.jsx'
 
 export default function Message({ role, text, feedback, isError, onFeedbackChange }) {
@@ -9,9 +10,13 @@ export default function Message({ role, text, feedback, isError, onFeedbackChang
         <div className={'message__bubble' + (isError ? ' message__bubble--error' : '')}>
           {text}
         </div>
-        {isAssistant && !isError && (
-          <MessageFeedback feedback={feedback} onChange={onFeedbackChange} />
-        )}
+        {isAssistant && !isError ? (
+          <MessageFeedback text={text} feedback={feedback} onChange={onFeedbackChange} />
+        ) : !isAssistant ? (
+          <div className="message-actions">
+            <MessageCopyButton text={text} />
+          </div>
+        ) : null}
       </div>
     </div>
   )

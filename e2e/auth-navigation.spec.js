@@ -15,7 +15,7 @@ test('logs in and opens access configuration', async ({ page }) => {
   await logInAsAdmin(page)
 
   await page.getByRole('button', { name: 'Menu akun' }).click()
-  await page.getByRole('button', { name: 'Konfigurasi Akses' }).click()
+  await page.getByRole('button', { name: 'Admin' }).click()
 
   await expect(page).toHaveURL('/config')
   await expect(page.getByRole('button', { name: 'Konfigurasi Akses' })).toBeVisible()
