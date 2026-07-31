@@ -14,7 +14,7 @@ import { useAuth } from '../../hooks/useAuth.js'
 import { canAccessConfigSection } from '../../config/permissions.js'
 
 function isAdminPath(path) {
-  return path.startsWith('/config') || path === '/freshpedia' || path === '/tool-catalog'
+  return path.startsWith('/admin')
 }
 
 export default function UserMenu({
@@ -92,7 +92,7 @@ export default function UserMenu({
               <button
                 className="menu__item"
                 onClick={() => {
-                  navigate('/config')
+                  navigate('/admin')
                   setIsOpen(false)
                 }}
               >

@@ -43,7 +43,7 @@ import { useAuth } from '../../hooks/useAuth.js'
 const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superadmin') }
 
 // Order-independent — see the identical concern in RolesPage's scopesEqual.
-// Both args are flag-shaped ({ 'user.view': boolean, ... }), never the
+// Both args are flag-shaped ({ 'users.view': boolean, ... }), never the
 // wire-shaped allowed_permissions array directly — see flagsForUser below.
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
@@ -172,9 +172,9 @@ function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldL
 export default function UsersPage() {
   const t = useT()
   const { session, updateSession } = useAuth()
-  const canAdd = hasPermission(session, 'user.add')
-  const canEdit = hasPermission(session, 'user.edit')
-  const canDelete = hasPermission(session, 'user.delete')
+  const canAdd = hasPermission(session, 'users.add')
+  const canEdit = hasPermission(session, 'users.edit')
+  const canDelete = hasPermission(session, 'users.delete')
   const canAssign = canAssignPermissions(session)
   const actorForUpdate = useMemo(
     () => ({ id: session?.id, token: session?.token }),
@@ -234,7 +234,7 @@ export default function UsersPage() {
   // Mirrors updateUser's runtime guard for immediate feedback — the actor
   // can't check a box for a field they don't already hold themselves,
   // whether editing their own row or (structurally impossible here, since
-  // the dialog can't even open on someone else without user.assign_permissions)
+  // the dialog can't even open on someone else without users.assign_permissions)
   // anyone else's.
   function isSelfEscalationBlocked(field) {
     return permissionsDialogUserId === session?.id && !hasPermission(session, field)

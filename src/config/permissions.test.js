@@ -18,20 +18,23 @@ describe('permission gates', () => {
   })
 
   it('allows each configuration section through any relevant capability', () => {
-    expect(canViewUsers({ 'user.edit': true })).toBe(true)
-    expect(canViewRoles({ 'role_scope.assign_scopes': true })).toBe(true)
-    expect(canViewPermissions({ 'permission.edit': true })).toBe(true)
-    expect(canAccessConfigSection({ 'user.view': true })).toBe(true)
+    expect(canViewUsers({ allowed_permissions: ['users.edit'] })).toBe(true)
+    expect(canViewRoles({ allowed_permissions: ['roles.assign_scopes'] })).toBe(true)
+    expect(canViewPermissions({ allowed_permissions: ['permissions.edit'] })).toBe(true)
+    expect(canAccessConfigSection({ allowed_permissions: ['users.view'] })).toBe(true)
   })
 
   it('keeps permission assignment behind its dedicated permission', () => {
-    expect(canAssignPermissions({ 'user.edit': true })).toBe(false)
-    expect(canAssignPermissions({ 'user.assign_permissions': true })).toBe(true)
+    expect(canAssignPermissions({ allowed_permissions: ['users.edit'] })).toBe(false)
+    expect(canAssignPermissions({ allowed_permissions: ['users.assign_permissions'] })).toBe(true)
   })
 
-  it('allows staging access to both managed chat catalogs', () => {
-    const stagingSession = { 'staging.test': true }
-    expect(canAccessFreshpedia(stagingSession)).toBe(true)
-    expect(canAccessToolCatalog(stagingSession)).toBe(true)
+  it('gates Freshpedia/Tool Catalog access on .view only', () => {
+    expect(canAccessFreshpedia({ allowed_permissions: ['staging.test'] })).toBe(false)
+    expect(canAccessFreshpedia({ allowed_permissions: ['freshpedia.request'] })).toBe(false)
+    expect(canAccessToolCatalog({ allowed_permissions: ['staging.test'] })).toBe(false)
+    expect(canAccessToolCatalog({ allowed_permissions: ['tools.request'] })).toBe(false)
+    expect(canAccessFreshpedia({ allowed_permissions: ['freshpedia.view'] })).toBe(true)
+    expect(canAccessToolCatalog({ allowed_permissions: ['tools.view'] })).toBe(true)
   })
 })

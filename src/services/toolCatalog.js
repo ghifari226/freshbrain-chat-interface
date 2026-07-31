@@ -238,7 +238,7 @@ export async function createToolCatalogEntry(input, actor, { signal } = {}) {
 
   await mockDelay(500, 900, signal)
 
-  if (!hasPermission(actor, 'tool.request')) {
+  if (!hasPermission(actor, 'tools.request')) {
     throw new Error('You do not have permission to submit tool requests')
   }
 
@@ -261,7 +261,7 @@ export async function createToolCatalogEntry(input, actor, { signal } = {}) {
 
 /**
  * `PATCH /tool-catalog-request/{id}` — pending entries only, editable by
- * anyone holding tool.request, not restricted to the entry's own
+ * anyone holding tools.request, not restricted to the entry's own
  * submitter. No published-entry equivalent exists (no
  * `PATCH /tool-catalog/{id}`) — nothing today can promote an entry out of
  * this collection, so there's nothing for that endpoint to ever edit; see
@@ -288,7 +288,7 @@ export async function updateToolCatalogRequestEntry(id, updates, actor, { signal
   const entry = MOCK_TOOLS.find((e) => e.id === id && e.status === 'request')
   if (!entry) throw new Error('Entry not found')
 
-  if (!hasPermission(actor, 'tool.request')) {
+  if (!hasPermission(actor, 'tools.request')) {
     throw new Error('You do not have permission to edit this entry')
   }
   if (updates.status !== undefined) {

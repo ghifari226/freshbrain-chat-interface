@@ -22,9 +22,7 @@ import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { strings } from './i18n/strings.js'
 
 const MuiPage = lazy(() => import('./pages/MuiPage.jsx'))
-const ConfigSection = lazy(() => import('./pages/config/ConfigSection.jsx'))
-const FreshpediaPage = lazy(() => import('./pages/FreshpediaPage.jsx'))
-const ToolCatalogPage = lazy(() => import('./pages/ToolCatalogPage.jsx'))
+const AdminSection = lazy(() => import('./pages/admin/AdminSection.jsx'))
 
 function AuthenticatedApp({ language, setLanguage }) {
   const { pathname: path } = useLocation()
@@ -313,31 +311,11 @@ function AuthenticatedApp({ language, setLanguage }) {
         <Route path="/" element={chatPanel} />
         <Route path="/chat/:conversationId" element={chatPanel} />
         <Route
-          path="/config/*"
+          path="/admin/*"
           element={
             <Suspense fallback={<div className="config-page" />}>
               <MuiPage mode={theme}>
-                <ConfigSection />
-              </MuiPage>
-            </Suspense>
-          }
-        />
-        <Route
-          path="/freshpedia"
-          element={
-            <Suspense fallback={<div className="config-page" />}>
-              <MuiPage mode={theme}>
-                <FreshpediaPage language={language} />
-              </MuiPage>
-            </Suspense>
-          }
-        />
-        <Route
-          path="/tool-catalog"
-          element={
-            <Suspense fallback={<div className="config-page" />}>
-              <MuiPage mode={theme}>
-                <ToolCatalogPage />
+                <AdminSection language={language} />
               </MuiPage>
             </Suspense>
           }

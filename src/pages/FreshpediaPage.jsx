@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@mui/material'
-import StandalonePageLayout from './StandalonePageLayout.jsx'
 import FreshpediaEntryDialog from './freshpedia/FreshpediaEntryDialog.jsx'
 import FreshpediaEntryList from './freshpedia/FreshpediaEntryList.jsx'
 import FreshpediaFilters from './freshpedia/FreshpediaFilters.jsx'
@@ -170,7 +169,7 @@ export default function FreshpediaPage({ language }) {
   if (!isAuthorized) return null
 
   return (
-    <StandalonePageLayout titleKey="freshpedia.title">
+    <>
       <div className="config-section">
         {canViewRequest && (
           <div className="config-section__title-row">
@@ -223,6 +222,6 @@ export default function FreshpediaPage({ language }) {
         setForm={setForm}
         t={t}
       />
-    </StandalonePageLayout>
+    </>
   )
 }

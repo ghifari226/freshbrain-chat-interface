@@ -31,19 +31,19 @@ import { mockDelay } from './mockDelay.ts'
  * is the actual source of truth this list has to stay in sync with; this
  * typedef is documentation, not enforcement.
  * @typedef {{
- *   'permission.view': boolean,
- *   'permission.edit': boolean,
- *   'role_scope.view': boolean,
- *   'role_scope.add_role': boolean,
- *   'role_scope.edit_role': boolean,
- *   'role_scope.assign_scopes': boolean,
- *   'user.view': boolean,
- *   'user.add': boolean,
- *   'user.edit': boolean,
- *   'user.delete': boolean,
- *   'user.assign_permissions': boolean,
- *   'tool.view': boolean,
- *   'tool.request': boolean,
+ *   'permissions.view': boolean,
+ *   'permissions.edit': boolean,
+ *   'roles.view': boolean,
+ *   'roles.add_role': boolean,
+ *   'roles.edit_role': boolean,
+ *   'roles.assign_scopes': boolean,
+ *   'users.view': boolean,
+ *   'users.add': boolean,
+ *   'users.edit': boolean,
+ *   'users.delete': boolean,
+ *   'users.assign_permissions': boolean,
+ *   'tools.view': boolean,
+ *   'tools.request': boolean,
  *   'freshpedia.view': boolean,
  *   'freshpedia.request': boolean,
  *   'freshpedia.change_status': boolean,
@@ -369,12 +369,12 @@ export async function updateUser(id, updates, actor, { signal } = {}) {
     updates.name !== undefined || updates.phone !== undefined || updates.role !== undefined
 
   // Field-level gate: any of the 17 permission booleans need
-  // user.assign_permissions (single flag now, both groups); name/phone/role
-  // need user.edit — see permission-catalog.md's "who can edit" column.
-  if (touchedPermissionFields.length > 0 && !actorPermissions['user.assign_permissions']) {
+  // users.assign_permissions (single flag now, both groups); name/phone/role
+  // need users.edit — see permission-catalog.md's "who can edit" column.
+  if (touchedPermissionFields.length > 0 && !actorPermissions['users.assign_permissions']) {
     throw new Error('You do not have permission to edit this field')
   }
-  if (touchesProfileOrRole && !actorPermissions['user.edit']) {
+  if (touchesProfileOrRole && !actorPermissions['users.edit']) {
     throw new Error('You do not have permission to edit this field')
   }
 
@@ -394,7 +394,7 @@ export async function updateUser(id, updates, actor, { signal } = {}) {
   }
 
   // Reassigning ANY user to Superadmin requires the actor to already hold
-  // all locked permissions themselves — not just user.edit. Applies
+  // all locked permissions themselves — not just users.edit. Applies
   // regardless of whether the target is the actor's own row. Gated on an
   // actual transition (user.role !== 'Superadmin' already) so a no-op edit
   // that merely leaves an existing Superadmin user's role field unchanged
@@ -429,7 +429,7 @@ export async function updateUser(id, updates, actor, { signal } = {}) {
 
 /**
  * No `DELETE /users/{id}` documented in auth-contract.md yet.
- * The mock contract below is gated by `user.delete`,
+ * The mock contract below is gated by `users.delete`,
  * re-validated live like updateUser's writes. An actor can never delete
  * their own row (self-lockout guard, mirrors the self-escalation guard
  * above) — there's no cascade to reassign a self-deleted admin's work.
@@ -454,7 +454,7 @@ export async function deleteUser(id, actor, { signal } = {}) {
   }
 
   const actorUser = MOCK_USERS.find((u) => u.id === actor?.id)
-  if (!actorUser || !shapeUserPermissions(actorUser)['user.delete']) {
+  if (!actorUser || !shapeUserPermissions(actorUser)['users.delete']) {
     throw new Error('You do not have permission to delete users')
   }
 

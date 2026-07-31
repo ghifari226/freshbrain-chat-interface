@@ -28,6 +28,7 @@
   font: inherit;
   font-size: 16px;
   font-weight: 600;
+  cursor: default;
 }
 
 /* Breadcrumb: "Access Configuration" de-emphasizes to this once a sub-page
@@ -100,54 +101,59 @@
   margin: 0 0 20px;
 }
 
-/* Landing page */
+/* Landing page — a centered, top-to-bottom menu (Freshpedia, Tool
+   Catalog, Role Scopes, Permissions, Users all as equal peers), each row
+   a bordered card with its icon beside the label, not a multi-column
+   grid — wide/tall enough to read as "covering the page" without
+   abandoning the single-column order. */
 
-.config-home__intro {
-  color: var(--text-muted);
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 0 0 24px;
-}
-
-.config-home__cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-.config-card {
+.admin-home {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  text-align: left;
-  border: 1px solid var(--border);
-  background: var(--surface-response);
-  border-radius: 12px;
-  padding: 18px;
+  align-items: center;
+  padding-top: 48px;
 }
 
-.config-card:hover {
+.admin-home__title {
+  margin: 0 0 28px;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-chat);
+  text-align: center;
+}
+
+.admin-home__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.admin-home__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-response);
+  color: var(--text-chat);
+  text-align: left;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 16px 18px;
+  border-radius: 12px;
+}
+
+.admin-home__item:hover {
   border-color: var(--accent);
 }
 
-.config-card__icon {
-  width: 18px;
-  height: 18px;
+.admin-home__item-icon {
+  width: 20px;
+  height: 20px;
   color: var(--accent);
-  font-size: 18px;
-}
-
-.config-card__title {
-  color: var(--text-chat);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.config-card__desc {
-  color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.5;
+  flex-shrink: 0;
 }
 
 /* Scope catalog (read-only) */
@@ -785,9 +791,9 @@
 }
 
 /* Permissions page entry rows — label reads first and prominent (this is
-   what a human is scanning for), the technical key trails it in muted
-   monospace with deliberately generous spacing so it reads as secondary
-   metadata, not a continuation of the label. */
+   what a human is scanning for), the technical key sits below it in muted
+   monospace so it reads as secondary metadata, not a continuation of the
+   label. */
 .permission-entry__label {
   color: var(--text-chat);
   font-weight: 600;
@@ -796,6 +802,40 @@
 .permission-entry__key {
   font-family: monospace;
   color: var(--text-muted);
+}
+
+/* Permissions Catalog's 6 prefix-derived groups (Freshpedia/Tools/
+   Permissions/Roles/Users/Staging) — single column of .permission-group
+   cards (reusing that class's existing bordered-card look, shared with
+   the Shield dialog) rather than the flex-column stack
+   .permission-group-list uses there. Group sizes vary a lot (1 to 5
+   entries), which staggered unevenly in a 2-column grid — one column
+   keeps every card's width consistent regardless of how long its
+   neighbor is. */
+.permission-catalog-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Permissions Catalog's per-entry row — title on the left, its greyed key
+   and edit button together on the right. Scoped separately from
+   .entry-index__entry-row/.entry-index__actions since those are shared
+   with Freshpedia/Tool Catalog's own status lists and keep their own
+   inline layout. */
+.permission-entry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px;
+}
+
+.permission-entry-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 /* Transition-icon and edit-icon colors on entry-index rows — green for a

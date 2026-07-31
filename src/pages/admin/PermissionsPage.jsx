@@ -9,18 +9,15 @@ function isFormValid(form) {
   return Boolean(form.labelId.trim())
 }
 
-// Hardcoded for now, per the request — not derived from PERMISSION_GROUPS,
-// since "Permission"/"Role"/"User" are a finer split than the two display
-// groups (all three currently live inside "System Access"). "Chat
-// capability access" matches that group 1:1 (freshpedia/tool/staging).
-// Permission before Role before User, matching the same order as
-// SYSTEM_ACCESS_PERMISSIONS/the sidebar/the landing page.
-const FILTER_CHIPS = [
-  { id: 'chat_capability', labelKey: 'permissions.chatAccessSectionLabel', match: (key) => key.startsWith('tool.') || key.startsWith('freshpedia.') || key.startsWith('staging.') },
-  { id: 'permission', labelKey: 'config.filterChipPermission', match: (key) => key.startsWith('permission.') },
-  { id: 'role', labelKey: 'config.filterChipRole', match: (key) => key.startsWith('role_scope.') },
-  { id: 'user', labelKey: 'config.filterChipUser', match: (key) => key.startsWith('user.') },
-]
+// Same 6 prefix-derived groups the catalog itself is organized into
+// (Freshpedia/Tools/Permissions/Roles/Users/Staging) — single source of
+// truth, so the filter chips can't drift out of sync with the sections
+// below them. Labels are literal (untranslated), matching PERMISSION_GROUPS.
+const FILTER_CHIPS = PERMISSION_GROUPS.map((group) => ({
+  id: group.id,
+  label: group.label,
+  match: (key) => group.array.includes(key),
+}))
 
 // The permission catalog is fixed, code-level (permissions.js) — no way to
 // add an 18th boolean column via the UI, only view the existing 17 and edit
@@ -29,10 +26,10 @@ const FILTER_CHIPS = [
 // the key as a literal string).
 export default function PermissionsPage({ session }) {
   const t = useT()
-  const canEdit = hasPermission(session, 'permission.edit')
+  const canEdit = hasPermission(session, 'permissions.edit')
   const [permissions, setPermissions] = useState(getPermissionCatalog)
   const [formTarget, setFormTarget] = useState(null)
-  const [form, setForm] = useState({ key: '', group: '', labelId: '', labelEn: '' })
+  const [form, setForm] = useState({ key: '', labelId: '', labelEn: '' })
   const [formError, setFormError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedChips, setSelectedChips] = useState(new Set())
@@ -73,7 +70,7 @@ export default function PermissionsPage({ session }) {
 
   function openEditForm(entry) {
     const label = resolveLabelEntry(entry.labelKey)
-    setForm({ key: entry.key, group: entry.group, labelId: label.id, labelEn: label.en })
+    setForm({ key: entry.key, labelId: label.id, labelEn: label.en })
     setFormError('')
     setFormTarget(entry.key)
   }
@@ -105,7 +102,7 @@ export default function PermissionsPage({ session }) {
             return (
               <Chip
                 key={chip.id}
-                label={t(chip.labelKey)}
+                label={chip.label}
                 size="small"
                 clickable
                 onClick={() => toggleChip(chip.id)}
@@ -125,18 +122,16 @@ export default function PermissionsPage({ session }) {
         />
       </div>
 
-      <div className="permission-group-list">
+      <div className="permission-catalog-grid">
         {groupedRows.map((group) => (
           <div className="permission-group" key={group.id}>
-            <span className="permission-group__label">{t(group.labelKey)}</span>
+            <span className="permission-group__label">{group.label}</span>
             <ul className="entry-index">
               {group.entries.map((entry) => (
                 <li className="entry-index__entry" key={entry.key}>
-                  <div className="entry-index__entry-row">
-                    <span className="entry-index__entry-label">
-                      <span className="permission-entry__label">{t(entry.labelKey)}</span>
-                    </span>
-                    <div className="entry-index__actions">
+                  <div className="permission-entry-row">
+                    <span className="permission-entry__label">{t(entry.labelKey)}</span>
+                    <div className="permission-entry-row__actions">
                       <code className="permission-entry__key">{entry.key}</code>
                       {canEdit && (
                         <Tooltip title={t('config.editPermission')}>

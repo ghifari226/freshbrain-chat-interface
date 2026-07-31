@@ -2,26 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
-  BookOpen,
-  ChevronDown,
-  ChevronUp,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
   SquarePen,
-  ShieldCheck,
-  ShieldCogCorner,
-  UserCog,
-  UsersRound,
-  Wrench,
 } from 'lucide-react'
 import ConversationItem from '../chat/ConversationItem.jsx'
 import UserMenu from './UserMenu.jsx'
 import SearchModal from '../modals/SearchModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
-import { canAccessFreshpedia, canAccessToolCatalog, canAccessConfigSection, canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
+import { ADMIN_NAV_ITEMS } from '../../config/adminNav.js'
 
 export default function Sidebar({
   variant = 'chat',
@@ -51,32 +43,6 @@ export default function Sidebar({
   )
   const [isRecentsOpen, setIsRecentsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  // Expanded nav variant's Access Config accordion: independent open/closed
-  // state (seeded from whether you're currently under /config, so landing
-  // directly on e.g. /config/users via URL still shows it expanded), not
-  // purely route-derived — see handleConfigNavClick below for why. The
-  // collapsed rail's flyout is a floating overlay instead, so it gets a
-  // different model entirely (pure CSS :hover/:focus-within, no JS state —
-  // see sidebar.css): hover previews the children and closes the instant the
-  // mouse leaves, while a click on the icon itself always just navigates to
-  // /config, full stop.
-  const [isConfigNavOpen, setIsConfigNavOpen] = useState(() => path.startsWith('/config'))
-  // CSS :hover alone has no memory of a click — it'd stay open as long as
-  // the mouse hasn't physically moved away, which reads as lingering after
-  // a selection. This force-hides it the instant any item (or the icon
-  // itself) is clicked, regardless of continued hover, and clears again on
-  // a later mouseleave so the next hover-in opens it fresh.
-  const [isConfigFlyoutSuppressed, setIsConfigFlyoutSuppressed] = useState(false)
-  // Hiding the flyout out from under a stationary cursor (via the
-  // suppression above) exposes whatever page content was underneath it,
-  // which the browser correctly treats as "the mouse left the sidebar" —
-  // a real mouseleave, not a glitch. But that means the mouse has
-  // effectively moved onto the page, not back onto the sidebar, so no
-  // further mouseleave will ever come along to clear the suppression flag
-  // — it'd stay stuck until the user happened to hover the sidebar and
-  // back off again. A fixed timeout clears it deterministically instead,
-  // independent of whatever mouse events do or don't fire in between.
-  const configFlyoutTimeoutRef = useRef(null)
   const recentsWrapRef = useRef(null)
 
   useEffect(() => {
@@ -89,12 +55,7 @@ export default function Sidebar({
     return () => mobileViewport.removeEventListener('change', collapseForMobile)
   }, [])
 
-  const canSeeFreshpedia = canAccessFreshpedia(session)
-  const canSeeToolCatalog = canAccessToolCatalog(session)
-  const canSeeConfig = canAccessConfigSection(session)
-  const canSeeRoles = canViewRoles(session)
-  const canSeePermissions = canViewPermissions(session)
-  const canSeeUsers = canViewUsers(session)
+  const visibleAdminItems = ADMIN_NAV_ITEMS.filter((item) => item.canSee(session))
 
   useEffect(() => {
     if (!isRecentsOpen) return
@@ -115,33 +76,6 @@ export default function Sidebar({
   function selectFromSearch(conversationId) {
     onSelectConversation(conversationId)
     setIsSearchOpen(false)
-  }
-
-  // Expanded nav's Access Config item is both a link and an accordion
-  // toggle: collapsed -> click opens the /config overview and expands the
-  // children; expanded -> click only collapses, it never re-navigates. That
-  // second half matters because navigate('/config') while already sitting
-  // on e.g. /config/users would otherwise bounce you back to the overview
-  // page just for collapsing the list — this way collapsing never moves you.
-  function handleConfigNavClick() {
-    if (isConfigNavOpen) {
-      setIsConfigNavOpen(false)
-      return
-    }
-    setIsConfigNavOpen(true)
-    navigate('/config')
-  }
-
-  function selectFromConfigFlyout(nextPath, event) {
-    // Clicking a button gives it native focus, which persists even after it
-    // becomes display:none — leaving :focus-within (added for keyboard
-    // access) matching and reopening the menu right behind the suppression
-    // below. Blur it explicitly so focus-within actually clears too.
-    event.currentTarget.blur()
-    navigate(nextPath)
-    setIsConfigFlyoutSuppressed(true)
-    clearTimeout(configFlyoutTimeoutRef.current)
-    configFlyoutTimeoutRef.current = setTimeout(() => setIsConfigFlyoutSuppressed(false), 300)
   }
 
   return (
@@ -231,78 +165,17 @@ export default function Sidebar({
                 <ArrowLeft />
               </button>
 
-              {canSeeFreshpedia && (
+              {visibleAdminItems.map((item) => (
                 <button
-                  className={'icon-button' + (path === '/freshpedia' ? ' icon-button--active' : '')}
-                  aria-label={t('userMenu.freshpedia')}
-                  data-tooltip={t('userMenu.freshpedia')}
-                  onClick={() => navigate('/freshpedia')}
+                  key={item.path}
+                  className={'icon-button' + (path === item.path ? ' icon-button--active' : '')}
+                  aria-label={t(item.labelKey)}
+                  data-tooltip={t(item.labelKey)}
+                  onClick={() => navigate(item.path)}
                 >
-                  <BookOpen />
+                  <item.Icon />
                 </button>
-              )}
-
-              {canSeeToolCatalog && (
-                <button
-                  className={'icon-button' + (path === '/tool-catalog' ? ' icon-button--active' : '')}
-                  aria-label={t('userMenu.toolCatalog')}
-                  data-tooltip={t('userMenu.toolCatalog')}
-                  onClick={() => navigate('/tool-catalog')}
-                >
-                  <Wrench />
-                </button>
-              )}
-
-              {canSeeConfig && (
-                <div
-                  className={
-                    'sidebar-collapsed__recents sidebar-collapsed__config-flyout' +
-                    (isConfigFlyoutSuppressed ? ' sidebar-collapsed__config-flyout--suppressed' : '')
-                  }
-                  onMouseLeave={() => {
-                    clearTimeout(configFlyoutTimeoutRef.current)
-                    setIsConfigFlyoutSuppressed(false)
-                  }}
-                >
-                  <button
-                    className={'icon-button' + (path.startsWith('/config') ? ' icon-button--active' : '')}
-                    aria-label={t('userMenu.accessConfig')}
-                    onClick={(event) => selectFromConfigFlyout('/config', event)}
-                  >
-                    <ShieldCogCorner />
-                  </button>
-
-                  <div className="menu menu--recents">
-                    {canSeePermissions && (
-                      <button
-                        className="menu__item"
-                        onClick={(event) => selectFromConfigFlyout('/config/permissions', event)}
-                      >
-                        <ShieldCheck className="menu__item-icon" />
-                        <span className="menu__item-text">{t('config.navPermissions')}</span>
-                      </button>
-                    )}
-                    {canSeeRoles && (
-                      <button
-                        className="menu__item"
-                        onClick={(event) => selectFromConfigFlyout('/config/roles', event)}
-                      >
-                        <UsersRound className="menu__item-icon" />
-                        <span className="menu__item-text">{t('config.navRoles')}</span>
-                      </button>
-                    )}
-                    {canSeeUsers && (
-                      <button
-                        className="menu__item"
-                        onClick={(event) => selectFromConfigFlyout('/config/users', event)}
-                      >
-                        <UserCog className="menu__item-icon" />
-                        <span className="menu__item-text">{t('config.navUsers')}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+              ))}
             </>
           )}
 
@@ -399,90 +272,18 @@ export default function Sidebar({
 
               <div className="sidebar-section">
                 <nav className="sidebar-nav">
-                  {canSeeFreshpedia && (
+                  {visibleAdminItems.map((item) => (
                     <button
+                      key={item.path}
                       className={
-                        'sidebar-nav__item' + (path === '/freshpedia' ? ' sidebar-nav__item--active' : '')
+                        'sidebar-nav__item' + (path === item.path ? ' sidebar-nav__item--active' : '')
                       }
-                      onClick={() => navigate('/freshpedia')}
+                      onClick={() => navigate(item.path)}
                     >
-                      <BookOpen className="sidebar-nav__item-icon" />
-                      <span className="sidebar-nav__item-label">{t('userMenu.freshpedia')}</span>
+                      <item.Icon className="sidebar-nav__item-icon" />
+                      <span className="sidebar-nav__item-label">{t(item.labelKey)}</span>
                     </button>
-                  )}
-
-                  {canSeeToolCatalog && (
-                    <button
-                      className={
-                        'sidebar-nav__item' + (path === '/tool-catalog' ? ' sidebar-nav__item--active' : '')
-                      }
-                      onClick={() => navigate('/tool-catalog')}
-                    >
-                      <Wrench className="sidebar-nav__item-icon" />
-                      <span className="sidebar-nav__item-label">{t('userMenu.toolCatalog')}</span>
-                    </button>
-                  )}
-
-                  {canSeeConfig && (
-                    <div className="sidebar-nav__group">
-                      <button
-                        className={
-                          'sidebar-nav__item' +
-                          (path.startsWith('/config') ? ' sidebar-nav__item--active' : '')
-                        }
-                        onClick={handleConfigNavClick}
-                      >
-                        <ShieldCogCorner className="sidebar-nav__item-icon" />
-                        <span className="sidebar-nav__item-label">{t('userMenu.accessConfig')}</span>
-                        {isConfigNavOpen ? (
-                          <ChevronUp className="sidebar-nav__item-chevron" />
-                        ) : (
-                          <ChevronDown className="sidebar-nav__item-chevron" />
-                        )}
-                      </button>
-
-                      {isConfigNavOpen && (
-                        <div className="sidebar-nav__children">
-                          {canSeePermissions && (
-                            <button
-                              className={
-                                'sidebar-nav__child-item' +
-                                (path === '/config/permissions' ? ' sidebar-nav__child-item--active' : '')
-                              }
-                              onClick={() => navigate('/config/permissions')}
-                            >
-                              <ShieldCheck className="sidebar-nav__child-item-icon" />
-                              <span>{t('config.navPermissions')}</span>
-                            </button>
-                          )}
-                          {canSeeRoles && (
-                            <button
-                              className={
-                                'sidebar-nav__child-item' +
-                                (path === '/config/roles' ? ' sidebar-nav__child-item--active' : '')
-                              }
-                              onClick={() => navigate('/config/roles')}
-                            >
-                              <UsersRound className="sidebar-nav__child-item-icon" />
-                              <span>{t('config.navRoles')}</span>
-                            </button>
-                          )}
-                          {canSeeUsers && (
-                            <button
-                              className={
-                                'sidebar-nav__child-item' +
-                                (path === '/config/users' ? ' sidebar-nav__child-item--active' : '')
-                              }
-                              onClick={() => navigate('/config/users')}
-                            >
-                              <UserCog className="sidebar-nav__child-item-icon" />
-                              <span>{t('config.navUsers')}</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  ))}
                 </nav>
               </div>
             </>

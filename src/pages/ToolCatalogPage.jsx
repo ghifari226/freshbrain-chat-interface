@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@mui/material'
-import StandalonePageLayout from './StandalonePageLayout.jsx'
 import ToolCatalogFilters from './tool-catalog/ToolCatalogFilters.jsx'
 import ToolCatalogTable from './tool-catalog/ToolCatalogTable.jsx'
 import ToolEntryDialog from './tool-catalog/ToolEntryDialog.jsx'
@@ -27,9 +26,9 @@ export default function ToolCatalogPage() {
   const { session } = useAuth()
   const isAuthorized = useAuthorizedPage(canAccessToolCatalog(session))
 
-  const canViewProduction = hasPermission(session, 'tool.view')
+  const canViewProduction = hasPermission(session, 'tools.view')
   const canViewStaging = hasPermission(session, 'staging.test')
-  const canViewRequest = hasPermission(session, 'tool.request')
+  const canViewRequest = hasPermission(session, 'tools.request')
   const statusFilters = useStatusFilters({
     canViewProduction,
     canViewStaging,
@@ -162,7 +161,7 @@ export default function ToolCatalogPage() {
   const isEditMode = Boolean(entryFormTarget) && entryFormTarget !== 'new'
 
   return (
-    <StandalonePageLayout titleKey="toolCatalog.title">
+    <>
       <div className="config-section">
         {canViewRequest && (
           <div className="config-section__title-row">
@@ -211,6 +210,6 @@ export default function ToolCatalogPage() {
         systems={systems}
         t={t}
       />
-    </StandalonePageLayout>
+    </>
   )
 }

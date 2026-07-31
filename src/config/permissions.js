@@ -7,36 +7,35 @@
 // chat-time data/tool access, not any of this. Keys contain dots, so
 // hasPermission() below (never dot access) is the one place that reads them.
 //
-// Two display groups only now — "Chat capability access" (the three
-// end-user chat surfaces, shown first) and "System Access" (role/
-// permission/user administration). The old per-group meta-permissions
-// (config_access_permission_edit, chat_access_permission_edit) are gone;
-// a single `user.assign_permissions` now gates editing anyone else's
-// permissions at all, for both groups.
+// Two flat arrays only now — "Chat capability access" (the three end-user
+// chat surfaces) and "System Access" (roles/permissions/user
+// administration), still used to seed ALL_PERMISSIONS and the Shield
+// dialog's two checkbox sections. The Permissions Catalog page groups by
+// prefix instead (see PERMISSION_GROUPS below), not by this split.
 
 // Permission entries before Role Scope before User, throughout — matches
 // the same order as the Access Configuration landing page/sidebar (System
 // permissions before Role Scopes).
 export const SYSTEM_ACCESS_PERMISSIONS = [
-  'permission.view',
-  'permission.edit',
-  'role_scope.view',
-  'role_scope.add_role',
-  'role_scope.edit_role',
-  'role_scope.assign_scopes',
-  'user.view',
-  'user.add',
-  'user.edit',
-  'user.delete',
-  'user.assign_permissions',
+  'permissions.view',
+  'permissions.edit',
+  'roles.view',
+  'roles.add_role',
+  'roles.edit_role',
+  'roles.assign_scopes',
+  'users.view',
+  'users.add',
+  'users.edit',
+  'users.delete',
+  'users.assign_permissions',
 ]
 
 export const CHAT_ACCESS_PERMISSIONS = [
   'freshpedia.view',
   'freshpedia.request',
   'freshpedia.change_status',
-  'tool.view',
-  'tool.request',
+  'tools.view',
+  'tools.request',
   'staging.test',
 ]
 
@@ -47,71 +46,78 @@ export const ALL_PERMISSIONS = [...SYSTEM_ACCESS_PERMISSIONS, ...CHAT_ACCESS_PER
 // authService.js's shaping functions and UsersPage's UI-disable logic so
 // the two can never drift apart. This is the minimum needed to avoid a
 // chicken-and-egg lockout: grant permissions to un-stick anyone else
-// (including another Superadmin). role_scope.view and role_scope.assign_scopes
+// (including another Superadmin). roles.view and roles.assign_scopes
 // used to be locked here too but are now ordinary editable booleans for
-// Superadmin like any other role's permissions — only user.assign_permissions
+// Superadmin like any other role's permissions — only users.assign_permissions
 // remains locked. (Technology used to hold this lock; nothing is hardcoded to
 // Technology anymore — see authService.js's technologyPermissions(), which
 // now just defaults everything to true, editable like any other role's
 // permissions.)
-export const SUPERADMIN_LOCKED_PERMISSIONS = ['user.assign_permissions']
+export const SUPERADMIN_LOCKED_PERMISSIONS = ['users.assign_permissions']
 
-export const PERMISSION_GROUPS = [
-  { id: 'chat_access', array: CHAT_ACCESS_PERMISSIONS, labelKey: 'permissions.chatAccessSectionLabel' },
-  { id: 'system_access', array: SYSTEM_ACCESS_PERMISSIONS, labelKey: 'permissions.systemAccessSectionLabel' },
+// Permissions Catalog page's 6 display groups — derived purely from each
+// key's prefix, not reassignable (there's no "move this permission to a
+// different group" UI, and a prefix is baked into the key itself). Names
+// are literal, not i18n keys — these are technical/brand-shaped labels
+// (Freshpedia, Tools, ...), not prose, so they're the same in every
+// language by design.
+const PERMISSION_CATALOG_GROUP_DEFS = [
+  { id: 'freshpedia', label: 'Freshpedia' },
+  { id: 'tools', label: 'Tools' },
+  { id: 'staging', label: 'Staging' },
+  { id: 'permissions', label: 'Permissions' },
+  { id: 'roles', label: 'Roles' },
+  { id: 'users', label: 'Users' },
 ]
 
+export const PERMISSION_GROUPS = PERMISSION_CATALOG_GROUP_DEFS.map((group) => ({
+  id: group.id,
+  label: group.label,
+  array: ALL_PERMISSIONS.filter((key) => key.startsWith(group.id + '.')),
+}))
+
 export const PERMISSION_LABEL_KEYS = {
-  'permission.view': 'permissions.permissionView',
-  'permission.edit': 'permissions.permissionEdit',
-  'role_scope.view': 'permissions.roleScopeView',
-  'role_scope.add_role': 'permissions.roleScopeAddRole',
-  'role_scope.edit_role': 'permissions.roleScopeEditRole',
-  'role_scope.assign_scopes': 'permissions.roleScopeAssignScopes',
-  'user.view': 'permissions.userView',
-  'user.add': 'permissions.userAdd',
-  'user.edit': 'permissions.userEdit',
-  'user.delete': 'permissions.userDelete',
-  'user.assign_permissions': 'permissions.userAssignPermissions',
+  'permissions.view': 'permissions.permissionView',
+  'permissions.edit': 'permissions.permissionEdit',
+  'roles.view': 'permissions.roleScopeView',
+  'roles.add_role': 'permissions.roleScopeAddRole',
+  'roles.edit_role': 'permissions.roleScopeEditRole',
+  'roles.assign_scopes': 'permissions.roleScopeAssignScopes',
+  'users.view': 'permissions.userView',
+  'users.add': 'permissions.userAdd',
+  'users.edit': 'permissions.userEdit',
+  'users.delete': 'permissions.userDelete',
+  'users.assign_permissions': 'permissions.userAssignPermissions',
   'freshpedia.view': 'permissions.freshpediaView',
   'freshpedia.request': 'permissions.freshpediaRequest',
   'freshpedia.change_status': 'permissions.freshpediaChangeStatus',
-  'tool.view': 'permissions.toolView',
-  'tool.request': 'permissions.toolRequest',
+  'tools.view': 'permissions.toolView',
+  'tools.request': 'permissions.toolRequest',
   'staging.test': 'permissions.stagingTest',
 }
 
 // No addPermissionToCatalog — the permission catalog is a fixed, code-level
 // concern (this file), not something grantable/creatable at runtime through
-// the UI. permission.add (the permission key that used to gate that
+// the UI. permissions.add (the permission key that used to gate that
 // capability) is gone too, for the same reason: there's nothing left for
 // it to gate. updatePermissionInCatalog below (editing a label) is the only
 // mutation any user, including Superadmin, can still make from the UI.
 
 /**
- * Edits only the display label and which group a permission belongs to —
- * the key itself is immutable once created (every gating check in this
- * codebase references these exact strings; renaming one live would silently
- * break whatever it gates). No delete at all, for any permission, built-in
- * or custom. The label is a full { id, en } pair (not a strings.js path) —
- * PERMISSION_LABEL_KEYS[key] holds either a path (built-in, untouched) or
- * this resolved object (once edited); useT's t() handles both.
+ * Edits only the display label — the key itself is immutable once created
+ * (every gating check in this codebase references these exact strings;
+ * renaming one live would silently break whatever it gates), and the group
+ * is derived from the key's prefix, not something to reassign. No delete at
+ * all, for any permission, built-in or custom. The label is a full
+ * { id, en } pair (not a strings.js path) — PERMISSION_LABEL_KEYS[key]
+ * holds either a path (built-in, untouched) or this resolved object (once
+ * edited); useT's t() handles both.
  *
  * @param {string} key
- * @param {{ group?: string, label?: { id: string, en: string } }} updates
+ * @param {{ label?: { id: string, en: string } }} updates
  */
-export function updatePermissionInCatalog(key, { group, label }) {
+export function updatePermissionInCatalog(key, { label }) {
   if (!ALL_PERMISSIONS.includes(key)) throw new Error('Permission not found')
-
-  if (group !== undefined) {
-    const groupEntry = PERMISSION_GROUPS.find((g) => g.id === group)
-    if (!groupEntry) throw new Error('Unknown permission group')
-    for (const g of PERMISSION_GROUPS) {
-      const index = g.array.indexOf(key)
-      if (index !== -1) g.array.splice(index, 1)
-    }
-    groupEntry.array.push(key)
-  }
 
   if (label !== undefined) {
     const id = label.id.trim() || key
@@ -146,7 +152,7 @@ export function hasPermission(bag, key) {
 
 /** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewUsers(permissions) {
-  return ['user.view', 'user.add', 'user.edit', 'user.delete', 'user.assign_permissions'].some(
+  return ['users.view', 'users.add', 'users.edit', 'users.delete', 'users.assign_permissions'].some(
     (field) => hasPermission(permissions, field),
   )
 }
@@ -154,16 +160,16 @@ export function canViewUsers(permissions) {
 /** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewRoles(permissions) {
   return [
-    'role_scope.view',
-    'role_scope.add_role',
-    'role_scope.edit_role',
-    'role_scope.assign_scopes',
+    'roles.view',
+    'roles.add_role',
+    'roles.edit_role',
+    'roles.assign_scopes',
   ].some((field) => hasPermission(permissions, field))
 }
 
 /** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewPermissions(permissions) {
-  return hasPermission(permissions, 'permission.view') || hasPermission(permissions, 'permission.edit')
+  return hasPermission(permissions, 'permissions.view') || hasPermission(permissions, 'permissions.edit')
 }
 
 // Any of the 18 present => can reach /config at all (nav-menu gate).
@@ -180,22 +186,26 @@ export function canAccessConfigSection(permissions) {
  * @param {{ allowed_permissions?: string[] } | undefined} actorPermissions
  */
 export function canAssignPermissions(actorPermissions) {
-  return hasPermission(actorPermissions, 'user.assign_permissions')
+  return hasPermission(actorPermissions, 'users.assign_permissions')
 }
 
-/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
+/**
+ * Page-reachability gate — .view only, by design: staging.test and
+ * freshpedia.request still gate their own tab/button *inside* the page
+ * (see useStatusFilters + FreshpediaPage.jsx), but neither grants
+ * reaching the page on its own. A staging-only or request-only actor
+ * can no longer land here at all; they need freshpedia.view too.
+ *
+ * @param {{ allowed_permissions?: string[] } | undefined} permissions
+ */
 export function canAccessFreshpedia(permissions) {
-  return (
-    hasPermission(permissions, 'freshpedia.view') ||
-    hasPermission(permissions, 'staging.test') ||
-    hasPermission(permissions, 'freshpedia.request')
-  )
+  return hasPermission(permissions, 'freshpedia.view')
 }
 
 /**
  * Gates Freshpedia's promote/demote transition actions and full edit
  * access to any entry regardless of status — a dedicated permission now
- * (used to be a reuse of user.assign_permissions, which was really about
+ * (used to be a reuse of users.assign_permissions, which was really about
  * editing other users' Shield permissions, an unrelated concern). Checked
  * in both FreshpediaPage.jsx (UI) and services/freshpedia.js (mock
  * write-path enforcement), same shape as canAssignPermissions.
@@ -206,13 +216,15 @@ export function canChangeFreshpediaStatus(permissions) {
   return hasPermission(permissions, 'freshpedia.change_status')
 }
 
-/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
+/**
+ * Page-reachability gate — .view only, same reasoning as
+ * canAccessFreshpedia above: staging.test/tools.request still gate their
+ * own tab/button inside the page, not page access itself.
+ *
+ * @param {{ allowed_permissions?: string[] } | undefined} permissions
+ */
 export function canAccessToolCatalog(permissions) {
-  return (
-    hasPermission(permissions, 'tool.view') ||
-    hasPermission(permissions, 'staging.test') ||
-    hasPermission(permissions, 'tool.request')
-  )
+  return hasPermission(permissions, 'tools.view')
 }
 
 /**
