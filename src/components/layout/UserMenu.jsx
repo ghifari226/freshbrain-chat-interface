@@ -6,7 +6,6 @@ import {
   LogOut,
   Settings,
   UserShield,
-  UserRound,
 } from 'lucide-react'
 import SettingsModal from '../modals/SettingsModal.jsx'
 import ProfileModal from '../modals/ProfileModal.jsx'
@@ -63,9 +62,7 @@ export default function UserMenu({
               setIsOpen(false)
             }}
           >
-            <span className="user-avatar">
-              <UserRound fill="currentColor" stroke="none" />
-            </span>
+            <img src="/assets/user.svg" alt="" className="user-avatar" />
             <span className="menu__profile-name">{session?.name}</span>
           </button>
           <div className="menu__divider" />
@@ -123,9 +120,7 @@ export default function UserMenu({
         aria-label={t('userMenu.accountMenu')}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span className="user-avatar">
-          <UserRound fill="currentColor" />
-        </span>
+        <img src="/assets/user.svg" alt="" className="user-avatar" />
         {!collapsed && (
           <>
             <span className="user-menu__name">{session?.name}</span>

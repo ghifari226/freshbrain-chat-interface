@@ -515,22 +515,8 @@
 .user-avatar {
   width: 30px;
   height: 30px;
-  border-radius: 50%;
-  /* Brand accent, not a one-off blue — same color the rest of the app
-     uses for its primary actions, so the avatar reads as FreshBrain
-     rather than a generic gray placeholder. */
-  background: var(--accent);
-  color: var(--accent-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
   flex-shrink: 0;
-}
-
-.user-avatar svg {
-  width: 17px;
-  height: 17px;
+  object-fit: contain;
 }
 
 .menu--user {
