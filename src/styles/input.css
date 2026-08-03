@@ -67,6 +67,11 @@
   color: var(--text-muted);
   cursor: default;
 }
+
+.message-input__stop-icon {
+  width: 13px;
+  height: 13px;
+}
 @media (max-width: 767.98px) {
   .message-input-bar {
     padding: 12px 16px 16px;

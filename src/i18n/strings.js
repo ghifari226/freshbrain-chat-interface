@@ -60,6 +60,8 @@ export const strings = {
     greeting: { id: 'Apa yang ingin Anda ketahui?', en: 'What would you like to know?' },
     askPlaceholder: { id: 'Tanya FreshBrain', en: 'Ask FreshBrain' },
     sendMessage: { id: 'Kirim pesan', en: 'Send message' },
+    stopGenerating: { id: 'Hentikan pembuatan', en: 'Stop generating' },
+    retry: { id: 'Coba lagi', en: 'Retry' },
     disclaimer: {
       id: 'FreshBrain dapat membuat kesalahan. Periksa info penting.',
       en: 'FreshBrain can make mistakes. Check important info.',
@@ -186,7 +188,7 @@ export const strings = {
     copied: { id: 'Tersalin', en: 'Copied' },
   },
   permissions: {
-    sectionLabel: { id: 'Izin', en: 'Permissions' },
+    sectionLabel: { id: 'Hak akses', en: 'Permissions' },
     systemAccessSectionLabel: { id: 'Akses sistem', en: 'System access' },
     chatAccessSectionLabel: { id: 'Akses kapabilitas chat', en: 'Chat capability access' },
     selectAllToggle: { id: 'Pilih/batalkan semua di grup ini', en: 'Select/deselect all in this group' },

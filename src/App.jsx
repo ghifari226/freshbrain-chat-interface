@@ -11,6 +11,7 @@ import {
   renameConversation,
   deleteConversation,
 } from './services/apiClient.ts'
+import { isCanceled } from './services/api.ts'
 import { useTheme } from './hooks/useTheme.js'
 import { useTone } from './hooks/useTone.js'
 import { useChatFont } from './hooks/useChatFont.js'
@@ -41,6 +42,10 @@ function AuthenticatedApp({ language, setLanguage }) {
   const [pendingMessages, setPendingMessages] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef(null)
+  // Holds the AbortController for whichever send/retry is currently
+  // in flight — single-flight by construction, since the input/Stop
+  // button only ever allows one at a time (see isLoading gating below).
+  const abortControllerRef = useRef(null)
 
   // Fires once on mount — conversations aren't seeded locally anymore, they
   // come from GET /conversations (mocked).
@@ -170,26 +175,19 @@ function AuthenticatedApp({ language, setLanguage }) {
     })
   }
 
-  async function handleSend(text) {
-    const userMessage = { id: crypto.randomUUID(), role: 'user', text, createdAt: new Date().toISOString() }
-    // No route/id exists yet for a brand-new conversation — see
-    // pendingMessages' declaration above and Conversation.id's doc comment
-    // in domain.ts. `activeConversationId` (not activeConversation) is the
-    // right check: it's the URL, which stays null for the whole pending
-    // window regardless of what pendingMessages holds.
-    const isNewConversation = !activeConversationId
-
-    if (isNewConversation) {
-      setPendingMessages((prev) => [...(prev ?? []), userMessage])
-    } else {
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeConversationId ? { ...c, messages: [...c.messages, userMessage] } : c,
-        ),
-      )
-    }
-
+  // Shared by handleSend (new prompt) and handleRetry (regenerate the last,
+  // still-unanswered prompt) — everything from "call sendMessage" onward is
+  // identical either way, the only difference is whether a new user message
+  // was just appended (handleSend) or the existing dangling one is being
+  // retried in place (handleRetry, no duplicate user bubble). `priorMessages`
+  // is only read on the isNewConversation success path below — it has to be
+  // passed in rather than read from the `pendingMessages` state/closure,
+  // since the setPendingMessages call that put it there hasn't necessarily
+  // re-rendered yet by the time this runs.
+  async function runSend(text, isNewConversation, priorMessages) {
     setIsLoading(true)
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     try {
       const response = await sendMessage({
@@ -199,6 +197,7 @@ function AuthenticatedApp({ language, setLanguage }) {
         role: session?.role,
         allowed_scopes: session?.allowed_scopes,
         token: session?.token,
+        signal: controller.signal,
       })
       const assistantMessage = {
         id: crypto.randomUUID(),
@@ -217,7 +216,7 @@ function AuthenticatedApp({ language, setLanguage }) {
             id: response.conversation_id,
             title: strings.sidebar.newChat[language],
             timestamp: new Date().toISOString(),
-            messages: [userMessage, assistantMessage],
+            messages: [...priorMessages, assistantMessage],
           },
           ...prev,
         ])
@@ -255,25 +254,72 @@ function AuthenticatedApp({ language, setLanguage }) {
         )
       }
     } catch (error) {
-      const errorMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        text: error.message || 'Something went wrong. Please try again.',
-        isError: true,
-        createdAt: new Date().toISOString(),
-      }
-      if (isNewConversation) {
-        setPendingMessages((prev) => [...(prev ?? []), errorMessage])
-      } else {
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === activeConversationId ? { ...c, messages: [...c.messages, errorMessage] } : c,
-          ),
-        )
+      // A user-initiated Stop leaves the prompt exactly as-is — no error
+      // bubble, nothing appended. That dangling "last message is a user
+      // message" state is what ChatPanel's Retry-button check keys off of;
+      // see MessageInput.jsx/ChatMessage.jsx. A real failure still shows
+      // today's error bubble.
+      if (!isCanceled(error)) {
+        const errorMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          text: error.message || 'Something went wrong. Please try again.',
+          isError: true,
+          createdAt: new Date().toISOString(),
+        }
+        if (isNewConversation) {
+          setPendingMessages((prev) => [...(prev ?? []), errorMessage])
+        } else {
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === activeConversationId ? { ...c, messages: [...c.messages, errorMessage] } : c,
+            ),
+          )
+        }
       }
     } finally {
       setIsLoading(false)
+      abortControllerRef.current = null
     }
+  }
+
+  function handleSend(text) {
+    const userMessage = { id: crypto.randomUUID(), role: 'user', text, createdAt: new Date().toISOString() }
+    // No route/id exists yet for a brand-new conversation — see
+    // pendingMessages' declaration above and Conversation.id's doc comment
+    // in domain.ts. `activeConversationId` (not activeConversation) is the
+    // right check: it's the URL, which stays null for the whole pending
+    // window regardless of what pendingMessages holds.
+    const isNewConversation = !activeConversationId
+
+    if (isNewConversation) {
+      setPendingMessages((prev) => [...(prev ?? []), userMessage])
+    } else {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === activeConversationId ? { ...c, messages: [...c.messages, userMessage] } : c,
+        ),
+      )
+    }
+
+    runSend(text, isNewConversation, [...(pendingMessages ?? []), userMessage])
+  }
+
+  // Regenerates the most recent prompt after a Stop — only ever called
+  // while that prompt is genuinely the last, unanswered message (see
+  // ChatPanel's canRetry/showRetry), so there's always exactly one
+  // candidate: the last message, which must be role 'user'. Re-sends the
+  // same text without appending a duplicate user bubble.
+  function handleRetry() {
+    const isNewConversation = !activeConversationId
+    const messages = isNewConversation ? pendingMessages ?? [] : activeConversation?.messages ?? []
+    const lastMessage = messages[messages.length - 1]
+    if (!lastMessage || lastMessage.role !== 'user') return
+    runSend(lastMessage.text, isNewConversation, messages)
+  }
+
+  function handleStopGenerating() {
+    abortControllerRef.current?.abort()
   }
 
   const chatPanel = (
@@ -281,6 +327,8 @@ function AuthenticatedApp({ language, setLanguage }) {
       conversation={activeConversation}
       isLoading={isLoading}
       onSend={handleSend}
+      onStop={handleStopGenerating}
+      onRetry={handleRetry}
       onFeedback={(messageId, feedback) =>
         handleMessageFeedback(activeConversationId, messageId, feedback)
       }

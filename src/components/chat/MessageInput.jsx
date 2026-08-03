@@ -1,12 +1,12 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp, Square } from 'lucide-react'
 import { useT } from '../../hooks/useT.js'
 
 const MAX_LINES = 10
 const LINE_HEIGHT = 24
 
 const MessageInput = forwardRef(function MessageInput(
-  { onSend, disabled, autoFocus },
+  { onSend, onStop, disabled, autoFocus },
   ref,
 ) {
   const t = useT()
@@ -57,14 +57,25 @@ const MessageInput = forwardRef(function MessageInput(
           placeholder={t('chat.askPlaceholder')}
           disabled={disabled}
         />
-        <button
-          type="submit"
-          className="message-input__send"
-          aria-label={t('chat.sendMessage')}
-          disabled={disabled || !value.trim()}
-        >
-          <ArrowUp />
-        </button>
+        {disabled ? (
+          <button
+            type="button"
+            className="message-input__send message-input__send--stop"
+            aria-label={t('chat.stopGenerating')}
+            onClick={onStop}
+          >
+            <Square className="message-input__stop-icon" fill="currentColor" />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            className="message-input__send"
+            aria-label={t('chat.sendMessage')}
+            disabled={!value.trim()}
+          >
+            <ArrowUp />
+          </button>
+        )}
       </form>
     </div>
   )
