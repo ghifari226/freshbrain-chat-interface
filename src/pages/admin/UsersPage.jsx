@@ -59,6 +59,16 @@ function flagsForUser(user) {
   return permissionsArrayToFlags(user?.allowed_permissions)
 }
 
+// Same match-or-Custom logic as the Shield dialog's activePresetOption
+// (below), just applied to a row's stored permissions instead of a draft —
+// lets the table show which bundle a user's current permissions resolve to
+// without opening the dialog.
+function presetLabelForUser(user, t) {
+  const presetId = matchPresetForPermissions(flagsForUser(user))
+  const preset = PERMISSION_PRESETS.find((p) => p.id === presetId)
+  return preset?.label ?? t('permissions.customPreset')
+}
+
 function digitsOnly(value) {
   return value.replace(/\D/g, '')
 }
@@ -554,6 +564,7 @@ export default function UsersPage() {
               <TableCell>{t('auth.emailLabel')}</TableCell>
               <TableCell>{t('config.phoneLabel')}</TableCell>
               <TableCell>{t('auth.roleLabel')}</TableCell>
+              {canAssign && <TableCell>{t('config.adminPresetLabel')}</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -596,6 +607,7 @@ export default function UsersPage() {
                 <TableCell>{row.email}</TableCell>
                 <TableCell>{formatPhoneForDisplay(row.phone)}</TableCell>
                 <TableCell>{row.role}</TableCell>
+                {canAssign && <TableCell>{presetLabelForUser(row, t)}</TableCell>}
               </TableRow>
             ))}
           </TableBody>

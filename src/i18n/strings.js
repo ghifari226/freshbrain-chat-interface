@@ -153,6 +153,7 @@ export const strings = {
       en: 'Search by name, email, or phone…',
     },
     filterByRoleLabel: { id: 'Filter berdasarkan peran', en: 'Filter by role' },
+    adminPresetLabel: { id: 'Preset admin', en: 'Admin preset' },
     emailPlaceholder: { id: 'nama@perusahaan.com', en: 'name@company.com' },
     phoneLabel: { id: 'Telepon', en: 'Phone' },
     phonePlaceholder: { id: '812-3456-78901', en: '812-3456-78901' },
