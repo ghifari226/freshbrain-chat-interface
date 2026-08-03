@@ -11,14 +11,18 @@ async function logInAsAdmin(page) {
   await expect(page.getByRole('button', { name: 'Menu akun' })).toBeVisible()
 }
 
-test('logs in and opens access configuration', async ({ page }) => {
+test('logs in and opens the admin section', async ({ page }) => {
   await logInAsAdmin(page)
 
   await page.getByRole('button', { name: 'Menu akun' }).click()
   await page.getByRole('button', { name: 'Admin' }).click()
 
-  await expect(page).toHaveURL('/config')
-  await expect(page.getByRole('button', { name: 'Konfigurasi Akses' })).toBeVisible()
+  await expect(page).toHaveURL('/admin')
+  await expect(page.getByRole('button', { name: 'Hak Akses' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Hak Akses' }).click()
+  await expect(page).toHaveURL('/admin/permissions')
+  await expect(page.getByRole('button', { name: 'Admin' })).toBeVisible()
 })
 
 test('redirects an unknown authenticated route to chat home', async ({ page }) => {

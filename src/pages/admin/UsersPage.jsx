@@ -28,23 +28,24 @@ import {
   SYSTEM_ACCESS_PERMISSIONS,
   CHAT_ACCESS_PERMISSIONS,
   PERMISSION_LABEL_KEYS,
-  SUPERADMIN_LOCKED_PERMISSIONS,
+  TECHNOLOGY_LOCKED_PERMISSIONS,
   canAssignPermissions,
   hasPermission,
   permissionsArrayToFlags,
   permissionFlagsToArray,
 } from '../../config/permissions.js'
+import { PERMISSION_PRESETS, flagsForPreset, matchPresetForPermissions } from '../../config/presets.js'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import GatewayJsonPreview from '../../components/devdoc/GatewayJsonPreview.jsx'
 
-// Superadmin is ROLES[0] but is never assignable through this form (see
+// Superuser is ROLES[0] but is never assignable through this form (see
 // roleOptions below) — defaulting to it here would silently create a
-// Superadmin unless the admin happened to touch the Role field themselves.
-const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superadmin') }
+// Superuser unless the admin happened to touch the Role field themselves.
+const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superuser') }
 
 // Order-independent — see the identical concern in RolesPage's scopesEqual.
-// Both args are flag-shaped ({ 'user.view': boolean, ... }), never the
+// Both args are flag-shaped ({ 'users.view': boolean, ... }), never the
 // wire-shaped allowed_permissions array directly — see flagsForUser below.
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
@@ -57,6 +58,16 @@ function permissionsEqual(a, b) {
 // that purpose goes through here first.
 function flagsForUser(user) {
   return permissionsArrayToFlags(user?.allowed_permissions)
+}
+
+// Same match-or-Custom logic as the Shield dialog's activePresetOption
+// (below), just applied to a row's stored permissions instead of a draft —
+// lets the table show which bundle a user's current permissions resolve to
+// without opening the dialog.
+function presetLabelForUser(user, t) {
+  const presetId = matchPresetForPermissions(flagsForUser(user))
+  const preset = PERMISSION_PRESETS.find((p) => p.id === presetId)
+  return preset?.label ?? t('permissions.customPreset')
 }
 
 function digitsOnly(value) {
@@ -126,7 +137,7 @@ function phoneMatches(phoneDigits, queryDigits) {
 }
 
 // One group of checkboxes in the Shield dialog (System Access / Chat
-// Access — just two now). isFieldLocked marks Superadmin's hardcoded
+// Access — just two now). isFieldLocked marks Technology's hardcoded
 // fields (checked+disabled, never editable); isFieldDisabled marks fields
 // blocked by the self-escalation guard (actor editing their own row,
 // doesn't already hold this field). The header checkbox bulk-selects every
@@ -180,19 +191,19 @@ function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldL
 export default function UsersPage() {
   const t = useT()
   const { session, updateSession } = useAuth()
-  const canAdd = hasPermission(session, 'user.add')
-  const canEdit = hasPermission(session, 'user.edit')
-  const canDelete = hasPermission(session, 'user.delete')
+  const canAdd = hasPermission(session, 'users.add')
+  const canEdit = hasPermission(session, 'users.edit')
+  const canDelete = hasPermission(session, 'users.delete')
   const canAssign = canAssignPermissions(session)
   const actorForUpdate = useMemo(
     () => ({ id: session?.id, token: session?.token }),
     [session?.id, session?.token],
   )
-  // Superadmin is visible in the table (existing Superadmin users show their
+  // Superuser is visible in the table (existing Superuser users show their
   // real role) but never assignable through this picker — bootstrap-locked,
   // not something granted via the UI, for anyone, regardless of the actor's
   // own permissions.
-  const roleOptions = ROLES.filter((r) => r !== 'Superadmin')
+  const roleOptions = ROLES.filter((r) => r !== 'Superuser')
 
   // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
@@ -234,7 +245,6 @@ export default function UsersPage() {
   const isPermissionsDialogDirty = permissionsDialogUser
     ? !permissionsEqual(dialogPermissions, flagsForUser(permissionsDialogUser))
     : false
-
   // dev-doc only — GET /users' 200 response (auth-contract.md). `users` is
   // already exactly that shape (it's what getAllUsers returned), no
   // reshaping needed.
@@ -255,17 +265,31 @@ export default function UsersPage() {
   // replace, same as handleSavePermissions actually sends.
   const gatewayPermissionsPatchPayload = { allowed_permissions: permissionFlagsToArray(dialogPermissions) }
 
-  function isSuperadminLockedField(field) {
-    return permissionsDialogUser?.role === 'Superadmin' && SUPERADMIN_LOCKED_PERMISSIONS.includes(field)
-  }
+  // Highlights whichever preset's exact permission set matches the current
+  // draft — never editable directly, purely derived from dialogPermissions
+  // (see matchPresetForPermissions). Falls back to a synthetic "Custom"
+  // entry (not a real PERMISSION_PRESETS member, so it can never be
+  // selected from the dropdown itself) when nothing matches.
+  const activePresetId = matchPresetForPermissions(dialogPermissions)
+  const activePresetOption =
+    PERMISSION_PRESETS.find((preset) => preset.id === activePresetId) ??
+    { id: 'custom', label: t('permissions.customPreset') }
 
   // Mirrors updateUser's runtime guard for immediate feedback — the actor
   // can't check a box for a field they don't already hold themselves,
   // whether editing their own row or (structurally impossible here, since
-  // the dialog can't even open on someone else without user.assign_permissions)
-  // anyone else's.
+  // the dialog can't even open on someone else without being Superuser or
+  // Technology) anyone else's.
   function isSelfEscalationBlocked(field) {
     return permissionsDialogUserId === session?.id && !hasPermission(session, field)
+  }
+
+  // Mirrors updateUser's Technology-lock write guard for immediate
+  // feedback — users.assign_permissions/users.view show checked+disabled
+  // whenever the dialog's *target* (not the actor) is Technology. Superuser
+  // gets no equivalent — its checkboxes are ordinary and freely toggleable.
+  function isTechnologyLockedField(field) {
+    return permissionsDialogUser?.role === 'Technology' && TECHNOLOGY_LOCKED_PERMISSIONS.includes(field)
   }
 
   // Built from the actual data rather than ROLES — every MOCK_USERS role
@@ -455,6 +479,10 @@ export default function UsersPage() {
     })
   }
 
+  function handleSelectPreset(userId, presetId) {
+    setPendingPermissions((prev) => ({ ...prev, [userId]: flagsForPreset(presetId) }))
+  }
+
   function discardPendingPermissions(userId) {
     setPendingPermissions((prev) => {
       const { [userId]: _discard, ...rest } = prev
@@ -564,6 +592,7 @@ export default function UsersPage() {
               <TableCell>{t('auth.emailLabel')}</TableCell>
               <TableCell>{t('config.phoneLabel')}</TableCell>
               <TableCell>{t('auth.roleLabel')}</TableCell>
+              {canAssign && <TableCell>{t('config.adminPresetLabel')}</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -606,6 +635,7 @@ export default function UsersPage() {
                 <TableCell>{row.email}</TableCell>
                 <TableCell>{formatPhoneForDisplay(row.phone)}</TableCell>
                 <TableCell>{row.role}</TableCell>
+                {canAssign && <TableCell>{presetLabelForUser(row, t)}</TableCell>}
               </TableRow>
             ))}
           </TableBody>
@@ -761,12 +791,31 @@ export default function UsersPage() {
       <Dialog open={Boolean(permissionsDialogUser)} onClose={closePermissionsDialog} fullWidth maxWidth="sm">
         <DialogTitle>{permissionsDialogUser?.name}</DialogTitle>
         <DialogContent>
+          <div className="form-field">
+            <label className="form-field__label" htmlFor="permission-preset">
+              {t('permissions.presetLabel')}
+            </label>
+            <Autocomplete
+              id="permission-preset"
+              size="small"
+              disableClearable
+              autoHighlight
+              options={PERMISSION_PRESETS}
+              value={activePresetOption}
+              getOptionLabel={(preset) => preset.label}
+              isOptionEqualToValue={(option, current) => option.id === current.id}
+              onChange={(_event, newValue) => {
+                if (newValue) handleSelectPreset(permissionsDialogUserId, newValue.id)
+              }}
+              renderInput={(params) => <TextField {...params} placeholder={t('permissions.presetLabel')} />}
+            />
+          </div>
           <div className="permission-group-list">
             <PermissionCheckboxGroup
               titleKey="permissions.chatAccessSectionLabel"
               fields={CHAT_ACCESS_PERMISSIONS}
               dialogPermissions={dialogPermissions}
-              isFieldLocked={isSuperadminLockedField}
+              isFieldLocked={isTechnologyLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
               onToggle={(field) => handleTogglePermission(permissionsDialogUserId, field)}
               onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogUserId, fields, next)}
@@ -776,7 +825,7 @@ export default function UsersPage() {
               titleKey="permissions.systemAccessSectionLabel"
               fields={SYSTEM_ACCESS_PERMISSIONS}
               dialogPermissions={dialogPermissions}
-              isFieldLocked={isSuperadminLockedField}
+              isFieldLocked={isTechnologyLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
               onToggle={(field) => handleTogglePermission(permissionsDialogUserId, field)}
               onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogUserId, fields, next)}

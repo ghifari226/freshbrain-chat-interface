@@ -18,6 +18,32 @@ export const TRANSITION_BY_STATUS = {
     colorClass: 'icon-button--success',
   },
 }
+
+// Chip color for the Request tab's status badge, keyed by requestStatus —
+// separate from STATUS_COLOR above (which is keyed by `status`, used on
+// the Live tab). 'live' here means "frozen, permanently promoted", not the
+// Live tab itself.
+export const REQUEST_STATUS_COLOR = {
+  draft: 'default',
+  posted: 'info',
+  live: 'success',
+}
+
+// The Draft<->Posted toggle, same shape as TRANSITION_BY_STATUS above but
+// keyed by requestStatus and only ever offered while still status='request'
+// (a promoted, requestStatus='live' entry has nothing to toggle — it's
+// frozen). Distinct action from Promote (request_status permission vs
+// is_maintainer).
+export const REQUEST_STATUS_TRANSITION_BY_STATUS = {
+  draft: {
+    labelKey: 'freshpedia.postRequestAction',
+    toRequestStatus: 'posted',
+  },
+  posted: {
+    labelKey: 'freshpedia.moveToDraftAction',
+    toRequestStatus: 'draft',
+  },
+}
 export const EMPTY_FRESHPEDIA_FORM = {
   title: '',
   type: 'definition',

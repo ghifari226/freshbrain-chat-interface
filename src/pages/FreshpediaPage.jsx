@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@mui/material'
-import StandalonePageLayout from './StandalonePageLayout.jsx'
+import SectionToggle from '../components/catalog/SectionToggle.jsx'
 import FreshpediaEntryDialog from './freshpedia/FreshpediaEntryDialog.jsx'
 import FreshpediaEntryList from './freshpedia/FreshpediaEntryList.jsx'
 import FreshpediaFilters from './freshpedia/FreshpediaFilters.jsx'
@@ -13,14 +13,16 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useAuthorizedPage } from '../hooks/useAuthorizedPage.js'
 import { useStatusFilters } from '../hooks/useStatusFilters.js'
 import { useT } from '../hooks/useT.js'
-import { canAccessFreshpedia, canChangeFreshpediaStatus, hasPermission } from '../config/permissions.js'
+import { canAccessFreshpedia, canChangeFreshpediaStatus, canPromote, hasPermission } from '../config/permissions.js'
 import {
   createFreshpediaEntry,
   getFreshpediaEntries,
   getFreshpediaRequestEntries,
+  promoteFreshpediaRequestEntry,
   updateFreshpediaEntryStatus,
   updateFreshpediaEntry,
   updateFreshpediaRequestEntry,
+  updateFreshpediaRequestStatus,
 } from '../services/freshpedia.js'
 import { errorMessage, isCanceled } from '../services/api.ts'
 
@@ -29,10 +31,15 @@ export default function FreshpediaPage({ language }) {
   const { session } = useAuth()
   const isAuthorized = useAuthorizedPage(canAccessFreshpedia(session))
 
-  const canViewProduction = hasPermission(session, 'freshpedia.view')
+  const canViewProduction = hasPermission(session, 'freshpedia.live_view')
   const canViewStaging = hasPermission(session, 'staging.test')
-  const canViewRequest = hasPermission(session, 'freshpedia.request')
+  const canViewRequest = hasPermission(session, 'freshpedia.request_view')
+  const canAddRequest = hasPermission(session, 'freshpedia.request_add')
+  const canEditRequest = hasPermission(session, 'freshpedia.request_edit')
+  const canEditLive = hasPermission(session, 'freshpedia.live_edit')
   const canChangeStatus = canChangeFreshpediaStatus(session)
+  const canChangeRequestStatus = hasPermission(session, 'freshpedia.request_status')
+  const canPromoteEntries = canPromote(session)
   const statusFilters = useStatusFilters({
     canViewProduction,
     canViewStaging,
@@ -53,11 +60,14 @@ export default function FreshpediaPage({ language }) {
   // Two collections, one list: /freshpedia (published) and
   // /freshpedia-request (pending) are fetched separately and merged into
   // one `entries` array — everything downstream (visibleEntries, the
-  // Production/Staging/Request chips) already treats entries uniformly by
-  // `.status` regardless of which endpoint they came from. The request
-  // fetch only fires when canViewRequest is already true, same gate the
-  // "Request" chip and Add Entry button use — matches the access the old
-  // single-endpoint fetch effectively had.
+  // Live/Request tabs) already treats entries uniformly by `.status`
+  // regardless of which endpoint they came from. The request fetch only
+  // fires when canViewRequest is already true, same gate the Request tab
+  // and Add Entry button use — matches the access the old single-endpoint
+  // fetch effectively had. Deduped by id when merging: a promoted entry
+  // now satisfies both endpoints' predicates (status!=='request' for the
+  // former, requestStatus truthy for the latter), so naively flattening
+  // would render it twice.
   useEffect(() => {
     const controller = new AbortController()
     const requests = [getFreshpediaEntries({ signal: controller.signal, token: session?.token })]
@@ -66,7 +76,9 @@ export default function FreshpediaPage({ language }) {
     }
     Promise.all(requests)
       .then((results) => {
-        setEntries(results.flat())
+        const merged = new Map()
+        for (const entry of results.flat()) merged.set(entry.id, entry)
+        setEntries(Array.from(merged.values()))
         setEntriesLoaded(true)
       })
       .catch((error) => {
@@ -102,8 +114,19 @@ export default function FreshpediaPage({ language }) {
     })
   }
 
+  // Switching Live/Request also clears the type filter and search box —
+  // statusFilters.toggleTab already clears its own sub-status filters, but
+  // selectedTypes/searchQuery live here in the page, not the hook, so they
+  // need their own reset. A stale "Alias" type filter or search term
+  // carrying over from Live into Request (or vice versa) would silently
+  // hide entries with no visible explanation.
+  function handleToggleTab(tab) {
+    statusFilters.toggleTab(tab)
+    setSelectedTypes(new Set())
+    setSearchQuery('')
+  }
+
   function openAddEntryDialog() {
-    statusFilters.openRequestView()
     setForm(EMPTY_FRESHPEDIA_FORM)
     setFormError('')
     setEntryFormTarget('new')
@@ -167,28 +190,53 @@ export default function FreshpediaPage({ language }) {
     )
   }
 
+  async function handlePromote(entry) {
+    const updated = await promoteFreshpediaRequestEntry(entry.id, session)
+    setEntries((current) =>
+      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
+    )
+  }
+
+  async function handleChangeRequestStatus(entry, nextRequestStatus) {
+    const updated = await updateFreshpediaRequestStatus(entry.id, nextRequestStatus, session)
+    setEntries((current) =>
+      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
+    )
+  }
+
   if (!isAuthorized) return null
 
   return (
-    <StandalonePageLayout titleKey="freshpedia.title">
+    <>
       <div className="config-section">
-        {canViewRequest && (
-          <div className="config-section__title-row">
+        <div className="section-toggle-row">
+          <SectionToggle
+            options={statusFilters.availableTabs}
+            isActive={statusFilters.isTabActive}
+            onSelect={handleToggleTab}
+            labelForOption={(tab) => t(`freshpedia.${tab}TabLabel`)}
+            ariaLabel={t('freshpedia.filterByTabLabel')}
+          />
+          {canAddRequest && statusFilters.isRequestActive && (
             <Button
-              className="config-section__title-action"
+              className="section-toggle-row__action"
               variant="contained"
               size="small"
               onClick={openAddEntryDialog}
             >
               {t('freshpedia.addEntry')}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
 
         <FreshpediaFilters
-          availableStatuses={statusFilters.availableStatuses}
-          isStatusActive={statusFilters.isStatusActive}
-          onToggleStatus={statusFilters.toggleStatus}
+          availableLiveStatuses={statusFilters.availableLiveStatuses}
+          isLiveStatusActive={statusFilters.isLiveStatusActive}
+          onToggleLiveStatus={statusFilters.toggleLiveStatus}
+          availableRequestStatuses={statusFilters.availableRequestStatuses}
+          isRequestStatusActive={statusFilters.isRequestStatusActive}
+          onToggleRequestStatus={statusFilters.toggleRequestStatus}
+          isRequestActive={statusFilters.isRequestActive}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           selectedTypes={selectedTypes}
@@ -200,10 +248,16 @@ export default function FreshpediaPage({ language }) {
 
         {entriesLoaded && (
           <FreshpediaEntryList
+            canChangeRequestStatus={canChangeRequestStatus}
             canChangeStatus={canChangeStatus}
-            canViewRequest={canViewRequest}
+            canEditLive={canEditLive}
+            canEditRequest={canEditRequest}
+            canPromote={canPromoteEntries}
             entries={entries}
+            isRequestActive={statusFilters.isRequestActive}
+            onChangeRequestStatus={handleChangeRequestStatus}
             onEdit={openEditEntryDialog}
+            onPromote={handlePromote}
             onTransition={handleTransition}
             t={t}
             visibleEntries={visibleEntries}
@@ -223,6 +277,6 @@ export default function FreshpediaPage({ language }) {
         setForm={setForm}
         t={t}
       />
-    </StandalonePageLayout>
+    </>
   )
 }

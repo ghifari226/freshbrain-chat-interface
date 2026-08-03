@@ -1,10 +1,21 @@
 import { Chip } from '@mui/material'
 import CatalogStatusFilters from '../../components/catalog/CatalogStatusFilters.jsx'
 
+// requestStatus's chip label follows ToolCatalogTable.jsx's statusChipProps
+// convention — 'live' means "promoted, frozen", shown with the same
+// liveTabLabel text as the outer Live tab.
+function labelForRequestStatus(status, t) {
+  return status === 'live' ? t('toolCatalog.liveTabLabel') : t(`toolCatalog.${status}Status`)
+}
+
 export default function ToolCatalogFilters({
-  availableStatuses,
-  isStatusActive,
-  onToggleStatus,
+  availableLiveStatuses,
+  isLiveStatusActive,
+  onToggleLiveStatus,
+  availableRequestStatuses,
+  isRequestStatusActive,
+  onToggleRequestStatus,
+  isRequestActive,
   systems,
   selectedSystems,
   onToggleSystem,
@@ -12,22 +23,33 @@ export default function ToolCatalogFilters({
   setSearchQuery,
   t,
 }) {
-  if (availableStatuses.length <= 1 && systems.length === 0) return null
+  const hasStatusChips = isRequestActive ? availableRequestStatuses.length > 1 : availableLiveStatuses.length > 1
+  if (!hasStatusChips && systems.length === 0) return null
 
   return (
     <div className="filter-bar">
       <div className="filter-bar__chip-groups">
-        <CatalogStatusFilters
-          availableStatuses={availableStatuses}
-          isStatusActive={isStatusActive}
-          labelForStatus={(status) => t(`toolCatalog.${status}Status`)}
-          onToggle={onToggleStatus}
-          ariaLabel={t('toolCatalog.filterByStatusLabel')}
-        />
-
-        {availableStatuses.length > 1 && systems.length > 0 && (
-          <span className="filter-bar__divider" />
+        {!isRequestActive && (
+          <CatalogStatusFilters
+            availableStatuses={availableLiveStatuses}
+            isStatusActive={isLiveStatusActive}
+            labelForStatus={(status) => t(`toolCatalog.${status}Status`)}
+            onToggle={onToggleLiveStatus}
+            ariaLabel={t('toolCatalog.filterByStatusLabel')}
+          />
         )}
+
+        {isRequestActive && (
+          <CatalogStatusFilters
+            availableStatuses={availableRequestStatuses}
+            isStatusActive={isRequestStatusActive}
+            labelForStatus={(status) => labelForRequestStatus(status, t)}
+            onToggle={onToggleRequestStatus}
+            ariaLabel={t('toolCatalog.filterByStatusLabel')}
+          />
+        )}
+
+        {hasStatusChips && systems.length > 0 && <span className="filter-bar__divider" />}
 
         {systems.length > 0 && (
           <div
