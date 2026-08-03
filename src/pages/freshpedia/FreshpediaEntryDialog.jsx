@@ -9,7 +9,7 @@ import {
 } from '@mui/material'
 import { ENTRY_TYPES, isFreshpediaFormValid } from './freshpediaConfig.js'
 
-function FreshpediaEntryForm({ form, setForm, existingEntries, t }) {
+function FreshpediaEntryForm({ form, setForm, existingEntries, isReadOnly, t }) {
   return (
     <>
       <div className="form-field">
@@ -23,6 +23,7 @@ function FreshpediaEntryForm({ form, setForm, existingEntries, t }) {
           value={form.title}
           onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
           placeholder={t('freshpedia.entryTitlePlaceholder')}
+          disabled={isReadOnly}
         />
       </div>
 
@@ -35,6 +36,7 @@ function FreshpediaEntryForm({ form, setForm, existingEntries, t }) {
           size="small"
           disableClearable
           autoHighlight
+          disabled={isReadOnly}
           options={ENTRY_TYPES}
           value={form.type}
           getOptionLabel={(type) => t(`freshpedia.${type}Type`)}
@@ -62,6 +64,7 @@ function FreshpediaEntryForm({ form, setForm, existingEntries, t }) {
               setForm((current) => ({ ...current, content: event.target.value }))
             }
             placeholder={t('freshpedia.contentPlaceholder')}
+            disabled={isReadOnly}
           />
         </div>
       )}
@@ -81,6 +84,7 @@ function FreshpediaEntryForm({ form, setForm, existingEntries, t }) {
                 fileName: event.target.files[0]?.name ?? '',
               }))
             }
+            disabled={isReadOnly}
           />
           {form.fileName && <span className="form-field__hint">{form.fileName}</span>}
         </div>
@@ -96,6 +100,7 @@ function FreshpediaEntryForm({ form, setForm, existingEntries, t }) {
               id="entry-alias-target"
               size="small"
               autoHighlight
+              disabled={isReadOnly}
               options={existingEntries.filter((entry) => entry.type !== 'alias')}
               value={
                 existingEntries.find((entry) => entry.id === form.aliasTargetId) ?? null
@@ -129,6 +134,7 @@ function FreshpediaEntryForm({ form, setForm, existingEntries, t }) {
                 setForm((current) => ({ ...current, aliasPhrase: event.target.value }))
               }
               placeholder={t('freshpedia.aliasPhrasePlaceholder')}
+              disabled={isReadOnly}
             />
           </div>
         </>
@@ -142,6 +148,7 @@ export default function FreshpediaEntryDialog({
   formError,
   isEditMode,
   isOpen,
+  isReadOnly,
   isSubmitting,
   entries,
   onClose,
@@ -153,6 +160,7 @@ export default function FreshpediaEntryDialog({
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{isEditMode ? form.title : t('freshpedia.addEntry')}</DialogTitle>
       <DialogContent>
+        {isReadOnly && <p className="config-section__notice">{t('freshpedia.viewOnlyLiveRequestNotice')}</p>}
         <form
           id="entry-form"
           className="auth-form config-add-form"
@@ -162,21 +170,24 @@ export default function FreshpediaEntryDialog({
             form={form}
             setForm={setForm}
             existingEntries={entries}
+            isReadOnly={isReadOnly}
             t={t}
           />
           {formError && <span className="form-field__error">{formError}</span>}
         </form>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('freshpedia.cancelEntry')}</Button>
-        <Button
-          type="submit"
-          form="entry-form"
-          variant="contained"
-          disabled={isSubmitting || !isFreshpediaFormValid(form)}
-        >
-          {t(isEditMode ? 'freshpedia.saveEntry' : 'freshpedia.addEntrySubmit')}
-        </Button>
+        <Button onClick={onClose}>{t(isReadOnly ? 'config.close' : 'freshpedia.cancelEntry')}</Button>
+        {!isReadOnly && (
+          <Button
+            type="submit"
+            form="entry-form"
+            variant="contained"
+            disabled={isSubmitting || !isFreshpediaFormValid(form)}
+          >
+            {t(isEditMode ? 'freshpedia.saveEntry' : 'freshpedia.addEntrySubmit')}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   )

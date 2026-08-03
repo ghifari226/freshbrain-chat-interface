@@ -56,6 +56,12 @@ export default function FreshpediaPage({ language }) {
   const [form, setForm] = useState(EMPTY_FRESHPEDIA_FORM)
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // A promoted request entry (requestStatus 'live') stays visible in the
+  // Request tab as frozen history — see FreshpediaEntryList.jsx's Eye/
+  // Pencil swap. Set once at open time from the entry being opened, not
+  // re-derived from `entries` afterward, so the dialog's mode can't
+  // possibly flip mid-edit.
+  const [isEntryReadOnly, setIsEntryReadOnly] = useState(false)
 
   // Two collections, one list: /freshpedia (published) and
   // /freshpedia-request (pending) are fetched separately and merged into
@@ -129,6 +135,7 @@ export default function FreshpediaPage({ language }) {
   function openAddEntryDialog() {
     setForm(EMPTY_FRESHPEDIA_FORM)
     setFormError('')
+    setIsEntryReadOnly(false)
     setEntryFormTarget('new')
   }
 
@@ -145,6 +152,7 @@ export default function FreshpediaPage({ language }) {
       aliasPhrase: entry.aliasPhrase ?? '',
     })
     setFormError('')
+    setIsEntryReadOnly(entry.requestStatus === 'live')
     setEntryFormTarget(entry.id)
   }
 
@@ -270,6 +278,7 @@ export default function FreshpediaPage({ language }) {
         formError={formError}
         isEditMode={isEditMode}
         isOpen={Boolean(entryFormTarget)}
+        isReadOnly={isEntryReadOnly}
         isSubmitting={isSubmitting}
         entries={entries}
         onClose={() => setEntryFormTarget(null)}

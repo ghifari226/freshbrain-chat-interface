@@ -52,6 +52,11 @@ export default function ToolCatalogPage() {
   const [form, setForm] = useState(EMPTY_TOOL_FORM)
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // A promoted request entry (requestStatus 'live') stays visible in the
+  // Request tab as frozen history — see ToolCatalogTable.jsx's Eye/Pencil
+  // swap. Set once at open time from the entry being opened, same rationale
+  // as FreshpediaPage.jsx's identical state.
+  const [isEntryReadOnly, setIsEntryReadOnly] = useState(false)
 
   // Two collections, one list — same pattern as FreshpediaPage.jsx:
   // /tool-catalog (published) and /tool-catalog-request (pending) are
@@ -133,6 +138,7 @@ export default function ToolCatalogPage() {
   function openAddEntryDialog() {
     setForm(EMPTY_TOOL_FORM)
     setFormError('')
+    setIsEntryReadOnly(false)
     setEntryFormTarget('new')
   }
 
@@ -144,6 +150,7 @@ export default function ToolCatalogPage() {
       exampleQuestions: entry.exampleQuestions,
     })
     setFormError('')
+    setIsEntryReadOnly(entry.requestStatus === 'live')
     setEntryFormTarget(entry.id)
   }, [])
 
@@ -253,6 +260,7 @@ export default function ToolCatalogPage() {
         formError={formError}
         isEditMode={isEditMode}
         isOpen={Boolean(entryFormTarget)}
+        isReadOnly={isEntryReadOnly}
         isSubmitting={isSubmitting}
         onClose={() => setEntryFormTarget(null)}
         onSubmit={handleSubmitEntryForm}

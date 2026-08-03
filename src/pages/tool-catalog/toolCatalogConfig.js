@@ -19,6 +19,7 @@ export const REQUEST_STATUS_TRANSITION_BY_STATUS = {
   draft: {
     labelKey: 'toolCatalog.postRequestAction',
     toRequestStatus: 'posted',
+    colorClass: 'icon-button--edit',
   },
   posted: {
     labelKey: 'toolCatalog.moveToDraftAction',
