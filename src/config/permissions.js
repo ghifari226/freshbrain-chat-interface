@@ -76,12 +76,15 @@ export const TECHNOLOGY_LOCKED_PERMISSIONS = ['users.assign_permissions', 'users
 // are literal, not i18n keys — these are technical/brand-shaped labels
 // (Freshpedia, Tools, ...), not prose, so they're the same in every
 // language by design.
+// Order already matches ADMIN_NAV_ITEMS (adminNav.js) — Permissions before
+// Role scopes, same as the sidebar/admin menu (no reorder needed here,
+// only adminNav.js's array had them the other way around).
 const PERMISSION_CATALOG_GROUP_DEFS = [
   { id: 'freshpedia', label: 'Freshpedia' },
   { id: 'tools', label: 'Tools' },
   { id: 'staging', label: 'Staging' },
   { id: 'permissions', label: 'Permissions' },
-  { id: 'roles', label: 'Roles' },
+  { id: 'roles', label: 'Role scopes' },
   { id: 'users', label: 'Users' },
 ]
 

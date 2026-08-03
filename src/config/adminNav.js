@@ -14,7 +14,7 @@ import {
 export const ADMIN_NAV_ITEMS = [
   { path: '/admin/freshpedia', labelKey: 'freshpedia.title', Icon: BookOpen, canSee: canAccessFreshpedia },
   { path: '/admin/tools', labelKey: 'toolCatalog.title', Icon: Wrench, canSee: canAccessToolCatalog },
-  { path: '/admin/roles', labelKey: 'config.rolesTitle', Icon: ListChecks, canSee: canViewRoles },
   { path: '/admin/permissions', labelKey: 'config.permissionsTitle', Icon: ShieldCheck, canSee: canViewPermissions },
+  { path: '/admin/roles', labelKey: 'config.rolesTitle', Icon: ListChecks, canSee: canViewRoles },
   { path: '/admin/users', labelKey: 'config.usersTitle', Icon: UserCog, canSee: canViewUsers },
 ]

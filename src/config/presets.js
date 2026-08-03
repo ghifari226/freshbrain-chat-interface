@@ -12,6 +12,14 @@ function allExcept(excluded) {
   return ALL_PERMISSIONS.filter((key) => !excludedSet.has(key))
 }
 
+function allWithPrefix(prefix) {
+  return ALL_PERMISSIONS.filter((key) => key.startsWith(prefix + '.'))
+}
+
+// Renamed 2026-08-03 (labels only, unless noted) to a "Capability ___"
+// naming scheme for the group-scoped presets, plus three brand-new narrow
+// Freshpedia presets and a "No access" preset — order below is the
+// intended display order in the Shield dialog's preset dropdown.
 export const PERMISSION_PRESETS = [
   {
     id: 'admin-hr',
@@ -20,10 +28,11 @@ export const PERMISSION_PRESETS = [
   },
   {
     id: 'admin-tech',
-    label: 'Admin Tech',
+    label: 'Admin tech',
     // Everything except user CRUD (Admin HR's job) and the day-to-day
-    // content-editing permissions (Requestor's job) — system/infra
-    // oversight and read access to everything, not hands-on content work.
+    // content-editing permissions (Capability all requests' job) —
+    // system/infra oversight and read access to everything, not hands-on
+    // content work.
     permissions: allExcept([
       'users.add',
       'users.edit',
@@ -39,8 +48,9 @@ export const PERMISSION_PRESETS = [
     ]),
   },
   {
-    id: 'requestor',
-    label: 'Requestor',
+    id: 'capability-all-requests',
+    label: 'Capability all requests',
+    // Renamed from "Requestor" — permission set unchanged.
     permissions: [
       'freshpedia.live_view',
       'freshpedia.request_view',
@@ -55,23 +65,57 @@ export const PERMISSION_PRESETS = [
     ],
   },
   {
+    id: 'capability-freshpedia',
+    label: 'Capability Freshpedia',
+    permissions: allWithPrefix('freshpedia'),
+  },
+  {
+    id: 'capability-freshpedia-maintainer',
+    label: 'Capability Freshpedia maintainer',
+    permissions: ['freshpedia.live_view', 'freshpedia.live_edit', 'freshpedia.live_status'],
+  },
+  {
+    id: 'capability-freshpedia-requestor',
+    label: 'Capability Freshpedia requestor',
+    permissions: [
+      'freshpedia.live_view',
+      'freshpedia.request_view',
+      'freshpedia.request_add',
+      'freshpedia.request_edit',
+    ],
+  },
+  {
+    id: 'capability-tester',
+    label: 'Capability tester',
+    // Renamed from "Tester" — permission set unchanged.
+    permissions: ['freshpedia.live_view', 'tools.live_view', 'staging.test'],
+  },
+  {
+    id: 'capability-tools-requestor',
+    label: 'Capability tools requestor',
+    // Renamed from "Capability tools" — permission set unchanged (all tools.*).
+    permissions: allWithPrefix('tools'),
+  },
+  {
+    id: 'no-access',
+    label: 'No access',
+    permissions: [],
+  },
+  {
     id: 'superadmin',
     label: 'Superadmin',
     permissions: [...ALL_PERMISSIONS],
   },
   {
-    id: 'tester',
-    label: 'Tester',
-    permissions: ['freshpedia.live_view', 'tools.live_view', 'staging.test'],
-  },
-  {
     id: 'view-only-capability',
-    label: 'View-only Capability',
+    label: 'View-only capability',
     permissions: ['freshpedia.live_view', 'tools.live_view'],
   },
   {
-    id: 'view-only-system',
-    label: 'View-only System',
+    id: 'view-only-user-roles',
+    label: 'View-only user roles',
+    // Renamed from "View-only System" — permission set unchanged (it
+    // already meant exactly this: read access to role scopes + users).
     permissions: ['roles.view', 'users.view'],
   },
 ]

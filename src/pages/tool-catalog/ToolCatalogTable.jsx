@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Pencil, Send } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Pencil } from 'lucide-react'
 import {
   Chip,
   IconButton,
@@ -103,7 +103,7 @@ export default function ToolCatalogTable({
                     {canPromote && row.status === 'request' && row.requestStatus === 'posted' && (
                       <Tooltip title={t('toolCatalog.promoteToStagingAction')}>
                         <IconButton size="small" onClick={() => onPromote(row)}>
-                          <Send className="table-action-icon icon-button--success" />
+                          <Check className="table-action-icon icon-button--success" />
                         </IconButton>
                       </Tooltip>
                     )}

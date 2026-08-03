@@ -1,5 +1,5 @@
 import { Chip, Tooltip } from '@mui/material'
-import { ArrowDown, ArrowUp, Pencil, Send } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Pencil } from 'lucide-react'
 import {
   REQUEST_STATUS_COLOR,
   REQUEST_STATUS_TRANSITION_BY_STATUS,
@@ -116,7 +116,7 @@ export default function FreshpediaEntryList({
                       aria-label={t('freshpedia.promoteToStagingAction')}
                       onClick={() => onPromote(entry)}
                     >
-                      <Send />
+                      <Check />
                     </button>
                   </Tooltip>
                 )}
