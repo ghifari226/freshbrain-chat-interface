@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Check, Pencil } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Eye, Pencil } from 'lucide-react'
 import {
   Chip,
   IconButton,
@@ -83,7 +83,7 @@ export default function ToolCatalogTable({
                           onClick={() => onChangeRequestStatus(row, requestStatusTransition.toRequestStatus)}
                         >
                           {requestStatusTransition.toRequestStatus === 'posted' ? (
-                            <ArrowUp className="table-action-icon" />
+                            <ArrowUp className={`table-action-icon ${requestStatusTransition.colorClass ?? ''}`} />
                           ) : (
                             <ArrowDown className="table-action-icon" />
                           )}
@@ -91,19 +91,29 @@ export default function ToolCatalogTable({
                       </Tooltip>
                     )}
                     {canEdit && (
-                      <Tooltip title={t('toolCatalog.editRequestAction')}>
+                      <Tooltip
+                        title={t(
+                          row.requestStatus === 'live'
+                            ? 'toolCatalog.viewRequestAction'
+                            : 'toolCatalog.editRequestAction',
+                        )}
+                      >
                         <IconButton size="small" onClick={() => onEdit(row)}>
-                          <Pencil
-                            className="table-action-icon icon-button--edit"
-                            fill="currentColor"
-                          />
+                          {row.requestStatus === 'live' ? (
+                            <Eye className="table-action-icon" />
+                          ) : (
+                            <Pencil
+                              className="table-action-icon icon-button--edit"
+                              fill="currentColor"
+                            />
+                          )}
                         </IconButton>
                       </Tooltip>
                     )}
                     {canPromote && row.status === 'request' && row.requestStatus === 'posted' && (
                       <Tooltip title={t('toolCatalog.promoteToStagingAction')}>
                         <IconButton size="small" onClick={() => onPromote(row)}>
-                          <Check className="table-action-icon icon-button--success" />
+                          <Check className="table-action-icon icon-button--success" strokeWidth={3} />
                         </IconButton>
                       </Tooltip>
                     )}

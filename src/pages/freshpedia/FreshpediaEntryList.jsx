@@ -1,5 +1,5 @@
 import { Chip, Tooltip } from '@mui/material'
-import { ArrowDown, ArrowUp, Check, Pencil } from 'lucide-react'
+import { ArrowDown, ArrowUp, Check, Eye, Pencil } from 'lucide-react'
 import {
   REQUEST_STATUS_COLOR,
   REQUEST_STATUS_TRANSITION_BY_STATUS,
@@ -49,8 +49,16 @@ export default function FreshpediaEntryList({
   return (
     <ul className="entry-index">
       {visibleEntries.map((entry) => {
-        const canEdit = entry.status === 'request' ? canEditRequest : canEditLive
-        const transition = TRANSITION_BY_STATUS[entry.status]
+        // Keyed on which tab we're rendering, not entry.status — a
+        // promoted entry's status moves on to staging/production while
+        // its requestStatus freezes at 'live' (see freshpediaConfig.js),
+        // so it stays visible in the Request tab as history with a
+        // live-tier status. Without this, that row picked up canEditLive
+        // and the Live tab's Production/Staging toggle (transition below)
+        // even while being browsed as frozen Request-tab history — a bug,
+        // not intended: only the Live tab should ever offer that toggle.
+        const canEdit = isRequestActive ? canEditRequest : canEditLive
+        const transition = isRequestActive ? undefined : TRANSITION_BY_STATUS[entry.status]
         const requestStatusTransition =
           entry.status === 'request' ? REQUEST_STATUS_TRANSITION_BY_STATUS[entry.requestStatus] : undefined
         const chip = statusChipProps(entry, isRequestActive, t)
@@ -76,7 +84,7 @@ export default function FreshpediaEntryList({
                   <Tooltip title={t(requestStatusTransition.labelKey)}>
                     <button
                       type="button"
-                      className="icon-button"
+                      className={`icon-button ${requestStatusTransition.colorClass ?? ''}`}
                       aria-label={t(requestStatusTransition.labelKey)}
                       onClick={() => onChangeRequestStatus(entry, requestStatusTransition.toRequestStatus)}
                     >
@@ -97,14 +105,20 @@ export default function FreshpediaEntryList({
                   </Tooltip>
                 )}
                 {canEdit && (
-                  <Tooltip title={t('freshpedia.editEntryAction')}>
+                  <Tooltip
+                    title={t(
+                      entry.requestStatus === 'live' ? 'freshpedia.viewEntryAction' : 'freshpedia.editEntryAction',
+                    )}
+                  >
                     <button
                       type="button"
                       className="icon-button icon-button--edit"
-                      aria-label={t('freshpedia.editEntryAction')}
+                      aria-label={t(
+                        entry.requestStatus === 'live' ? 'freshpedia.viewEntryAction' : 'freshpedia.editEntryAction',
+                      )}
                       onClick={() => onEdit(entry)}
                     >
-                      <Pencil fill="currentColor" />
+                      {entry.requestStatus === 'live' ? <Eye /> : <Pencil fill="currentColor" />}
                     </button>
                   </Tooltip>
                 )}
@@ -116,7 +130,7 @@ export default function FreshpediaEntryList({
                       aria-label={t('freshpedia.promoteToStagingAction')}
                       onClick={() => onPromote(entry)}
                     >
-                      <Check />
+                      <Check strokeWidth={3} />
                     </button>
                   </Tooltip>
                 )}

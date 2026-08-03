@@ -10,7 +10,7 @@ import {
 import { X } from 'lucide-react'
 import { isToolFormValid } from './toolCatalogConfig.js'
 
-function ToolEntryForm({ form, setForm, systems, t }) {
+function ToolEntryForm({ form, setForm, systems, isReadOnly, t }) {
   function updateQuestion(index, value) {
     setForm((current) => ({
       ...current,
@@ -46,6 +46,7 @@ function ToolEntryForm({ form, setForm, systems, t }) {
           id="tool-system"
           size="small"
           autoHighlight
+          disabled={isReadOnly}
           options={systems}
           value={systems.find((entry) => entry.system === form.system) ?? null}
           getOptionLabel={(entry) => entry?.label ?? ''}
@@ -75,6 +76,7 @@ function ToolEntryForm({ form, setForm, systems, t }) {
             }))
           }
           placeholder={t('toolCatalog.namePlaceholder')}
+          disabled={isReadOnly}
         />
       </div>
 
@@ -91,6 +93,7 @@ function ToolEntryForm({ form, setForm, systems, t }) {
             setForm((current) => ({ ...current, description: event.target.value }))
           }
           placeholder={t('toolCatalog.descriptionPlaceholder')}
+          disabled={isReadOnly}
         />
       </div>
 
@@ -106,20 +109,25 @@ function ToolEntryForm({ form, setForm, systems, t }) {
               value={question}
               onChange={(event) => updateQuestion(index, event.target.value)}
               placeholder={t('toolCatalog.exampleQuestionPlaceholder')}
+              disabled={isReadOnly}
             />
-            <button
-              type="button"
-              className="icon-button"
-              aria-label={t('toolCatalog.removeQuestionAction')}
-              onClick={() => removeQuestion(index)}
-            >
-              <X />
-            </button>
+            {!isReadOnly && (
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={t('toolCatalog.removeQuestionAction')}
+                onClick={() => removeQuestion(index)}
+              >
+                <X />
+              </button>
+            )}
           </div>
         ))}
-        <Button size="small" onClick={addQuestion}>
-          {t('toolCatalog.addQuestionAction')}
-        </Button>
+        {!isReadOnly && (
+          <Button size="small" onClick={addQuestion}>
+            {t('toolCatalog.addQuestionAction')}
+          </Button>
+        )}
       </div>
     </>
   )
@@ -130,6 +138,7 @@ export default function ToolEntryDialog({
   formError,
   isEditMode,
   isOpen,
+  isReadOnly,
   isSubmitting,
   onClose,
   onSubmit,
@@ -143,25 +152,28 @@ export default function ToolEntryDialog({
         {isEditMode ? `${form.system}.${form.name}` : t('toolCatalog.addEntry')}
       </DialogTitle>
       <DialogContent>
+        {isReadOnly && <p className="config-section__notice">{t('toolCatalog.viewOnlyLiveRequestNotice')}</p>}
         <form
           id="tool-form"
           className="auth-form config-add-form"
           onSubmit={onSubmit}
         >
-          <ToolEntryForm form={form} setForm={setForm} systems={systems} t={t} />
+          <ToolEntryForm form={form} setForm={setForm} systems={systems} isReadOnly={isReadOnly} t={t} />
           {formError && <span className="form-field__error">{formError}</span>}
         </form>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('toolCatalog.cancelEntry')}</Button>
-        <Button
-          type="submit"
-          form="tool-form"
-          variant="contained"
-          disabled={isSubmitting || !isToolFormValid(form)}
-        >
-          {t(isEditMode ? 'toolCatalog.saveEntry' : 'toolCatalog.addEntrySubmit')}
-        </Button>
+        <Button onClick={onClose}>{t(isReadOnly ? 'config.close' : 'toolCatalog.cancelEntry')}</Button>
+        {!isReadOnly && (
+          <Button
+            type="submit"
+            form="tool-form"
+            variant="contained"
+            disabled={isSubmitting || !isToolFormValid(form)}
+          >
+            {t(isEditMode ? 'toolCatalog.saveEntry' : 'toolCatalog.addEntrySubmit')}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   )
