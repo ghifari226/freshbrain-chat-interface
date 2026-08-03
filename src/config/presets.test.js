@@ -34,5 +34,8 @@ describe('permission presets', () => {
     expect(flags['tools.request_change_status']).toBe(false)
     expect(flags['users.view']).toBe(true)
     expect(flags['freshpedia.live_view']).toBe(true)
+    // Re-added 2026-08-04 — Admin Tech's exclude list never named it, so
+    // it comes back automatically now that it's in ALL_PERMISSIONS again.
+    expect(flags['users.assign_permissions']).toBe(true)
   })
 })

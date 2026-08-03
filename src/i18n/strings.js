@@ -191,8 +191,6 @@ export const strings = {
     selectAllToggle: { id: 'Pilih/batalkan semua di grup ini', en: 'Select/deselect all in this group' },
     presetLabel: { id: 'Preset', en: 'Preset' },
     customPreset: { id: 'Custom', en: 'Custom' },
-    maintainerToggleLabel: { id: 'Maintainer', en: 'Maintainer' },
-    maintainerBadge: { id: 'Maintainer', en: 'Maintainer' },
 
     permissionView: { id: 'Permission — View', en: 'Permission — View' },
     permissionEdit: { id: 'Permission — Edit', en: 'Permission — Edit' },
@@ -206,6 +204,7 @@ export const strings = {
     userAdd: { id: 'User — Add', en: 'User — Add' },
     userEdit: { id: 'User — Edit', en: 'User — Edit' },
     userDelete: { id: 'User — Delete', en: 'User — Delete' },
+    userAssignPermissions: { id: 'User — Assign Permissions', en: 'User — Assign Permissions' },
 
     freshpediaLiveView: { id: 'Freshpedia — Live View', en: 'Freshpedia — Live View' },
     freshpediaLiveEdit: { id: 'Freshpedia — Live Edit', en: 'Freshpedia — Live Edit' },

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, ShieldCheck, Trash2 } from 'lucide-react'
+import { Lock, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import {
   IconButton,
   Dialog,
@@ -28,6 +28,7 @@ import {
   SYSTEM_ACCESS_PERMISSIONS,
   CHAT_ACCESS_PERMISSIONS,
   PERMISSION_LABEL_KEYS,
+  TECHNOLOGY_LOCKED_PERMISSIONS,
   canAssignPermissions,
   hasPermission,
   permissionsArrayToFlags,
@@ -37,10 +38,10 @@ import { PERMISSION_PRESETS, flagsForPreset, matchPresetForPermissions } from '.
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 
-// Superadmin is ROLES[0] but is never assignable through this form (see
+// Superuser is ROLES[0] but is never assignable through this form (see
 // roleOptions below) — defaulting to it here would silently create a
-// Superadmin unless the admin happened to touch the Role field themselves.
-const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superadmin') }
+// Superuser unless the admin happened to touch the Role field themselves.
+const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superuser') }
 
 // Order-independent — see the identical concern in RolesPage's scopesEqual.
 // Both args are flag-shaped ({ 'users.view': boolean, ... }), never the
@@ -118,13 +119,14 @@ function phoneMatches(phoneDigits, queryDigits) {
 }
 
 // One group of checkboxes in the Shield dialog (System Access / Chat
-// Access — just two now). isFieldDisabled marks fields blocked by the
-// self-escalation guard (actor editing their own row, doesn't already hold
-// this field). The header checkbox bulk-selects every field in the group
-// that isn't disabled — purely a UI convenience, not a stored permission of
-// its own.
-function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldDisabled, onToggle, onToggleAll, t }) {
-  const toggleableFields = fields.filter((field) => !isFieldDisabled(field))
+// Access — just two now). isFieldLocked marks Technology's hardcoded
+// fields (checked+disabled, never editable); isFieldDisabled marks fields
+// blocked by the self-escalation guard (actor editing their own row,
+// doesn't already hold this field). The header checkbox bulk-selects every
+// field in the group that isn't locked/disabled — purely a UI convenience,
+// not a stored permission of its own.
+function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldLocked, isFieldDisabled, onToggle, onToggleAll, t }) {
+  const toggleableFields = fields.filter((field) => !isFieldLocked(field) && !isFieldDisabled(field))
   const checkedToggleableCount = toggleableFields.filter((field) => Boolean(dialogPermissions[field])).length
   const allChecked = toggleableFields.length > 0 && checkedToggleableCount === toggleableFields.length
   const someChecked = checkedToggleableCount > 0 && !allChecked
@@ -148,17 +150,22 @@ function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldD
           </Tooltip>
         )}
       </div>
-      {fields.map((field) => (
-        <label className="permission-checkbox" key={field}>
-          <input
-            type="checkbox"
-            checked={Boolean(dialogPermissions[field])}
-            disabled={isFieldDisabled(field)}
-            onChange={() => onToggle(field)}
-          />
-          <span className="permission-checkbox__label">{t(PERMISSION_LABEL_KEYS[field])}</span>
-        </label>
-      ))}
+      {fields.map((field) => {
+        const locked = isFieldLocked(field)
+        return (
+          <label className="permission-checkbox" key={field}>
+            <input
+              type="checkbox"
+              checked={locked || Boolean(dialogPermissions[field])}
+              disabled={locked || isFieldDisabled(field)}
+              onChange={() => onToggle(field)}
+            />
+            <span className="permission-checkbox__label">
+              {locked && <Lock />} {t(PERMISSION_LABEL_KEYS[field])}
+            </span>
+          </label>
+        )
+      })}
     </div>
   )
 }
@@ -174,11 +181,11 @@ export default function UsersPage() {
     () => ({ id: session?.id, token: session?.token }),
     [session?.id, session?.token],
   )
-  // Superadmin is visible in the table (existing Superadmin users show their
+  // Superuser is visible in the table (existing Superuser users show their
   // real role) but never assignable through this picker — bootstrap-locked,
   // not something granted via the UI, for anyone, regardless of the actor's
   // own permissions.
-  const roleOptions = ROLES.filter((r) => r !== 'Superadmin')
+  const roleOptions = ROLES.filter((r) => r !== 'Superuser')
 
   // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
@@ -211,22 +218,14 @@ export default function UsersPage() {
   // way (backdrop, Escape, the Close button) also discards, so there's never
   // a silently-pending edit left behind once the dialog isn't open.
   const [pendingPermissions, setPendingPermissions] = useState({})
-  // Same draft/discard/commit shape as pendingPermissions above, kept as a
-  // separate map since is_maintainer isn't one of ALL_PERMISSIONS — it's
-  // sent alongside allowed_permissions in the same updateUser call (see
-  // handleSavePermissions) rather than through its own Save button.
-  const [pendingMaintainer, setPendingMaintainer] = useState({})
   const isEditMode = Boolean(userFormTarget) && userFormTarget !== 'new'
   const editingUser = isEditMode ? users.find((u) => u.id === userFormTarget) : null
   // Derived from `users`, not a snapshot, so the dialog's title/base data is
   // never stale.
   const permissionsDialogUser = users.find((u) => u.id === permissionsDialogUserId) ?? null
   const dialogPermissions = pendingPermissions[permissionsDialogUserId] ?? flagsForUser(permissionsDialogUser)
-  const dialogMaintainer =
-    pendingMaintainer[permissionsDialogUserId] ?? Boolean(permissionsDialogUser?.is_maintainer)
   const isPermissionsDialogDirty = permissionsDialogUser
-    ? !permissionsEqual(dialogPermissions, flagsForUser(permissionsDialogUser)) ||
-      dialogMaintainer !== Boolean(permissionsDialogUser.is_maintainer)
+    ? !permissionsEqual(dialogPermissions, flagsForUser(permissionsDialogUser))
     : false
   // Highlights whichever preset's exact permission set matches the current
   // draft — never editable directly, purely derived from dialogPermissions
@@ -241,10 +240,18 @@ export default function UsersPage() {
   // Mirrors updateUser's runtime guard for immediate feedback — the actor
   // can't check a box for a field they don't already hold themselves,
   // whether editing their own row or (structurally impossible here, since
-  // the dialog can't even open on someone else without being Superadmin or
+  // the dialog can't even open on someone else without being Superuser or
   // Technology) anyone else's.
   function isSelfEscalationBlocked(field) {
     return permissionsDialogUserId === session?.id && !hasPermission(session, field)
+  }
+
+  // Mirrors updateUser's Technology-lock write guard for immediate
+  // feedback — users.assign_permissions/users.view show checked+disabled
+  // whenever the dialog's *target* (not the actor) is Technology. Superuser
+  // gets no equivalent — its checkboxes are ordinary and freely toggleable.
+  function isTechnologyLockedField(field) {
+    return permissionsDialogUser?.role === 'Technology' && TECHNOLOGY_LOCKED_PERMISSIONS.includes(field)
   }
 
   // Built from the actual data rather than ROLES — every MOCK_USERS role
@@ -438,44 +445,27 @@ export default function UsersPage() {
     setPendingPermissions((prev) => ({ ...prev, [userId]: flagsForPreset(presetId) }))
   }
 
-  function handleToggleMaintainer(userId) {
-    setPendingMaintainer((prev) => {
-      const user = users.find((u) => u.id === userId)
-      const current = prev[userId] ?? Boolean(user?.is_maintainer)
-      return { ...prev, [userId]: !current }
-    })
-  }
-
   function discardPendingPermissions(userId) {
     setPendingPermissions((prev) => {
       const { [userId]: _discard, ...rest } = prev
       return rest
     })
-    setPendingMaintainer((prev) => {
-      const { [userId]: _discard, ...rest } = prev
-      return rest
-    })
   }
 
-  // The only thing that actually calls updateUser for permissions/maintainer
-  // status — see handleTogglePermission/handleToggleMaintainer above, which
-  // only ever touch the local draft. allowed_permissions is a full replace
-  // on the wire (auth-contract.md, same convention as roles.allowed_scopes),
-  // so this always sends the dialog's complete permissions draft, not just
-  // the fields that changed — the diffing now happens server-side (mock:
-  // authService.js's updateUser) against the last-synced row. is_maintainer
-  // only goes on the wire if it's actually dirty.
+  // The only thing that actually calls updateUser for permissions — see
+  // handleTogglePermission above, which only ever touches the local draft.
+  // allowed_permissions is a full replace on the wire (auth-contract.md,
+  // same convention as roles.allowed_scopes), so this always sends the
+  // dialog's complete draft, not just the fields that changed — the diffing
+  // now happens server-side (mock: authService.js's updateUser) against the
+  // last-synced row.
   async function handleSavePermissions(userId) {
-    const nextPermissions = pendingPermissions[userId]
-    const nextMaintainer = pendingMaintainer[userId]
-    if (!nextPermissions && nextMaintainer === undefined) return
-    const updates = {}
-    if (nextPermissions) updates.allowed_permissions = permissionFlagsToArray(nextPermissions)
-    if (nextMaintainer !== undefined) updates.is_maintainer = nextMaintainer
-    const updated = await updateUser(userId, updates, actorForUpdate)
+    const next = pendingPermissions[userId]
+    if (!next) return
+    const updated = await updateUser(userId, { allowed_permissions: permissionFlagsToArray(next) }, actorForUpdate)
     setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)))
     if (userId === session?.id) {
-      updateSession({ allowed_permissions: updated.allowed_permissions, is_maintainer: updated.is_maintainer })
+      updateSession({ allowed_permissions: updated.allowed_permissions })
     }
     discardPendingPermissions(userId)
   }
@@ -605,10 +595,7 @@ export default function UsersPage() {
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.email}</TableCell>
                 <TableCell>{formatPhoneForDisplay(row.phone)}</TableCell>
-                <TableCell>
-                  {row.role}
-                  {row.is_maintainer ? `, ${t('permissions.maintainerBadge')}` : ''}
-                </TableCell>
+                <TableCell>{row.role}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -771,21 +758,12 @@ export default function UsersPage() {
               renderInput={(params) => <TextField {...params} placeholder={t('permissions.presetLabel')} />}
             />
           </div>
-          <div className="form-field">
-            <label className="permission-checkbox">
-              <input
-                type="checkbox"
-                checked={dialogMaintainer}
-                onChange={() => handleToggleMaintainer(permissionsDialogUserId)}
-              />
-              <span className="permission-checkbox__label">{t('permissions.maintainerToggleLabel')}</span>
-            </label>
-          </div>
           <div className="permission-group-list">
             <PermissionCheckboxGroup
               titleKey="permissions.chatAccessSectionLabel"
               fields={CHAT_ACCESS_PERMISSIONS}
               dialogPermissions={dialogPermissions}
+              isFieldLocked={isTechnologyLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
               onToggle={(field) => handleTogglePermission(permissionsDialogUserId, field)}
               onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogUserId, fields, next)}
@@ -795,6 +773,7 @@ export default function UsersPage() {
               titleKey="permissions.systemAccessSectionLabel"
               fields={SYSTEM_ACCESS_PERMISSIONS}
               dialogPermissions={dialogPermissions}
+              isFieldLocked={isTechnologyLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
               onToggle={(field) => handleTogglePermission(permissionsDialogUserId, field)}
               onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogUserId, fields, next)}

@@ -65,10 +65,19 @@
   font-weight: 600;
 }
 
+/* min-height matches .section-toggle-row's height below (driven by the
+   Live/Request toggle's own natural height) — without this, a
+   button-only title-row (Roles/Users/Permissions' "Add" buttons) is only
+   as tall as the button itself, which vertically centers a few px higher
+   than the same button would on Freshpedia/Tools (centered against the
+   taller toggle instead). Matching the two row heights is what makes the
+   button actually land on the same y across every admin page, not just
+   look coincidentally close. */
 .config-section__title-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 37.5px;
   margin: 0 0 20px;
 }
 
@@ -336,7 +345,7 @@
   padding: 6px 8px;
 }
 
-/* Superadmin's system rows — always-checked, non-interactive stand-ins for
+/* Superuser's system rows — always-checked, non-interactive stand-ins for
    its real ['*'] scope value (not a per-system breakdown, so no expand
    chevron either). Dimmed so they read as fixed/non-editable at a glance,
    same intent as the disabled SystemCheckbox state elsewhere. */

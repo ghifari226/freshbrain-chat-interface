@@ -9,6 +9,7 @@ export type PermissionKey =
   | 'users.add'
   | 'users.edit'
   | 'users.delete'
+  | 'users.assign_permissions'
   | 'freshpedia.live_view'
   | 'freshpedia.live_edit'
   | 'freshpedia.live_change_status'

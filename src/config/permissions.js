@@ -27,6 +27,7 @@ export const SYSTEM_ACCESS_PERMISSIONS = [
   'users.add',
   'users.edit',
   'users.delete',
+  'users.assign_permissions',
 ]
 
 // Freshpedia/Tools each split "view" and "request" into a live-tier axis
@@ -53,13 +54,21 @@ export const CHAT_ACCESS_PERMISSIONS = [
   'staging.test',
 ]
 
-// All 23, stable order — used to seed/iterate full permission objects.
+// All 24, stable order — used to seed/iterate full permission objects.
 export const ALL_PERMISSIONS = [...SYSTEM_ACCESS_PERMISSIONS, ...CHAT_ACCESS_PERMISSIONS]
 
-// users.assign_permissions used to be a permission flag gating the Shield
-// dialog, locked true for Superadmin as a chicken-and-egg guard. It's gone
-// now — permission assignment is gated by role directly (see
-// canAssignPermissions below), so there's nothing left to lock.
+// Re-added 2026-08-04 (was removed 2026-08-03 when dialog access moved to
+// a pure role-hardlock — see canAssignPermissions below, unchanged by
+// this). It doesn't gate the Shield dialog itself anymore; that's still
+// role-only. What it's for now: a normal, visible, preset-trackable
+// checkbox — and the one field, alongside users.view, that's forced
+// true+locked for any Technology-role target (see
+// TECHNOLOGY_LOCKED_PERMISSIONS below) as a UI signal that Technology
+// always retains these two regardless of what else gets stripped.
+// Superuser gets no equivalent lock — its permissions (via the Superadmin
+// preset, name unchanged even though the role is now "Superuser") are
+// ordinary, freely-toggleable booleans like anyone else's.
+export const TECHNOLOGY_LOCKED_PERMISSIONS = ['users.assign_permissions', 'users.view']
 
 // Permissions Catalog page's 6 display groups — derived purely from each
 // key's prefix, not reassignable (there's no "move this permission to a
@@ -93,6 +102,7 @@ export const PERMISSION_LABEL_KEYS = {
   'users.add': 'permissions.userAdd',
   'users.edit': 'permissions.userEdit',
   'users.delete': 'permissions.userDelete',
+  'users.assign_permissions': 'permissions.userAssignPermissions',
   'freshpedia.live_view': 'permissions.freshpediaLiveView',
   'freshpedia.live_edit': 'permissions.freshpediaLiveEdit',
   'freshpedia.live_change_status': 'permissions.freshpediaLiveChangeStatus',
@@ -113,7 +123,7 @@ export const PERMISSION_LABEL_KEYS = {
 // the UI. permissions.add (the permission key that used to gate that
 // capability) is gone too, for the same reason: there's nothing left for
 // it to gate. updatePermissionInCatalog below (editing a label) is the only
-// mutation any user, including Superadmin, can still make from the UI.
+// mutation any user, including Superuser, can still make from the UI.
 
 /**
  * Edits only the display label — the key itself is immutable once created
@@ -164,7 +174,7 @@ export function hasPermission(bag, key) {
 
 /** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewUsers(permissions) {
-  return ['users.view', 'users.add', 'users.edit', 'users.delete'].some(
+  return ['users.view', 'users.add', 'users.edit', 'users.delete', 'users.assign_permissions'].some(
     (field) => hasPermission(permissions, field),
   )
 }
@@ -184,7 +194,7 @@ export function canViewPermissions(permissions) {
   return hasPermission(permissions, 'permissions.view') || hasPermission(permissions, 'permissions.edit')
 }
 
-// Any of the 23 present => can reach /config at all (nav-menu gate).
+// Any of the 24 present => can reach /config at all (nav-menu gate).
 /** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canAccessConfigSection(permissions) {
   return Boolean(permissions?.allowed_permissions?.length)
@@ -192,14 +202,16 @@ export function canAccessConfigSection(permissions) {
 
 /**
  * Gates the Shield icon and everything inside it — hardcoded to role now,
- * not a permission flag. There's no way to grant this to a Finance or HR
- * user by checking a box; only Superadmin and Technology can ever assign
- * permissions to other users, full stop.
+ * not a permission flag (the users.assign_permissions checkbox itself
+ * doesn't gate this dialog anymore, even though it's back as a visible
+ * permission — see TECHNOLOGY_LOCKED_PERMISSIONS above). There's no way to
+ * grant this to a Finance or HR user by checking a box; only Superuser and
+ * Technology can ever assign permissions to other users, full stop.
  *
  * @param {{ role?: string } | undefined} actor
  */
 export function canAssignPermissions(actor) {
-  return actor?.role === 'Superadmin' || actor?.role === 'Technology'
+  return actor?.role === 'Superuser' || actor?.role === 'Technology'
 }
 
 /**

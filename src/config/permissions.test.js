@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  TECHNOLOGY_LOCKED_PERMISSIONS,
   canAccessConfigSection,
   canAccessFreshpedia,
   canAccessToolCatalog,
@@ -20,6 +21,7 @@ describe('permission gates', () => {
 
   it('allows each configuration section through any relevant capability', () => {
     expect(canViewUsers({ allowed_permissions: ['users.edit'] })).toBe(true)
+    expect(canViewUsers({ allowed_permissions: ['users.assign_permissions'] })).toBe(true)
     expect(canViewRoles({ allowed_permissions: ['roles.assign_scopes'] })).toBe(true)
     expect(canViewPermissions({ allowed_permissions: ['permissions.edit'] })).toBe(true)
     expect(canAccessConfigSection({ allowed_permissions: ['users.view'] })).toBe(true)
@@ -27,8 +29,12 @@ describe('permission gates', () => {
 
   it('keeps permission assignment behind role, not a permission flag', () => {
     expect(canAssignPermissions({ role: 'Finance', allowed_permissions: ['users.edit'] })).toBe(false)
-    expect(canAssignPermissions({ role: 'Superadmin' })).toBe(true)
+    expect(canAssignPermissions({ role: 'Superuser' })).toBe(true)
     expect(canAssignPermissions({ role: 'Technology' })).toBe(true)
+  })
+
+  it('locks users.assign_permissions and users.view specifically for Technology', () => {
+    expect(TECHNOLOGY_LOCKED_PERMISSIONS).toEqual(['users.assign_permissions', 'users.view'])
   })
 
   it('gates Freshpedia/Tool Catalog access on live_view only', () => {
