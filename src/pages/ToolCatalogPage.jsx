@@ -34,7 +34,7 @@ export default function ToolCatalogPage() {
   const canViewRequest = hasPermission(session, 'tools.request_view')
   const canAddRequest = hasPermission(session, 'tools.request_add')
   const canEditRequest = hasPermission(session, 'tools.request_edit')
-  const canChangeRequestStatus = hasPermission(session, 'tools.request_change_status')
+  const canChangeRequestStatus = hasPermission(session, 'tools.request_status')
   const canPromoteEntries = canPromote(session)
   const statusFilters = useStatusFilters({
     canViewProduction,

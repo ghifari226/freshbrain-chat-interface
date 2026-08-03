@@ -20,8 +20,8 @@ export const SYSTEM_ACCESS_PERMISSIONS = [
   'permissions.view',
   'permissions.edit',
   'roles.view',
-  'roles.add_role',
-  'roles.edit_role',
+  'roles.add',
+  'roles.edit',
   'roles.assign_scopes',
   'users.view',
   'users.add',
@@ -34,23 +34,23 @@ export const SYSTEM_ACCESS_PERMISSIONS = [
 // and a request-pipeline axis (2026-08-03) — a user can now be granted
 // visibility into published content without also seeing the request
 // backlog, or vice versa, which one shared `.view`/`.request` flag
-// couldn't express. Tools has no live_edit/live_change_status — its live
+// couldn't express. Tools has no live_edit/live_status — its live
 // tier stays read-only; the only way content reaches it is Promote, which
 // is gated by the is_maintainer boolean (see roles.js/authService.js), not
 // a permission key at all.
 export const CHAT_ACCESS_PERMISSIONS = [
   'freshpedia.live_view',
   'freshpedia.live_edit',
-  'freshpedia.live_change_status',
+  'freshpedia.live_status',
   'freshpedia.request_view',
   'freshpedia.request_add',
   'freshpedia.request_edit',
-  'freshpedia.request_change_status',
+  'freshpedia.request_status',
   'tools.live_view',
   'tools.request_view',
   'tools.request_add',
   'tools.request_edit',
-  'tools.request_change_status',
+  'tools.request_status',
   'staging.test',
 ]
 
@@ -95,8 +95,8 @@ export const PERMISSION_LABEL_KEYS = {
   'permissions.view': 'permissions.permissionView',
   'permissions.edit': 'permissions.permissionEdit',
   'roles.view': 'permissions.roleScopeView',
-  'roles.add_role': 'permissions.roleScopeAddRole',
-  'roles.edit_role': 'permissions.roleScopeEditRole',
+  'roles.add': 'permissions.roleScopeAddRole',
+  'roles.edit': 'permissions.roleScopeEditRole',
   'roles.assign_scopes': 'permissions.roleScopeAssignScopes',
   'users.view': 'permissions.userView',
   'users.add': 'permissions.userAdd',
@@ -105,16 +105,16 @@ export const PERMISSION_LABEL_KEYS = {
   'users.assign_permissions': 'permissions.userAssignPermissions',
   'freshpedia.live_view': 'permissions.freshpediaLiveView',
   'freshpedia.live_edit': 'permissions.freshpediaLiveEdit',
-  'freshpedia.live_change_status': 'permissions.freshpediaLiveChangeStatus',
+  'freshpedia.live_status': 'permissions.freshpediaLiveChangeStatus',
   'freshpedia.request_view': 'permissions.freshpediaRequestView',
   'freshpedia.request_add': 'permissions.freshpediaRequestAdd',
   'freshpedia.request_edit': 'permissions.freshpediaRequestEdit',
-  'freshpedia.request_change_status': 'permissions.freshpediaRequestChangeStatus',
+  'freshpedia.request_status': 'permissions.freshpediaRequestChangeStatus',
   'tools.live_view': 'permissions.toolLiveView',
   'tools.request_view': 'permissions.toolRequestView',
   'tools.request_add': 'permissions.toolRequestAdd',
   'tools.request_edit': 'permissions.toolRequestEdit',
-  'tools.request_change_status': 'permissions.toolRequestChangeStatus',
+  'tools.request_status': 'permissions.toolRequestChangeStatus',
   'staging.test': 'permissions.stagingTest',
 }
 
@@ -183,8 +183,8 @@ export function canViewUsers(permissions) {
 export function canViewRoles(permissions) {
   return [
     'roles.view',
-    'roles.add_role',
-    'roles.edit_role',
+    'roles.add',
+    'roles.edit',
     'roles.assign_scopes',
   ].some((field) => hasPermission(permissions, field))
 }
@@ -254,7 +254,7 @@ export function canAccessFreshpedia(permissions) {
  * @param {{ allowed_permissions?: string[] } | undefined} permissions
  */
 export function canChangeFreshpediaStatus(permissions) {
-  return hasPermission(permissions, 'freshpedia.live_change_status')
+  return hasPermission(permissions, 'freshpedia.live_status')
 }
 
 /**

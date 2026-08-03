@@ -18,7 +18,7 @@
 // hand-granted through the Shield dialog's checkbox grid (see
 // config/permissions.js's canPromote for why). Draft<->Posted is a
 // separate toggle (updateFreshpediaRequestStatus below), gated by its own
-// freshpedia.request_change_status permission — distinct from
+// freshpedia.request_status permission — distinct from
 // freshpedia.request_edit, which only covers editing content fields.
 //
 // USE_MOCK_API selects the in-memory MOCK_ENTRIES below or the real Axios
@@ -374,7 +374,7 @@ export async function updateFreshpediaRequestEntry(id, updates, actor, { signal 
 }
 
 /**
- * `POST /freshpedia/{id}/status` — freshpedia.live_change_status-only move
+ * `POST /freshpedia/{id}/status` — freshpedia.live_status-only move
  * between the two published tiers: staging→production or
  * production→staging (demote). Promoting an entry *out of*
  * `/freshpedia-request` is a different endpoint entirely — see
@@ -397,7 +397,7 @@ export async function updateFreshpediaEntryStatus(id, status, actor, { signal } 
 
   await mockDelay(500, 900, signal)
 
-  if (!hasPermission(actor, 'freshpedia.live_change_status')) {
+  if (!hasPermission(actor, 'freshpedia.live_status')) {
     throw new Error('You do not have permission to change entry status')
   }
 
@@ -486,7 +486,7 @@ export async function updateFreshpediaRequestStatus(id, nextRequestStatus, actor
 
   await mockDelay(500, 900, signal)
 
-  if (!hasPermission(actor, 'freshpedia.request_change_status')) {
+  if (!hasPermission(actor, 'freshpedia.request_status')) {
     throw new Error("You do not have permission to change this request's status")
   }
 

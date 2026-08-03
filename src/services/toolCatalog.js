@@ -15,7 +15,7 @@
 // Freshpedia's — see freshpedia-contract.md's equivalent note and this
 // repo's tool-catalog-contract.md. requestStatus itself follows the same
 // Draft->Posted->Live(frozen) lifecycle as Freshpedia's, toggled between
-// draft/posted via updateToolCatalogRequestStatus (tools.request_change_status,
+// draft/posted via updateToolCatalogRequestStatus (tools.request_status,
 // distinct from tools.request_edit which only covers content fields), and
 // frozen permanently at 'live' once promoted — see
 // getToolCatalogRequestEntries below for why that keeps a promoted entry
@@ -391,7 +391,7 @@ export async function updateToolCatalogRequestStatus(id, nextRequestStatus, acto
 
   await mockDelay(500, 900, signal)
 
-  if (!hasPermission(actor, 'tools.request_change_status')) {
+  if (!hasPermission(actor, 'tools.request_status')) {
     throw new Error("You do not have permission to change this request's status")
   }
 

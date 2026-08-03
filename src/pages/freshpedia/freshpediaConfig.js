@@ -32,7 +32,7 @@ export const REQUEST_STATUS_COLOR = {
 // The Draft<->Posted toggle, same shape as TRANSITION_BY_STATUS above but
 // keyed by requestStatus and only ever offered while still status='request'
 // (a promoted, requestStatus='live' entry has nothing to toggle — it's
-// frozen). Distinct action from Promote (request_change_status vs
+// frozen). Distinct action from Promote (request_status permission vs
 // is_maintainer).
 export const REQUEST_STATUS_TRANSITION_BY_STATUS = {
   draft: {

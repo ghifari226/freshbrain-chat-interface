@@ -47,7 +47,7 @@ describe('permission gates', () => {
   })
 
   it('gates Promote on the is_maintainer boolean, never a permission', () => {
-    expect(canPromote({ is_maintainer: false, allowed_permissions: ['freshpedia.live_change_status'] })).toBe(false)
+    expect(canPromote({ is_maintainer: false, allowed_permissions: ['freshpedia.live_status'] })).toBe(false)
     expect(canPromote({ is_maintainer: true, allowed_permissions: [] })).toBe(true)
     expect(canPromote(undefined)).toBe(false)
   })

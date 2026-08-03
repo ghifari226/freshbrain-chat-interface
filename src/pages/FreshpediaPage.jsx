@@ -38,7 +38,7 @@ export default function FreshpediaPage({ language }) {
   const canEditRequest = hasPermission(session, 'freshpedia.request_edit')
   const canEditLive = hasPermission(session, 'freshpedia.live_edit')
   const canChangeStatus = canChangeFreshpediaStatus(session)
-  const canChangeRequestStatus = hasPermission(session, 'freshpedia.request_change_status')
+  const canChangeRequestStatus = hasPermission(session, 'freshpedia.request_status')
   const canPromoteEntries = canPromote(session)
   const statusFilters = useStatusFilters({
     canViewProduction,

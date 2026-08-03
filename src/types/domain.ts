@@ -2,8 +2,8 @@ export type PermissionKey =
   | 'permissions.view'
   | 'permissions.edit'
   | 'roles.view'
-  | 'roles.add_role'
-  | 'roles.edit_role'
+  | 'roles.add'
+  | 'roles.edit'
   | 'roles.assign_scopes'
   | 'users.view'
   | 'users.add'
@@ -12,16 +12,16 @@ export type PermissionKey =
   | 'users.assign_permissions'
   | 'freshpedia.live_view'
   | 'freshpedia.live_edit'
-  | 'freshpedia.live_change_status'
+  | 'freshpedia.live_status'
   | 'freshpedia.request_view'
   | 'freshpedia.request_add'
   | 'freshpedia.request_edit'
-  | 'freshpedia.request_change_status'
+  | 'freshpedia.request_status'
   | 'tools.live_view'
   | 'tools.request_view'
   | 'tools.request_add'
   | 'tools.request_edit'
-  | 'tools.request_change_status'
+  | 'tools.request_status'
   | 'staging.test'
 
 // Storage-only shape (MOCK_USERS rows) — the wire shape (Session,
@@ -58,8 +58,8 @@ export interface UserDirectoryEntry {
 export type CatalogStatus = 'request' | 'staging' | 'production'
 // Request-pipeline status, separate axis from CatalogStatus above (2026-08-03).
 // Set the moment an entry is created via the request flow and never
-// unset: 'draft' -> 'posted' (togglable, see freshpedia.request_change_status
-// /tools.request_change_status) -> 'live' (frozen permanently once
+// unset: 'draft' -> 'posted' (togglable, see freshpedia.request_status
+// /tools.request_status) -> 'live' (frozen permanently once
 // promoted — see promoteFreshpediaRequestEntry/promoteToolCatalogRequestEntry).
 // Entries seeded directly as production/staging (never went through the
 // request flow) simply never have this field set.

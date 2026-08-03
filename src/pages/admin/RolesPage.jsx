@@ -60,8 +60,8 @@ function SystemCheckbox({ state, onChange, disabled }) {
 // independent of every other card's state.
 export default function RolesPage({ session }) {
   const t = useT()
-  const canAdd = hasPermission(session, 'roles.add_role')
-  const canEditName = hasPermission(session, 'roles.edit_role')
+  const canAdd = hasPermission(session, 'roles.add')
+  const canEditName = hasPermission(session, 'roles.edit')
   const canAssignScopes = hasPermission(session, 'roles.assign_scopes')
   const canEditAnything = canAdd || canEditName || canAssignScopes
 
