@@ -15,7 +15,7 @@ import { USE_MOCK_API } from '../config/appConfig.js'
 import { ROLE_SCOPES } from '../config/roles.js'
 import {
   ALL_PERMISSIONS,
-  SUPERADMIN_LOCKED_PERMISSIONS,
+  canAssignPermissions,
   permissionFlagsToArray,
   permissionsArrayToFlags,
 } from '../config/permissions.js'
@@ -23,7 +23,7 @@ import { authHeaders, gatewayApi } from './api.ts'
 import { mockDelay } from './mockDelay.ts'
 
 /**
- * The 17 Family 2/3 permission booleans from permission-catalog.md — dot-key
+ * The Family 2/3 permission booleans from permission-catalog.md — dot-key
  * names. Storage-only shape (MOCK_USERS rows); the wire shape collapses
  * these to `allowed_permissions: string[]` (see Session/UserDirectoryEntry
  * below) via permissionFlagsToArray/permissionsArrayToFlags at every
@@ -41,12 +41,16 @@ import { mockDelay } from './mockDelay.ts'
  *   'users.add': boolean,
  *   'users.edit': boolean,
  *   'users.delete': boolean,
- *   'users.assign_permissions': boolean,
- *   'tools.view': boolean,
- *   'tools.request': boolean,
- *   'freshpedia.view': boolean,
- *   'freshpedia.request': boolean,
- *   'freshpedia.change_status': boolean,
+ *   'freshpedia.live_view': boolean,
+ *   'freshpedia.live_edit': boolean,
+ *   'freshpedia.live_change_status': boolean,
+ *   'freshpedia.request_view': boolean,
+ *   'freshpedia.request_add': boolean,
+ *   'freshpedia.request_edit': boolean,
+ *   'tools.live_view': boolean,
+ *   'tools.request_view': boolean,
+ *   'tools.request_add': boolean,
+ *   'tools.request_edit': boolean,
  *   'staging.test': boolean,
  * }} PermissionFlags
  */
@@ -111,6 +115,7 @@ const MOCK_USERS = [
     name: 'Larry Ridwan',
     phone: '6281110000001',
     role: 'Superadmin',
+    is_maintainer: true,
     ...allTruePermissions(),
   },
   {
@@ -120,6 +125,7 @@ const MOCK_USERS = [
     name: 'Ghifari',
     phone: '6281110000002',
     role: 'Superadmin',
+    is_maintainer: true,
     ...allTruePermissions(),
   },
   {
@@ -129,6 +135,7 @@ const MOCK_USERS = [
     name: 'Delanda Pramuwidia',
     phone: '6281110000003',
     role: 'Client Service Management',
+    is_maintainer: false,
     ...allFalsePermissions(),
   },
   {
@@ -138,6 +145,7 @@ const MOCK_USERS = [
     name: 'Shabrina Nisa Yulianti',
     phone: '6281110000004',
     role: 'Finance',
+    is_maintainer: false,
     ...allFalsePermissions(),
   },
   {
@@ -147,6 +155,7 @@ const MOCK_USERS = [
     name: 'Admin',
     phone: '6281110000005',
     role: 'Superadmin',
+    is_maintainer: true,
     ...allTruePermissions(),
   },
   {
@@ -156,6 +165,7 @@ const MOCK_USERS = [
     name: 'User',
     phone: '6281110000006',
     role: 'Client Service Management',
+    is_maintainer: false,
     ...allFalsePermissions(),
   },
 ]
@@ -168,21 +178,11 @@ function makeResetToken() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10)
 }
 
-// Re-derives the 17 boolean fields from a stored MOCK_USERS row, forcing
-// Superadmin's locked field(s) to true regardless of what's stored —
-// defense in depth, not just a creation-time seed. Only forces them TRUE
-// for Superadmin; every other role's copy of these same field(s) is an
-// ordinary stored boolean (this is what lets Technology hold them true
-// too, without being locked — "true because it's stored true", not "true
-// because of a role override"). Called from every read path (toSession,
-// toDirectoryEntry) so the Superadmin lock can never drift even from a bad
-// write.
+// Re-derives the permission boolean fields from a stored MOCK_USERS row.
+// Called from every read path (toSession, toDirectoryEntry).
 function shapeUserPermissions(user) {
   const perms = {}
   for (const field of ALL_PERMISSIONS) perms[field] = Boolean(user[field])
-  if (user.role === 'Superadmin') {
-    for (const field of SUPERADMIN_LOCKED_PERMISSIONS) perms[field] = true
-  }
   return perms
 }
 
@@ -205,6 +205,7 @@ function toSession(user) {
     role: user.role,
     allowed_scopes: resolveScopes(user.role),
     allowed_permissions: permissionFlagsToArray(shapeUserPermissions(user)),
+    is_maintainer: Boolean(user.is_maintainer),
     // mock:<user_id> — cross-checked by ai-engine's verify_mock_token
     // (auth.py), a temporary stand-in for chat-gateway's real signing.
     token: `mock:${user.id}`,
@@ -219,6 +220,7 @@ function toDirectoryEntry(user) {
     phone: user.phone,
     role: user.role,
     allowed_permissions: permissionFlagsToArray(shapeUserPermissions(user)),
+    is_maintainer: Boolean(user.is_maintainer),
   }
 }
 
@@ -311,6 +313,10 @@ export async function createUser(
     email,
     phone,
     role,
+    // Never settable at creation, regardless of role — an admin grants
+    // maintainer status afterward via the Shield dialog, same as any other
+    // Superadmin/Technology-gated write (see updateUser below).
+    is_maintainer: false,
     ...(role === 'Superadmin' ? allTruePermissions() : allFalsePermissions()),
   }
   MOCK_USERS.push(user)
@@ -325,7 +331,7 @@ export async function createUser(
  * live, not cached session state" rule.
  *
  * @param {string} id - target user being updated
- * @param {{ name?: string, phone?: string, role?: string, allowed_permissions?: string[] }} updates
+ * @param {{ name?: string, phone?: string, role?: string, allowed_permissions?: string[], is_maintainer?: boolean }} updates
  * @param {{ id: string, token?: string }} actor - the calling session's own id
  * @returns {Promise<UserDirectoryEntry>}
  */
@@ -351,6 +357,7 @@ export async function updateUser(id, updates, actor, { signal } = {}) {
     throw new Error('Actor not found')
   }
   const actorPermissions = shapeUserPermissions(actorUser)
+  const actorCanAssignPermissions = canAssignPermissions(actorUser)
 
   // allowed_permissions, when sent, is a full replace (auth-contract.md,
   // same convention as roles.allowed_scopes) — diff against the currently
@@ -368,42 +375,30 @@ export async function updateUser(id, updates, actor, { signal } = {}) {
   const touchesProfileOrRole =
     updates.name !== undefined || updates.phone !== undefined || updates.role !== undefined
 
-  // Field-level gate: any of the 17 permission booleans need
-  // users.assign_permissions (single flag now, both groups); name/phone/role
-  // need users.edit — see permission-catalog.md's "who can edit" column.
-  if (touchedPermissionFields.length > 0 && !actorPermissions['users.assign_permissions']) {
+  // Field-level gate: any of the permission booleans need the actor to be
+  // Superadmin or Technology (role-hardlocked, not a permission flag — see
+  // canAssignPermissions); name/phone/role need users.edit — see
+  // permission-catalog.md's "who can edit" column. is_maintainer rides the
+  // same role-lock as permissions, not users.edit — granting Promote access
+  // is a comparably sensitive act to granting a permission.
+  if (touchedPermissionFields.length > 0 && !actorCanAssignPermissions) {
+    throw new Error('You do not have permission to edit this field')
+  }
+  if (updates.is_maintainer !== undefined && !actorCanAssignPermissions) {
     throw new Error('You do not have permission to edit this field')
   }
   if (touchesProfileOrRole && !actorPermissions['users.edit']) {
     throw new Error('You do not have permission to edit this field')
   }
 
-  // Superadmin-lock write protection — only for a Superadmin target
-  // (current role, since a role-change update hasn't been applied yet at
-  // this point): these locked field(s) only ever flip as a side effect of
-  // a role change for Superadmin, never removable via a direct
-  // allowed_permissions write by anyone. Every other role's copies of these
-  // same field(s) are ordinary editable booleans — this is exactly what
-  // "don't lock anything to Technology" means in practice.
-  if (user.role === 'Superadmin' && updates.allowed_permissions !== undefined) {
-    for (const field of SUPERADMIN_LOCKED_PERMISSIONS) {
-      if (nextFlags[field] !== true) {
-        throw new Error(`${field} cannot be removed directly — it follows role`)
-      }
-    }
-  }
-
-  // Reassigning ANY user to Superadmin requires the actor to already hold
-  // all locked permissions themselves — not just users.edit. Applies
-  // regardless of whether the target is the actor's own row. Gated on an
-  // actual transition (user.role !== 'Superadmin' already) so a no-op edit
-  // that merely leaves an existing Superadmin user's role field unchanged
-  // (e.g. editing just their phone number) never trips this guard.
-  if (updates.role === 'Superadmin' && user.role !== 'Superadmin') {
-    const actorHasAllLocks = SUPERADMIN_LOCKED_PERMISSIONS.every((field) => actorPermissions[field])
-    if (!actorHasAllLocks) {
-      throw new Error('Reassigning to Superadmin requires holding all Superadmin access permissions')
-    }
+  // Reassigning ANY user to Superadmin requires the actor to themselves be
+  // Superadmin or Technology — not just users.edit. Applies regardless of
+  // whether the target is the actor's own row. Gated on an actual
+  // transition (user.role !== 'Superadmin' already) so a no-op edit that
+  // merely leaves an existing Superadmin user's role field unchanged (e.g.
+  // editing just their phone number) never trips this guard.
+  if (updates.role === 'Superadmin' && user.role !== 'Superadmin' && !actorCanAssignPermissions) {
+    throw new Error('Reassigning to Superadmin requires Superadmin or Technology access')
   }
 
   // Self-escalation guard: editing your own row can never add a permission
@@ -420,6 +415,7 @@ export async function updateUser(id, updates, actor, { signal } = {}) {
   if (updates.name !== undefined) user.name = updates.name
   if (updates.phone !== undefined) user.phone = updates.phone
   if (updates.role !== undefined) user.role = updates.role
+  if (updates.is_maintainer !== undefined) user.is_maintainer = Boolean(updates.is_maintainer)
   for (const field of touchedPermissionFields) {
     user[field] = nextFlags[field]
   }

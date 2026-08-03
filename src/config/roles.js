@@ -1,9 +1,10 @@
 // Role metadata shared by auth (default scopes on login/register) and the
 // /roles admin view. Single source of truth so the two don't drift.
 
-// Renamed 2026-07-24: CEO -> Superadmin (now also the bootstrap-locked
-// role, see permissions.js's SUPERADMIN_LOCKED_PERMISSIONS), Ops Manager ->
-// Logistic Manager, Warehouse Staff -> Client Service Management (which
+// Renamed 2026-07-24: CEO -> Superadmin (now also the role permission
+// assignment is hardlocked to, alongside Technology — see permissions.js's
+// canAssignPermissions), Ops Manager -> Logistic Manager, Warehouse Staff
+// -> Client Service Management (which
 // folds into the "Client Service Management" job title MOCK_USERS already
 // used — that title is no longer an orphan not backed by a real ROLES
 // entry).
@@ -56,15 +57,15 @@ export function roleNameForId(id) {
   return Object.entries(ROLE_IDS).find(([, roleId]) => roleId === id)?.[0]
 }
 
-// Only Superadmin has hardcoded meaning left (permanent "*" scope plus the
-// bootstrap-locked permissions in permissions.js) — the Roles admin page
-// can't be allowed to rename it, or those guarantees stop meaning
-// anything. Technology used to be locked here too (it held the bootstrap
-// permission-lock before 2026-07-24), but now that the lock lives on
-// Superadmin, Technology has no role-conditional code left anywhere
-// (see authService.js) — it's just an ordinary role, safe to rename like
-// any other. (There's no delete feature at all anymore — removed as a
-// safety call, see RolesPage.jsx.)
+// Superadmin has hardcoded meaning (permanent "*" scope) — the Roles admin
+// page can't be allowed to rename it, or that guarantee stops meaning
+// anything. Technology is also hardcoded now, alongside Superadmin, as the
+// only two roles that can assign permissions to other users (see
+// permissions.js's canAssignPermissions) — but that check is
+// role-name-based, not a LOCKED_ROLES entry, so Technology stays
+// renameable here; renaming it would just silently drop that access.
+// (There's no delete feature at all anymore — removed as a safety call,
+// see RolesPage.jsx.)
 export const LOCKED_ROLES = ['Superadmin']
 
 /**

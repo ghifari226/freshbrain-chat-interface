@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@mui/material'
+import SectionToggle from '../components/catalog/SectionToggle.jsx'
 import ToolCatalogFilters from './tool-catalog/ToolCatalogFilters.jsx'
 import ToolCatalogTable from './tool-catalog/ToolCatalogTable.jsx'
 import ToolEntryDialog from './tool-catalog/ToolEntryDialog.jsx'
@@ -11,13 +12,15 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useAuthorizedPage } from '../hooks/useAuthorizedPage.js'
 import { useStatusFilters } from '../hooks/useStatusFilters.js'
 import { useT } from '../hooks/useT.js'
-import { canAccessToolCatalog, hasPermission } from '../config/permissions.js'
+import { canAccessToolCatalog, canPromote, hasPermission } from '../config/permissions.js'
 import { getScopeCatalog } from '../config/scopeCatalog.js'
 import {
   createToolCatalogEntry,
   getToolCatalogEntries,
   getToolCatalogRequestEntries,
+  promoteToolCatalogRequestEntry,
   updateToolCatalogRequestEntry,
+  updateToolCatalogRequestStatus,
 } from '../services/toolCatalog.js'
 import { errorMessage, isCanceled } from '../services/api.ts'
 
@@ -26,9 +29,13 @@ export default function ToolCatalogPage() {
   const { session } = useAuth()
   const isAuthorized = useAuthorizedPage(canAccessToolCatalog(session))
 
-  const canViewProduction = hasPermission(session, 'tools.view')
+  const canViewProduction = hasPermission(session, 'tools.live_view')
   const canViewStaging = hasPermission(session, 'staging.test')
-  const canViewRequest = hasPermission(session, 'tools.request')
+  const canViewRequest = hasPermission(session, 'tools.request_view')
+  const canAddRequest = hasPermission(session, 'tools.request_add')
+  const canEditRequest = hasPermission(session, 'tools.request_edit')
+  const canChangeRequestStatus = hasPermission(session, 'tools.request_change_status')
+  const canPromoteEntries = canPromote(session)
   const statusFilters = useStatusFilters({
     canViewProduction,
     canViewStaging,
@@ -50,7 +57,9 @@ export default function ToolCatalogPage() {
   // /tool-catalog (published) and /tool-catalog-request (pending) are
   // fetched separately and merged into one `entries` array. The request
   // fetch only fires when canViewRequest is already true, same gate the
-  // "Request" chip and Add Entry button use.
+  // Request tab and Add Entry button use. Deduped by id when merging — see
+  // FreshpediaPage.jsx's identical comment for why (a promoted entry
+  // satisfies both endpoints' predicates now).
   useEffect(() => {
     const controller = new AbortController()
     const requests = [getToolCatalogEntries({ signal: controller.signal, token: session?.token })]
@@ -58,7 +67,11 @@ export default function ToolCatalogPage() {
       requests.push(getToolCatalogRequestEntries({ signal: controller.signal, token: session?.token }))
     }
     Promise.all(requests)
-      .then((results) => setEntries(results.flat()))
+      .then((results) => {
+        const merged = new Map()
+        for (const entry of results.flat()) merged.set(entry.id, entry)
+        setEntries(Array.from(merged.values()))
+      })
       .catch((error) => {
         if (!isCanceled(error)) setLoadError(errorMessage(error))
       })
@@ -109,8 +122,15 @@ export default function ToolCatalogPage() {
     })
   }
 
+  // Switching Live/Request also clears the system filter and search box —
+  // see FreshpediaPage.jsx's identical handleToggleTab for why.
+  function handleToggleTab(tab) {
+    statusFilters.toggleTab(tab)
+    setSelectedSystems(new Set())
+    setSearchQuery('')
+  }
+
   function openAddEntryDialog() {
-    statusFilters.openRequestView()
     setForm(EMPTY_TOOL_FORM)
     setFormError('')
     setEntryFormTarget('new')
@@ -156,6 +176,20 @@ export default function ToolCatalogPage() {
     }
   }
 
+  async function handlePromote(entry) {
+    const updated = await promoteToolCatalogRequestEntry(entry.id, session)
+    setEntries((current) =>
+      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
+    )
+  }
+
+  async function handleChangeRequestStatus(entry, nextRequestStatus) {
+    const updated = await updateToolCatalogRequestStatus(entry.id, nextRequestStatus, session)
+    setEntries((current) =>
+      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
+    )
+  }
+
   if (!isAuthorized) return null
 
   const isEditMode = Boolean(entryFormTarget) && entryFormTarget !== 'new'
@@ -163,23 +197,34 @@ export default function ToolCatalogPage() {
   return (
     <>
       <div className="config-section">
-        {canViewRequest && (
-          <div className="config-section__title-row">
+        <div className="section-toggle-row">
+          <SectionToggle
+            options={statusFilters.availableTabs}
+            isActive={statusFilters.isTabActive}
+            onSelect={handleToggleTab}
+            labelForOption={(tab) => t(`toolCatalog.${tab}TabLabel`)}
+            ariaLabel={t('toolCatalog.filterByTabLabel')}
+          />
+          {canAddRequest && statusFilters.isRequestActive && (
             <Button
-              className="config-section__title-action"
+              className="section-toggle-row__action"
               variant="contained"
               size="small"
               onClick={openAddEntryDialog}
             >
               {t('toolCatalog.addEntry')}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
 
         <ToolCatalogFilters
-          availableStatuses={statusFilters.availableStatuses}
-          isStatusActive={statusFilters.isStatusActive}
-          onToggleStatus={statusFilters.toggleStatus}
+          availableLiveStatuses={statusFilters.availableLiveStatuses}
+          isLiveStatusActive={statusFilters.isLiveStatusActive}
+          onToggleLiveStatus={statusFilters.toggleLiveStatus}
+          availableRequestStatuses={statusFilters.availableRequestStatuses}
+          isRequestStatusActive={statusFilters.isRequestStatusActive}
+          onToggleRequestStatus={statusFilters.toggleRequestStatus}
+          isRequestActive={statusFilters.isRequestActive}
           systems={systems}
           selectedSystems={selectedSystems}
           onToggleSystem={toggleSystemFilter}
@@ -191,8 +236,13 @@ export default function ToolCatalogPage() {
         {loadError && <p className="config-section__notice">{loadError}</p>}
 
         <ToolCatalogTable
+          canChangeRequestStatus={canChangeRequestStatus}
+          canEdit={canEditRequest}
+          canPromote={canPromoteEntries}
           isRequestView={statusFilters.isRequestActive}
+          onChangeRequestStatus={handleChangeRequestStatus}
           onEdit={openEditEntryDialog}
+          onPromote={handlePromote}
           rows={visibleRows}
           t={t}
         />

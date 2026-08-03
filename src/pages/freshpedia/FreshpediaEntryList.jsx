@@ -1,6 +1,11 @@
 import { Chip, Tooltip } from '@mui/material'
-import { ArrowDown, ArrowUp, Pencil } from 'lucide-react'
-import { STATUS_COLOR, TRANSITION_BY_STATUS } from './freshpediaConfig.js'
+import { ArrowDown, ArrowUp, Pencil, Send } from 'lucide-react'
+import {
+  REQUEST_STATUS_COLOR,
+  REQUEST_STATUS_TRANSITION_BY_STATUS,
+  STATUS_COLOR,
+  TRANSITION_BY_STATUS,
+} from './freshpediaConfig.js'
 
 function entryDescriptor(entry, entries, t) {
   if (entry.type === 'alias') {
@@ -10,11 +15,33 @@ function entryDescriptor(entry, entries, t) {
   return t(`freshpedia.${entry.type}Type`)
 }
 
+// On the Request tab, the status chip shows the request-pipeline lifecycle
+// (Draft/Posted/Live-frozen) instead of the live `status` field — 'live'
+// here means "promoted, requestStatus frozen", not the Live tab itself.
+function statusChipProps(entry, isRequestActive, t) {
+  if (isRequestActive && entry.requestStatus) {
+    return {
+      label:
+        entry.requestStatus === 'live'
+          ? t('freshpedia.liveTabLabel')
+          : t(`freshpedia.${entry.requestStatus}Status`),
+      color: REQUEST_STATUS_COLOR[entry.requestStatus],
+    }
+  }
+  return { label: t(`freshpedia.${entry.status}Status`), color: STATUS_COLOR[entry.status] }
+}
+
 export default function FreshpediaEntryList({
+  canChangeRequestStatus,
   canChangeStatus,
-  canViewRequest,
+  canEditLive,
+  canEditRequest,
+  canPromote,
   entries,
+  isRequestActive,
+  onChangeRequestStatus,
   onEdit,
+  onPromote,
   onTransition,
   t,
   visibleEntries,
@@ -22,24 +49,41 @@ export default function FreshpediaEntryList({
   return (
     <ul className="entry-index">
       {visibleEntries.map((entry) => {
-        const canEdit = canChangeStatus || (canViewRequest && entry.status === 'request')
+        const canEdit = entry.status === 'request' ? canEditRequest : canEditLive
         const transition = TRANSITION_BY_STATUS[entry.status]
+        const requestStatusTransition =
+          entry.status === 'request' ? REQUEST_STATUS_TRANSITION_BY_STATUS[entry.requestStatus] : undefined
+        const chip = statusChipProps(entry, isRequestActive, t)
         return (
           <li className="entry-index__entry" key={entry.id}>
-            <div className="entry-index__entry-row">
+            <div className="entry-index__entry-row entry-index__entry-row--with-chip">
               <span className="entry-index__entry-label">
                 {entry.title}{' '}
                 <span className="entry-index__entry-desc">
                   — {entryDescriptor(entry, entries, t)}
                 </span>
               </span>
-              <div className="entry-index__actions">
+              <div className="entry-index__status-chip-slot">
                 <Chip
-                  label={t(`freshpedia.${entry.status}Status`)}
+                  label={chip.label}
                   size="small"
-                  color={STATUS_COLOR[entry.status]}
+                  color={chip.color}
                   variant={entry.status === 'request' ? 'outlined' : 'filled'}
                 />
+              </div>
+              <div className="entry-index__actions">
+                {canChangeRequestStatus && requestStatusTransition && (
+                  <Tooltip title={t(requestStatusTransition.labelKey)}>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label={t(requestStatusTransition.labelKey)}
+                      onClick={() => onChangeRequestStatus(entry, requestStatusTransition.toRequestStatus)}
+                    >
+                      {requestStatusTransition.toRequestStatus === 'posted' ? <ArrowUp /> : <ArrowDown />}
+                    </button>
+                  </Tooltip>
+                )}
                 {canChangeStatus && transition && (
                   <Tooltip title={t(transition.labelKey)}>
                     <button
@@ -61,6 +105,18 @@ export default function FreshpediaEntryList({
                       onClick={() => onEdit(entry)}
                     >
                       <Pencil fill="currentColor" />
+                    </button>
+                  </Tooltip>
+                )}
+                {canPromote && entry.status === 'request' && entry.requestStatus === 'posted' && (
+                  <Tooltip title={t('freshpedia.promoteToStagingAction')}>
+                    <button
+                      type="button"
+                      className="icon-button icon-button--success"
+                      aria-label={t('freshpedia.promoteToStagingAction')}
+                      onClick={() => onPromote(entry)}
+                    >
+                      <Send />
                     </button>
                   </Tooltip>
                 )}

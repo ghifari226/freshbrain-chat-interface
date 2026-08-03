@@ -686,6 +686,41 @@
   vertical-align: -2px;
 }
 
+/* Live/Request switch (FreshpediaPage.jsx/ToolCatalogPage.jsx, via
+   SectionToggle.jsx) — centered at the very top of the page. Reuses
+   SettingsModal.jsx's .theme-toggle pattern (equal-width segmented box)
+   rather than a third toggle style; a plain MUI Tabs underline was tried
+   first (2026-08-04) and replaced with this. New Request shares this same
+   row (not stacked below it), positioned absolutely so it never affects
+   the row's height or the toggle's centering — the toggle itself (always
+   rendered, unlike the button which only shows on the Request tab) is the
+   only thing that sets this row's height, so switching tabs never shifts
+   the table/list below it vertically. */
+.section-toggle-row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* !important needed on position — MUI's Button always sets its own
+   `position: relative` (for the ripple effect) with enough specificity to
+   beat a plain class rule otherwise, which silently left this un-absolute
+   and pushed into normal flex flow instead (defeating the whole point:
+   the row's height would change depending on whether this button is
+   rendered). Same pattern as .MuiChip-sizeSmall's overrides above. */
+.section-toggle-row__action {
+  position: absolute !important;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.theme-toggle--section {
+  width: 200px;
+}
+
 .filter-bar {
   display: flex;
   flex-direction: column;
@@ -782,6 +817,26 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+/* Freshpedia-only modifier (2026-08-04) — NOT applied to PermissionsPage's
+   plain entry-index rows (no status chip there, nothing to misalign).
+   Fixed-width chip and actions columns so icons start at the same x for
+   every row regardless of chip label length ("Draft" vs "Production") or
+   how many icons a given row actually renders — matching
+   ToolCatalogTable.jsx's native <table> column alignment, which gets this
+   for free since its actions column auto-sizes to the widest row across
+   the whole table. A plain flex block can't replicate that (each row is
+   independent, and a right-flush block's start position shifts with its
+   own content width), so this switches to a 3-column grid with explicit
+   track sizes instead of the base class's flex/space-between. */
+.entry-index__entry-row--with-chip {
+  display: grid;
+  grid-template-columns: 1fr 108px 132px;
+}
+
+.entry-index__status-chip-slot {
+  display: flex;
 }
 
 /* The "— Definition"/"— Document"/"— Alias (...)" part of a Freshpedia
@@ -933,6 +988,12 @@
   .filter-bar,
   .entry-index__entry-row {
     flex-wrap: wrap;
+  }
+
+  /* The fixed 3-column grid doesn't fit narrow screens — fall back to the
+     base class's wrapping flex behavior instead. */
+  .entry-index__entry-row--with-chip {
+    display: flex;
   }
 
   .filter-bar__search {

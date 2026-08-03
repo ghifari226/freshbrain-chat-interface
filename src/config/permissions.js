@@ -7,11 +7,11 @@
 // chat-time data/tool access, not any of this. Keys contain dots, so
 // hasPermission() below (never dot access) is the one place that reads them.
 //
-// Two flat arrays only now — "Chat capability access" (the three end-user
-// chat surfaces) and "System Access" (roles/permissions/user
-// administration), still used to seed ALL_PERMISSIONS and the Shield
-// dialog's two checkbox sections. The Permissions Catalog page groups by
-// prefix instead (see PERMISSION_GROUPS below), not by this split.
+// Two flat arrays only now — "Chat capability access" (Freshpedia, Tools,
+// Staging) and "System Access" (roles/permissions/user administration),
+// still used to seed ALL_PERMISSIONS and the Shield dialog's two checkbox
+// sections. The Permissions Catalog page groups by prefix instead (see
+// PERMISSION_GROUPS below), not by this split.
 
 // Permission entries before Role Scope before User, throughout — matches
 // the same order as the Access Configuration landing page/sidebar (System
@@ -27,33 +27,39 @@ export const SYSTEM_ACCESS_PERMISSIONS = [
   'users.add',
   'users.edit',
   'users.delete',
-  'users.assign_permissions',
 ]
 
+// Freshpedia/Tools each split "view" and "request" into a live-tier axis
+// and a request-pipeline axis (2026-08-03) — a user can now be granted
+// visibility into published content without also seeing the request
+// backlog, or vice versa, which one shared `.view`/`.request` flag
+// couldn't express. Tools has no live_edit/live_change_status — its live
+// tier stays read-only; the only way content reaches it is Promote, which
+// is gated by the is_maintainer boolean (see roles.js/authService.js), not
+// a permission key at all.
 export const CHAT_ACCESS_PERMISSIONS = [
-  'freshpedia.view',
-  'freshpedia.request',
-  'freshpedia.change_status',
-  'tools.view',
-  'tools.request',
+  'freshpedia.live_view',
+  'freshpedia.live_edit',
+  'freshpedia.live_change_status',
+  'freshpedia.request_view',
+  'freshpedia.request_add',
+  'freshpedia.request_edit',
+  'freshpedia.request_change_status',
+  'tools.live_view',
+  'tools.request_view',
+  'tools.request_add',
+  'tools.request_edit',
+  'tools.request_change_status',
   'staging.test',
 ]
 
-// All 18, stable order — used to seed/iterate full permission objects.
+// All 23, stable order — used to seed/iterate full permission objects.
 export const ALL_PERMISSIONS = [...SYSTEM_ACCESS_PERMISSIONS, ...CHAT_ACCESS_PERMISSIONS]
 
-// Superadmin's hardcoded lock — single source of truth, imported by both
-// authService.js's shaping functions and UsersPage's UI-disable logic so
-// the two can never drift apart. This is the minimum needed to avoid a
-// chicken-and-egg lockout: grant permissions to un-stick anyone else
-// (including another Superadmin). roles.view and roles.assign_scopes
-// used to be locked here too but are now ordinary editable booleans for
-// Superadmin like any other role's permissions — only users.assign_permissions
-// remains locked. (Technology used to hold this lock; nothing is hardcoded to
-// Technology anymore — see authService.js's technologyPermissions(), which
-// now just defaults everything to true, editable like any other role's
-// permissions.)
-export const SUPERADMIN_LOCKED_PERMISSIONS = ['users.assign_permissions']
+// users.assign_permissions used to be a permission flag gating the Shield
+// dialog, locked true for Superadmin as a chicken-and-egg guard. It's gone
+// now — permission assignment is gated by role directly (see
+// canAssignPermissions below), so there's nothing left to lock.
 
 // Permissions Catalog page's 6 display groups — derived purely from each
 // key's prefix, not reassignable (there's no "move this permission to a
@@ -87,12 +93,18 @@ export const PERMISSION_LABEL_KEYS = {
   'users.add': 'permissions.userAdd',
   'users.edit': 'permissions.userEdit',
   'users.delete': 'permissions.userDelete',
-  'users.assign_permissions': 'permissions.userAssignPermissions',
-  'freshpedia.view': 'permissions.freshpediaView',
-  'freshpedia.request': 'permissions.freshpediaRequest',
-  'freshpedia.change_status': 'permissions.freshpediaChangeStatus',
-  'tools.view': 'permissions.toolView',
-  'tools.request': 'permissions.toolRequest',
+  'freshpedia.live_view': 'permissions.freshpediaLiveView',
+  'freshpedia.live_edit': 'permissions.freshpediaLiveEdit',
+  'freshpedia.live_change_status': 'permissions.freshpediaLiveChangeStatus',
+  'freshpedia.request_view': 'permissions.freshpediaRequestView',
+  'freshpedia.request_add': 'permissions.freshpediaRequestAdd',
+  'freshpedia.request_edit': 'permissions.freshpediaRequestEdit',
+  'freshpedia.request_change_status': 'permissions.freshpediaRequestChangeStatus',
+  'tools.live_view': 'permissions.toolLiveView',
+  'tools.request_view': 'permissions.toolRequestView',
+  'tools.request_add': 'permissions.toolRequestAdd',
+  'tools.request_edit': 'permissions.toolRequestEdit',
+  'tools.request_change_status': 'permissions.toolRequestChangeStatus',
   'staging.test': 'permissions.stagingTest',
 }
 
@@ -152,7 +164,7 @@ export function hasPermission(bag, key) {
 
 /** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewUsers(permissions) {
-  return ['users.view', 'users.add', 'users.edit', 'users.delete', 'users.assign_permissions'].some(
+  return ['users.view', 'users.add', 'users.edit', 'users.delete'].some(
     (field) => hasPermission(permissions, field),
   )
 }
@@ -172,59 +184,76 @@ export function canViewPermissions(permissions) {
   return hasPermission(permissions, 'permissions.view') || hasPermission(permissions, 'permissions.edit')
 }
 
-// Any of the 18 present => can reach /config at all (nav-menu gate).
+// Any of the 23 present => can reach /config at all (nav-menu gate).
 /** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canAccessConfigSection(permissions) {
   return Boolean(permissions?.allowed_permissions?.length)
 }
 
 /**
- * Gates the Shield icon and everything inside it — both display groups at
- * once, there's no more per-group split now that config_access_permission_edit
- * and chat_access_permission_edit have merged into this one flag.
+ * Gates the Shield icon and everything inside it — hardcoded to role now,
+ * not a permission flag. There's no way to grant this to a Finance or HR
+ * user by checking a box; only Superadmin and Technology can ever assign
+ * permissions to other users, full stop.
  *
- * @param {{ allowed_permissions?: string[] } | undefined} actorPermissions
+ * @param {{ role?: string } | undefined} actor
  */
-export function canAssignPermissions(actorPermissions) {
-  return hasPermission(actorPermissions, 'users.assign_permissions')
+export function canAssignPermissions(actor) {
+  return actor?.role === 'Superadmin' || actor?.role === 'Technology'
 }
 
 /**
- * Page-reachability gate — .view only, by design: staging.test and
- * freshpedia.request still gate their own tab/button *inside* the page
- * (see useStatusFilters + FreshpediaPage.jsx), but neither grants
+ * Gates Freshpedia/Tools' Promote action (request status -> staging) —
+ * purely the is_maintainer boolean (2026-08-03), never a permission key.
+ * Deliberately not one of ALL_PERMISSIONS: a permission key can be
+ * hand-toggled in the Shield dialog independently of whatever granted it,
+ * which would let someone check the box for a non-maintainer or leave it
+ * checked after revoking maintainer status — this check reads is_maintainer
+ * directly so there's nothing to drift.
+ *
+ * @param {{ is_maintainer?: boolean } | undefined} actor
+ */
+export function canPromote(actor) {
+  return Boolean(actor?.is_maintainer)
+}
+
+/**
+ * Page-reachability gate — live_view only, by design: staging.test and
+ * freshpedia.request_view still gate their own tab/button *inside* the
+ * page (see useStatusFilters + FreshpediaPage.jsx), but neither grants
  * reaching the page on its own. A staging-only or request-only actor
- * can no longer land here at all; they need freshpedia.view too.
+ * can no longer land here at all; they need freshpedia.live_view too.
  *
  * @param {{ allowed_permissions?: string[] } | undefined} permissions
  */
 export function canAccessFreshpedia(permissions) {
-  return hasPermission(permissions, 'freshpedia.view')
+  return hasPermission(permissions, 'freshpedia.live_view')
 }
 
 /**
- * Gates Freshpedia's promote/demote transition actions and full edit
- * access to any entry regardless of status — a dedicated permission now
- * (used to be a reuse of users.assign_permissions, which was really about
- * editing other users' Shield permissions, an unrelated concern). Checked
- * in both FreshpediaPage.jsx (UI) and services/freshpedia.js (mock
- * write-path enforcement), same shape as canAssignPermissions.
+ * Gates only Freshpedia's staging<->production promote/demote transition
+ * actions — narrower than it used to be. Editing a published entry's
+ * content is a separate permission now (freshpedia.live_edit), split out
+ * 2026-08-03 since "can move it between staging/production" and "can edit
+ * its content" turned out to be different trust levels in practice.
+ * Checked in both FreshpediaPage.jsx (UI) and services/freshpedia.js (mock
+ * write-path enforcement).
  *
  * @param {{ allowed_permissions?: string[] } | undefined} permissions
  */
 export function canChangeFreshpediaStatus(permissions) {
-  return hasPermission(permissions, 'freshpedia.change_status')
+  return hasPermission(permissions, 'freshpedia.live_change_status')
 }
 
 /**
- * Page-reachability gate — .view only, same reasoning as
- * canAccessFreshpedia above: staging.test/tools.request still gate their
- * own tab/button inside the page, not page access itself.
+ * Page-reachability gate — live_view only, same reasoning as
+ * canAccessFreshpedia above: staging.test/tools.request_view still gate
+ * their own tab/button inside the page, not page access itself.
  *
  * @param {{ allowed_permissions?: string[] } | undefined} permissions
  */
 export function canAccessToolCatalog(permissions) {
-  return hasPermission(permissions, 'tools.view')
+  return hasPermission(permissions, 'tools.live_view')
 }
 
 /**

@@ -9,12 +9,18 @@ export type PermissionKey =
   | 'users.add'
   | 'users.edit'
   | 'users.delete'
-  | 'users.assign_permissions'
-  | 'freshpedia.view'
-  | 'freshpedia.request'
-  | 'freshpedia.change_status'
-  | 'tools.view'
-  | 'tools.request'
+  | 'freshpedia.live_view'
+  | 'freshpedia.live_edit'
+  | 'freshpedia.live_change_status'
+  | 'freshpedia.request_view'
+  | 'freshpedia.request_add'
+  | 'freshpedia.request_edit'
+  | 'freshpedia.request_change_status'
+  | 'tools.live_view'
+  | 'tools.request_view'
+  | 'tools.request_add'
+  | 'tools.request_edit'
+  | 'tools.request_change_status'
   | 'staging.test'
 
 // Storage-only shape (MOCK_USERS rows) — the wire shape (Session,
@@ -31,6 +37,11 @@ export interface Session {
   role: string
   allowed_scopes: string[]
   allowed_permissions: PermissionKey[]
+  // Orthogonal to allowed_permissions — never itself a PermissionKey (see
+  // permissions.js's canPromote). Gates Freshpedia/Tools' request->staging
+  // Promote action purely as a boolean, so it can't drift from a
+  // hand-toggled checkbox the way a permission flag could.
+  is_maintainer: boolean
   token: string
 }
 
@@ -40,9 +51,18 @@ export interface UserDirectoryEntry {
   phone: string
   role: string
   allowed_permissions: PermissionKey[]
+  is_maintainer: boolean
 }
 
 export type CatalogStatus = 'request' | 'staging' | 'production'
+// Request-pipeline status, separate axis from CatalogStatus above (2026-08-03).
+// Set the moment an entry is created via the request flow and never
+// unset: 'draft' -> 'posted' (togglable, see freshpedia.request_change_status
+// /tools.request_change_status) -> 'live' (frozen permanently once
+// promoted — see promoteFreshpediaRequestEntry/promoteToolCatalogRequestEntry).
+// Entries seeded directly as production/staging (never went through the
+// request flow) simply never have this field set.
+export type RequestStatus = 'draft' | 'posted' | 'live'
 export type FreshpediaEntryType = 'definition' | 'document' | 'alias'
 export type LocalizedText = { id: string; en: string }
 
@@ -50,12 +70,16 @@ export type LocalizedText = { id: string; en: string }
 // — normalized 2026-07-29, was submittedBy/submittedByEmail (name+email,
 // never actually rendered anywhere in the UI). `status` is always
 // staging/production for entries from GET /freshpedia, always request for
-// GET /freshpedia-request — see freshpedia-contract.md.
+// GET /freshpedia-request — see freshpedia-contract.md. `requestStatus` is
+// only present on entries born via the request flow — present and frozen
+// at 'live' even after `status` moves on to staging/production, which is
+// what lets a promoted entry still show up as history in the Request tab.
 export interface FreshpediaEntry {
   id: string
   title: string
   type: FreshpediaEntryType
   status: CatalogStatus
+  requestStatus?: RequestStatus
   createdBy: string
   createdAt: string
   updatedBy: string
@@ -67,12 +91,14 @@ export interface FreshpediaEntry {
 }
 
 // createdBy/updatedBy are users.id (uid) — same normalization as
-// FreshpediaEntry above, 2026-07-29.
+// FreshpediaEntry above, 2026-07-29. requestStatus: same meaning as
+// FreshpediaEntry's.
 export interface ToolCatalogEntry {
   id: string
   system: string
   name: string
   status: CatalogStatus
+  requestStatus?: RequestStatus
   createdBy: string
   createdAt: string
   updatedBy: string

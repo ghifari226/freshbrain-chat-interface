@@ -6,14 +6,20 @@
 //
 // Split into two collections (2026-07-29), same idea as freshpedia.js:
 // `/tool-catalog` (published — staging+production) and
-// `/tool-catalog-request` (the submission queue). Unlike Freshpedia,
-// there's no status-transition endpoint at all here, and no PATCH for
-// published entries either — per permission-catalog.md's still-open
-// question, Tool Catalog has no promote/demote path yet, mocked or real,
-// and the UI never even renders an edit affordance for a non-`request` row
-// (see ToolCatalogTable.jsx's `isRequestView &&` guard on the edit
-// button). This split doesn't answer that open question, just carries it
-// forward — see tool-catalog-contract.md.
+// `/tool-catalog-request` (the submission queue). Still no staging<->
+// production transition or PATCH for published entries (live tier stays
+// read-only, no live_edit permission exists for Tools — see
+// config/permissions.js). The one promotion path added (2026-08-03,
+// promoteToolCatalogRequestEntry below) is request->staging only, from
+// requestStatus='posted' only, gated purely by actor.is_maintainer like
+// Freshpedia's — see freshpedia-contract.md's equivalent note and this
+// repo's tool-catalog-contract.md. requestStatus itself follows the same
+// Draft->Posted->Live(frozen) lifecycle as Freshpedia's, toggled between
+// draft/posted via updateToolCatalogRequestStatus (tools.request_change_status,
+// distinct from tools.request_edit which only covers content fields), and
+// frozen permanently at 'live' once promoted — see
+// getToolCatalogRequestEntries below for why that keeps a promoted entry
+// visible in the Request tab as history.
 //
 // Contract lives at freshbrain-agreement's tool-catalog-contract.md.
 // `signal` is only actually threaded through by ToolCatalogPage's list
@@ -32,6 +38,7 @@ import { mockDelay } from './mockDelay.ts'
  *   system: string,
  *   name: string,
  *   status: 'request' | 'staging' | 'production',
+ *   requestStatus?: 'draft' | 'posted' | 'live',
  *   createdBy: string,
  *   createdAt: string,
  *   updatedBy: string,
@@ -160,6 +167,7 @@ const MOCK_TOOLS = [
     system: 'wms',
     name: 'cyclecount',
     status: 'request',
+    requestStatus: 'draft',
     createdBy: GHIFARI_UID,
     createdAt: '2026-07-20T10:00:00Z',
     updatedBy: GHIFARI_UID,
@@ -175,6 +183,7 @@ const MOCK_TOOLS = [
     system: 'tms',
     name: 'route',
     status: 'request',
+    requestStatus: 'posted',
     createdBy: GHIFARI_UID,
     createdAt: '2026-07-19T15:00:00Z',
     updatedBy: GHIFARI_UID,
@@ -202,7 +211,13 @@ export async function getToolCatalogEntries({ signal, token } = {}) {
 }
 
 /**
- * `/tool-catalog-request` — the submission queue. Always `status: "request"`.
+ * `/tool-catalog-request` — every entry ever submitted through the request
+ * flow, keyed off `requestStatus` (set once at creation, never unset)
+ * rather than `status` — same reasoning as freshpedia.js's
+ * getFreshpediaRequestEntries: a promoted entry's `status` moves on to
+ * 'staging', but it keeps showing up here too (frozen at
+ * requestStatus='live') as permanent history. ToolCatalogPage.jsx dedupes
+ * by id when merging this with getToolCatalogEntries()'s results.
  * @returns {Promise<ToolCatalogEntry[]>}
  */
 export async function getToolCatalogRequestEntries({ signal, token } = {}) {
@@ -214,13 +229,13 @@ export async function getToolCatalogRequestEntries({ signal, token } = {}) {
     return data
   }
   await mockDelay(500, 900, signal)
-  return MOCK_TOOLS.filter((entry) => entry.status === 'request').map(toEntry)
+  return MOCK_TOOLS.filter((entry) => Boolean(entry.requestStatus)).map(toEntry)
 }
 
 /**
  * Entries are always born in `/tool-catalog-request` — contributors can
- * never self-promote straight into the published collection (not that
- * there's a promotion path at all yet, see this file's header comment).
+ * never self-promote straight into the published collection; only a
+ * maintainer can, via promoteToolCatalogRequestEntry below.
  *
  * @param {{ system: string, name: string, description: string, exampleQuestions: string[] }} input
  * @param {{ id: string, token?: string, allowed_permissions?: string[] }} actor
@@ -238,7 +253,7 @@ export async function createToolCatalogEntry(input, actor, { signal } = {}) {
 
   await mockDelay(500, 900, signal)
 
-  if (!hasPermission(actor, 'tools.request')) {
+  if (!hasPermission(actor, 'tools.request_add')) {
     throw new Error('You do not have permission to submit tool requests')
   }
 
@@ -248,6 +263,7 @@ export async function createToolCatalogEntry(input, actor, { signal } = {}) {
     system: input.system,
     name: input.name,
     status: 'request',
+    requestStatus: 'draft',
     createdBy: actor.id,
     createdAt: now,
     updatedBy: actor.id,
@@ -261,12 +277,12 @@ export async function createToolCatalogEntry(input, actor, { signal } = {}) {
 
 /**
  * `PATCH /tool-catalog-request/{id}` — pending entries only, editable by
- * anyone holding tools.request, not restricted to the entry's own
+ * anyone holding tools.request_edit, not restricted to the entry's own
  * submitter. No published-entry equivalent exists (no
- * `PATCH /tool-catalog/{id}`) — nothing today can promote an entry out of
- * this collection, so there's nothing for that endpoint to ever edit; see
- * this file's header comment. "Edit Request" is a personal action, not a
- * review step.
+ * `PATCH /tool-catalog/{id}`) — the live tier stays read-only; the only
+ * way an entry reaches it is promoteToolCatalogRequestEntry below, and
+ * that doesn't touch these content fields. "Edit Request" is a personal
+ * action, not a review step.
  *
  * @param {string} id
  * @param {{ system?: string, name?: string, description?: string, exampleQuestions?: string[] }} updates
@@ -288,7 +304,7 @@ export async function updateToolCatalogRequestEntry(id, updates, actor, { signal
   const entry = MOCK_TOOLS.find((e) => e.id === id && e.status === 'request')
   if (!entry) throw new Error('Entry not found')
 
-  if (!hasPermission(actor, 'tools.request')) {
+  if (!hasPermission(actor, 'tools.request_edit')) {
     throw new Error('You do not have permission to edit this entry')
   }
   if (updates.status !== undefined) {
@@ -304,5 +320,86 @@ export async function updateToolCatalogRequestEntry(id, updates, actor, { signal
   entry.updatedBy = actor.id
   entry.updatedAt = new Date().toISOString()
 
+  return toEntry(entry)
+}
+
+/**
+ * `POST /tool-catalog-request/{id}/status` — moves an entry's `status` into
+ * the published tier, landing in 'staging' (there's no staging->production
+ * step for Tools, see this file's header comment). Only valid from
+ * requestStatus='posted' — a draft can't be promoted directly. Gated
+ * purely by actor.is_maintainer, not a permission key — same reasoning as
+ * freshpedia.js's promoteFreshpediaRequestEntry. Freezes requestStatus at
+ * 'live' rather than clearing it.
+ *
+ * @param {string} id
+ * @param {{ id: string, token?: string, is_maintainer?: boolean }} actor
+ * @returns {Promise<ToolCatalogEntry>}
+ */
+export async function promoteToolCatalogRequestEntry(id, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await aiEngineApi.post(
+      `/tool-catalog-request/${encodeURIComponent(id)}/status`,
+      { status: 'staging' },
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
+  }
+
+  await mockDelay(500, 900, signal)
+
+  if (!actor?.is_maintainer) {
+    throw new Error('Only maintainers can promote entries')
+  }
+
+  const entry = MOCK_TOOLS.find((e) => e.id === id && e.status === 'request')
+  if (!entry) throw new Error('Entry not found')
+
+  if (entry.requestStatus !== 'posted') {
+    throw new Error('Only posted requests can be promoted')
+  }
+
+  entry.status = 'staging'
+  entry.requestStatus = 'live'
+  entry.updatedBy = actor.id
+  entry.updatedAt = new Date().toISOString()
+  return toEntry(entry)
+}
+
+/**
+ * `POST /tool-catalog-request/{id}/request-status` — the bidirectional
+ * Draft<->Posted toggle, distinct from both content edits
+ * (updateToolCatalogRequestEntry, gated by tools.request_edit) and
+ * promotion (promoteToolCatalogRequestEntry, gated by is_maintainer). Only
+ * valid while still status='request' — once promoted, requestStatus is
+ * frozen at 'live' and this always 404s.
+ *
+ * @param {string} id
+ * @param {'draft'|'posted'} nextRequestStatus
+ * @param {{ token?: string, allowed_permissions?: string[] }} actor
+ * @returns {Promise<ToolCatalogEntry>}
+ */
+export async function updateToolCatalogRequestStatus(id, nextRequestStatus, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await aiEngineApi.post(
+      `/tool-catalog-request/${encodeURIComponent(id)}/request-status`,
+      { requestStatus: nextRequestStatus },
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
+  }
+
+  await mockDelay(500, 900, signal)
+
+  if (!hasPermission(actor, 'tools.request_change_status')) {
+    throw new Error("You do not have permission to change this request's status")
+  }
+
+  const entry = MOCK_TOOLS.find((e) => e.id === id && e.status === 'request')
+  if (!entry) throw new Error('Entry not found')
+
+  entry.requestStatus = nextRequestStatus
+  entry.updatedBy = actor.id
+  entry.updatedAt = new Date().toISOString()
   return toEntry(entry)
 }

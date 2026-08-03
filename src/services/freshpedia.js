@@ -7,10 +7,19 @@
 // Split into two collections (2026-07-29), matching the contract:
 // `/freshpedia` (published — staging+production) and `/freshpedia-request`
 // (the submission queue — request status only). An entry is born in
-// `/freshpedia-request` and *leaves* it when promoted — promotion itself
-// (`POST /freshpedia-request/{id}/status`) is ai-engine/FastAPI-docs-only,
-// never chat-interface-triggered, so there's no function for it here at
-// all — see the contract doc for that endpoint.
+// `/freshpedia-request` with requestStatus='draft', but no longer *leaves*
+// the request collection when promoted (changed 2026-08-03) — see
+// getFreshpediaRequestEntries below for why a promoted entry still shows
+// up there as history. Promotion (`POST /freshpedia-request/{id}/status`,
+// see promoteFreshpediaRequestEntry below) always lands `status` in
+// 'staging', never straight to production, only from requestStatus='posted'
+// (never 'draft'), and is gated purely by actor.is_maintainer — a boolean,
+// not one of the freshpedia.* permission keys, so it can never be
+// hand-granted through the Shield dialog's checkbox grid (see
+// config/permissions.js's canPromote for why). Draft<->Posted is a
+// separate toggle (updateFreshpediaRequestStatus below), gated by its own
+// freshpedia.request_change_status permission — distinct from
+// freshpedia.request_edit, which only covers editing content fields.
 //
 // USE_MOCK_API selects the in-memory MOCK_ENTRIES below or the real Axios
 // client explicitly, same pattern as authService.js. `signal` is only
@@ -35,6 +44,7 @@ import { mockDelay } from './mockDelay.ts'
  *   title: string,
  *   type: 'definition' | 'document' | 'alias',
  *   status: 'request' | 'staging' | 'production',
+ *   requestStatus?: 'draft' | 'posted' | 'live',
  *   createdBy: string,
  *   createdAt: string,
  *   updatedBy: string,
@@ -153,6 +163,7 @@ const MOCK_ENTRIES = [
     title: 'Fulfillment Rate',
     type: 'definition',
     status: 'request',
+    requestStatus: 'posted',
     createdBy: GHIFARI_UID,
     createdAt: '2026-07-20T10:15:00Z',
     updatedBy: GHIFARI_UID,
@@ -167,6 +178,7 @@ const MOCK_ENTRIES = [
     title: 'Transport Management System',
     type: 'definition',
     status: 'request',
+    requestStatus: 'draft',
     createdBy: GHIFARI_UID,
     createdAt: '2026-07-19T16:40:00Z',
     updatedBy: GHIFARI_UID,
@@ -181,6 +193,7 @@ const MOCK_ENTRIES = [
     title: 'TMS',
     type: 'alias',
     status: 'request',
+    requestStatus: 'posted',
     createdBy: GHIFARI_UID,
     createdAt: '2026-07-19T16:45:00Z',
     updatedBy: GHIFARI_UID,
@@ -208,7 +221,14 @@ export async function getFreshpediaEntries({ signal, token } = {}) {
 }
 
 /**
- * `/freshpedia-request` — the submission queue. Always `status: "request"`.
+ * `/freshpedia-request` — every entry that was ever submitted through the
+ * request flow, keyed off `requestStatus` (set once at creation, never
+ * unset) rather than `status`. That's deliberate: a promoted entry's
+ * `status` moves on to 'staging'/'production', but it keeps showing up
+ * here too (frozen at requestStatus='live') so the Request tab is a
+ * permanent history, not just a pending queue. FreshpediaPage.jsx dedupes
+ * by id when merging this with getFreshpediaEntries()'s results, since a
+ * promoted entry legitimately satisfies both.
  * @returns {Promise<FreshpediaEntry[]>}
  */
 export async function getFreshpediaRequestEntries({ signal, token } = {}) {
@@ -220,7 +240,7 @@ export async function getFreshpediaRequestEntries({ signal, token } = {}) {
     return data
   }
   await mockDelay(500, 900, signal)
-  return MOCK_ENTRIES.filter((entry) => entry.status === 'request').map(toEntry)
+  return MOCK_ENTRIES.filter((entry) => Boolean(entry.requestStatus)).map(toEntry)
 }
 
 /**
@@ -243,7 +263,7 @@ export async function createFreshpediaEntry(input, actor, { signal } = {}) {
 
   await mockDelay(500, 900, signal)
 
-  if (!hasPermission(actor, 'freshpedia.request')) {
+  if (!hasPermission(actor, 'freshpedia.request_add')) {
     throw new Error('You do not have permission to submit Freshpedia entries')
   }
 
@@ -253,6 +273,7 @@ export async function createFreshpediaEntry(input, actor, { signal } = {}) {
     title: input.title,
     type: input.type,
     status: 'request',
+    requestStatus: 'draft',
     createdBy: actor.id,
     createdAt: now,
     updatedBy: actor.id,
@@ -287,7 +308,7 @@ function applyFieldUpdates(entry, updates, actor) {
  * `PATCH /freshpedia/{id}` — published entries only (staging+production).
  * 404s if `{id}` is actually a request-status entry — modeling the real
  * two-collection boundary, not just a convenience split. Only
- * freshpedia.change_status holders can edit a published entry; use
+ * freshpedia.live_edit holders can edit a published entry; use
  * updateFreshpediaRequestEntry for pending ones.
  *
  * @param {string} id
@@ -310,7 +331,7 @@ export async function updateFreshpediaEntry(id, updates, actor, { signal } = {})
   const entry = MOCK_ENTRIES.find((e) => e.id === id && e.status !== 'request')
   if (!entry) throw new Error('Entry not found')
 
-  if (!hasPermission(actor, 'freshpedia.change_status')) {
+  if (!hasPermission(actor, 'freshpedia.live_edit')) {
     throw new Error('You do not have permission to edit this entry')
   }
 
@@ -321,8 +342,8 @@ export async function updateFreshpediaEntry(id, updates, actor, { signal } = {})
 /**
  * `PATCH /freshpedia-request/{id}` — pending entries only. 404s if `{id}`
  * is actually a published entry (mirror-image of updateFreshpediaEntry's
- * guard). Editable by anyone holding freshpedia.request (any contributor,
- * not just the original submitter) or freshpedia.change_status.
+ * guard). Editable by anyone holding freshpedia.request_edit (any
+ * contributor, not just the original submitter) or freshpedia.live_edit.
  *
  * @param {string} id
  * @param {{ title?: string, content?: string, fileName?: string, aliasTargetId?: string, aliasPhrase?: string }} updates
@@ -344,7 +365,7 @@ export async function updateFreshpediaRequestEntry(id, updates, actor, { signal 
   const entry = MOCK_ENTRIES.find((e) => e.id === id && e.status === 'request')
   if (!entry) throw new Error('Entry not found')
 
-  if (!hasPermission(actor, 'freshpedia.change_status') && !hasPermission(actor, 'freshpedia.request')) {
+  if (!hasPermission(actor, 'freshpedia.live_edit') && !hasPermission(actor, 'freshpedia.request_edit')) {
     throw new Error('You do not have permission to edit this entry')
   }
 
@@ -353,13 +374,11 @@ export async function updateFreshpediaRequestEntry(id, updates, actor, { signal 
 }
 
 /**
- * `POST /freshpedia/{id}/status` — freshpedia.change_status-only move
+ * `POST /freshpedia/{id}/status` — freshpedia.live_change_status-only move
  * between the two published tiers: staging→production or
  * production→staging (demote). Promoting an entry *out of*
- * `/freshpedia-request` is a different endpoint entirely
- * (`POST /freshpedia-request/{id}/status`, ai-engine/FastAPI-docs-only,
- * chat-interface never calls it — see this file's header comment and
- * freshpedia-contract.md).
+ * `/freshpedia-request` is a different endpoint entirely — see
+ * promoteFreshpediaRequestEntry below.
  *
  * @param {string} id
  * @param {'staging'|'production'} status
@@ -378,7 +397,7 @@ export async function updateFreshpediaEntryStatus(id, status, actor, { signal } 
 
   await mockDelay(500, 900, signal)
 
-  if (!hasPermission(actor, 'freshpedia.change_status')) {
+  if (!hasPermission(actor, 'freshpedia.live_change_status')) {
     throw new Error('You do not have permission to change entry status')
   }
 
@@ -390,6 +409,91 @@ export async function updateFreshpediaEntryStatus(id, status, actor, { signal } 
   }
 
   entry.status = status
+  entry.updatedBy = actor.id
+  entry.updatedAt = new Date().toISOString()
+  return toEntry(entry)
+}
+
+/**
+ * `POST /freshpedia-request/{id}/status` — moves an entry's `status` into
+ * the published tier, always landing in 'staging' (never straight to
+ * production; use updateFreshpediaEntryStatus for the staging→production
+ * step afterward). Only valid from requestStatus='posted' — a draft can't
+ * be promoted directly, it has to be posted first (see
+ * updateFreshpediaRequestStatus). Gated purely by actor.is_maintainer, not
+ * a permission key — see this file's header comment. Freezes
+ * requestStatus at 'live' rather than clearing it, which is what keeps
+ * this entry showing up in getFreshpediaRequestEntries() as permanent
+ * history even after `status` has moved on.
+ *
+ * @param {string} id
+ * @param {{ id: string, token?: string, is_maintainer?: boolean }} actor
+ * @returns {Promise<FreshpediaEntry>}
+ */
+export async function promoteFreshpediaRequestEntry(id, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await aiEngineApi.post(
+      `/freshpedia-request/${encodeURIComponent(id)}/status`,
+      { status: 'staging' },
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
+  }
+
+  await mockDelay(500, 900, signal)
+
+  if (!actor?.is_maintainer) {
+    throw new Error('Only maintainers can promote entries')
+  }
+
+  const entry = MOCK_ENTRIES.find((e) => e.id === id && e.status === 'request')
+  if (!entry) throw new Error('Entry not found')
+
+  if (entry.requestStatus !== 'posted') {
+    throw new Error('Only posted requests can be promoted')
+  }
+
+  entry.status = 'staging'
+  entry.requestStatus = 'live'
+  entry.updatedBy = actor.id
+  entry.updatedAt = new Date().toISOString()
+  return toEntry(entry)
+}
+
+/**
+ * `POST /freshpedia-request/{id}/request-status` — the bidirectional
+ * Draft<->Posted toggle, distinct from both content edits
+ * (updateFreshpediaRequestEntry, gated by freshpedia.request_edit) and
+ * promotion (promoteFreshpediaRequestEntry, gated by is_maintainer). Only
+ * valid while still status='request' — once promoted, requestStatus is
+ * frozen at 'live' and this always 404s, same guard shape as
+ * updateFreshpediaRequestEntry.
+ *
+ * @param {string} id
+ * @param {'draft'|'posted'} nextRequestStatus
+ * @param {{ token?: string, allowed_permissions?: string[] }} actor
+ * @returns {Promise<FreshpediaEntry>}
+ */
+export async function updateFreshpediaRequestStatus(id, nextRequestStatus, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await aiEngineApi.post(
+      `/freshpedia-request/${encodeURIComponent(id)}/request-status`,
+      { requestStatus: nextRequestStatus },
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
+  }
+
+  await mockDelay(500, 900, signal)
+
+  if (!hasPermission(actor, 'freshpedia.request_change_status')) {
+    throw new Error("You do not have permission to change this request's status")
+  }
+
+  const entry = MOCK_ENTRIES.find((e) => e.id === id && e.status === 'request')
+  if (!entry) throw new Error('Entry not found')
+
+  entry.requestStatus = nextRequestStatus
   entry.updatedBy = actor.id
   entry.updatedAt = new Date().toISOString()
   return toEntry(entry)
