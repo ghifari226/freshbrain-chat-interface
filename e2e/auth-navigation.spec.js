@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-async function logInAsAdmin(page) {
+async function logInAsSuperuser(page) {
   await page.goto('/')
 
   await page.getByLabel('Email').fill('admin')
@@ -12,7 +12,7 @@ async function logInAsAdmin(page) {
 }
 
 test('logs in and opens the admin section', async ({ page }) => {
-  await logInAsAdmin(page)
+  await logInAsSuperuser(page)
 
   await page.getByRole('button', { name: 'Menu akun' }).click()
   await page.getByRole('button', { name: 'Admin' }).click()
@@ -26,7 +26,7 @@ test('logs in and opens the admin section', async ({ page }) => {
 })
 
 test('redirects an unknown authenticated route to chat home', async ({ page }) => {
-  await logInAsAdmin(page)
+  await logInAsSuperuser(page)
 
   await page.goto('/not-a-real-route')
   await expect(page).toHaveURL('/')

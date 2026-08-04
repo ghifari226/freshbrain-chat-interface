@@ -16,9 +16,6 @@
   border-radius: 14px;
   padding: 16px;
 }
-
-/* Wider than the base .modal so the tone row still has room once it grows
-   from cool/warm to cool/neutral/warm — see .theme-toggle below. */
 .settings-modal {
   max-width: 440px;
 }
@@ -47,9 +44,6 @@
   font-size: 14px;
   color: var(--text-muted);
 }
-
-/* Each choice gets the same visual width. The two-choice brightness group
-   is consequently shorter than the three-choice tone group. */
 .theme-toggle {
   display: flex;
   gap: 4px;

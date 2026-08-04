@@ -20,7 +20,7 @@ import {
   TableRow,
   TableSortLabel,
 } from '@mui/material'
-import { createUser, deleteUser, getAllUsers, updateUser } from '../../services/authService.js'
+import { createUser, deleteUser, generateResetLink, getAllUsers, updateUser } from '../../services/authService.js'
 import { errorMessage, isCanceled } from '../../services/api.ts'
 import { ROLES } from '../../config/roles.js'
 import {
@@ -37,6 +37,7 @@ import { PERMISSION_PRESETS, flagsForPreset, matchPresetForPermissions } from '.
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import GatewayJsonPreview from '../../components/devdoc/GatewayJsonPreview.jsx'
+import { useCopyToClipboard } from '../../hooks/useCopyToClipboard.js'
 import PermissionCheckboxGroup from '../../components/admin/PermissionCheckboxGroup.jsx'
 import {
   MIN_PHONE_DIGITS,
@@ -47,32 +48,13 @@ import {
   phoneMatches,
   significantPhoneDigits,
 } from './userPhone.js'
-
-// Superuser is ROLES[0] but is never assignable through this form (see
-// roleOptions below) — defaulting to it here would silently create a
-// Superuser unless the admin happened to touch the Role field themselves.
 const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superuser') }
-
-// Order-independent — see the identical concern in RolesPage's scopesEqual.
-// Both args are flag-shaped ({ 'users.view': boolean, ... }), never the
-// wire-shaped allowed_permissions array directly — see flagsForUser below.
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
 }
-
-// Boundary helper: every directory-entry-shaped user object in this file
-// (users state, permissionsDialogUser) carries `allowed_permissions` as an
-// array (auth-contract.md's wire shape) — this dialog's checkbox grid still
-// works in per-field flags internally, so every read of a `users` row for
-// that purpose goes through here first.
 function flagsForUser(user) {
   return permissionsArrayToFlags(user?.allowed_permissions)
 }
-
-// Same match-or-Custom logic as the Shield dialog's activePresetOption
-// (below), just applied to a row's stored permissions instead of a draft —
-// lets the table show which bundle a user's current permissions resolve to
-// without opening the dialog.
 function presetLabelForUser(user, t) {
   const presetId = matchPresetForPermissions(flagsForUser(user))
   const preset = PERMISSION_PRESETS.find((p) => p.id === presetId)
@@ -99,47 +81,24 @@ export default function UsersPage() {
     () => ({ id: session?.id, token: session?.token }),
     [session?.id, session?.token],
   )
-  // Superuser is visible in the table (existing Superuser users show their
-  // real role) but never assignable through this picker — bootstrap-locked,
-  // not something granted via the UI, for anyone, regardless of the actor's
-  // own permissions.
   const roleOptions = ROLES.filter((r) => r !== 'Superuser')
-
-  // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
-  // Unlike Roles/Permissions/Freshpedia/Tool Catalog, this dialog's submit
-  // button is never disabled — validation only runs (and these populate)
-  // when it's actually clicked, showing a message under each problem field
-  // rather than blocking the click itself.
   const [fieldErrors, setFieldErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetLink, setResetLink] = useState(null)
-  const [isCopied, setIsCopied] = useState(false)
-  // Add and Edit share one dialog/form: null (closed), 'new', or the id
-  // of the row being edited — so both flows are the same UI/UX, not two
-  // different code paths that could drift apart.
+  const [isCopied, copyResetLink] = useCopyToClipboard()
   const [userFormTarget, setUserFormTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [permissionsDialogUserId, setPermissionsDialogUserId] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortDirection, setSortDirection] = useState('asc')
   const [page, setPage] = useState(0)
-  // Empty set = no role filter applied (show everyone). Chips are additive
-  // (OR within roles), combined with searchQuery as AND.
   const [selectedRoles, setSelectedRoles] = useState(new Set())
-  // Draft permission edits, keyed by user id — toggling a checkbox only ever
-  // touches this, never the API. The upload/cancel icons inside the Shield
-  // dialog's title (shown only while dirty) are the only things that either
-  // commit this via updateUser or discard it — closing the dialog any other
-  // way (backdrop, Escape, the Close button) also discards, so there's never
-  // a silently-pending edit left behind once the dialog isn't open.
   const [pendingPermissions, setPendingPermissions] = useState({})
   const isEditMode = Boolean(userFormTarget) && userFormTarget !== 'new'
   const editingUser = isEditMode ? users.find((u) => u.id === userFormTarget) : null
-  // Derived from `users`, not a snapshot, so the dialog's title/base data is
-  // never stale.
   const permissionsDialogUser = users.find((u) => u.id === permissionsDialogUserId) ?? null
   const dialogPermissions = pendingPermissions[permissionsDialogUserId] ?? flagsForUser(permissionsDialogUser)
   const isPermissionsDialogDirty = permissionsDialogUser
@@ -165,6 +124,11 @@ export default function UsersPage() {
   // replace, same as handleSavePermissions actually sends.
   const gatewayPermissionsPatchPayload = { allowed_permissions: permissionFlagsToArray(dialogPermissions) }
 
+  // dev-doc only — POST /users/{id}/reset-link's 200 response. resetLink
+  // is stored as the FE route path (/reset/<token>) — strip the prefix
+  // back off so this shows exactly what the backend actually returns.
+  const gatewayResetLinkResponse = resetLink ? { resetToken: resetLink.slice('/reset/'.length) } : null
+
   // Highlights whichever preset's exact permission set matches the current
   // draft — never editable directly, purely derived from dialogPermissions
   // (see matchPresetForPermissions). Falls back to a synthetic "Custom"
@@ -174,28 +138,12 @@ export default function UsersPage() {
   const activePresetOption =
     PERMISSION_PRESETS.find((preset) => preset.id === activePresetId) ??
     { id: 'custom', label: t('permissions.customPreset') }
-
-  // Mirrors updateUser's runtime guard for immediate feedback — the actor
-  // can't check a box for a field they don't already hold themselves,
-  // whether editing their own row or (structurally impossible here, since
-  // the dialog can't even open on someone else without being Superuser or
-  // Technology) anyone else's.
   function isSelfEscalationBlocked(field) {
     return permissionsDialogUserId === session?.id && !hasPermission(session, field)
   }
-
-  // Mirrors updateUser's Technology-lock write guard for immediate
-  // feedback — users.assign_permissions/users.view show checked+disabled
-  // whenever the dialog's *target* (not the actor) is Technology. Superuser
-  // gets no equivalent — its checkboxes are ordinary and freely toggleable.
   function isTechnologyLockedField(field) {
     return permissionsDialogUser?.role === 'Technology' && TECHNOLOGY_LOCKED_PERMISSIONS.includes(field)
   }
-
-  // Built from the actual data rather than ROLES — every MOCK_USERS role
-  // happens to be a real ROLES entry right now, but this stays
-  // data-derived rather than ROLES-derived so a user stored with some
-  // other job title would still be filterable by their real role.
   const availableRoles = useMemo(
     () => Array.from(new Set(users.map((u) => u.role))).sort(),
     [users],
@@ -246,12 +194,6 @@ export default function UsersPage() {
       return next
     })
   }
-
-  // Gates the search/chip filter bar below — without it, the bar renders
-  // immediately (with an empty chip row, since availableRoles is derived
-  // from users) and then pops once the mock fetch resolves. Waiting for
-  // usersLoaded means the filter bar and the table's real rows appear in the
-  // same paint.
   const [usersLoaded, setUsersLoaded] = useState(false)
   const [loadError, setLoadError] = useState('')
 
@@ -275,6 +217,7 @@ export default function UsersPage() {
     setForm(EMPTY_FORM)
     setFormError('')
     setFieldErrors({})
+    setResetLink(null)
     setUserFormTarget('new')
   }
 
@@ -282,6 +225,7 @@ export default function UsersPage() {
     setForm({ name: row.name, email: row.email, phone: localPhoneDigitsFromStored(row.phone), role: row.role })
     setFormError('')
     setFieldErrors({})
+    setResetLink(null)
     setUserFormTarget(row.id)
   }
 
@@ -319,7 +263,6 @@ export default function UsersPage() {
         )
         setUsers((prev) => [...prev, user])
         setResetLink(`/reset/${resetToken}`)
-        setIsCopied(false)
       } else {
         const id = userFormTarget
         const updated = await updateUser(
@@ -328,20 +271,11 @@ export default function UsersPage() {
           actorForUpdate,
         )
         setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)))
-        // Only `name` is safe to patch live here — `updated` (from
-        // toDirectoryEntry) doesn't carry allowed_scopes, so patching `role`
-        // without it would leave the session's role and allowed_scopes
-        // pointing at different roles until the next login.
         if (id === session?.id) updateSession({ name: updated.name })
       }
       setForm(EMPTY_FORM)
       setUserFormTarget(null)
     } catch (error) {
-      // 'emailTaken' is a translated string key (create-only failure mode);
-      // update failures surface updateUser's own message directly since
-      // there's no equivalent translated copy for guard rejections that, in
-      // practice, the UI already prevents from being reachable (Technology
-      // filtered out of the role picker, etc).
       setFormError(userFormTarget === 'new' ? 'emailTaken' : errorMessage(error))
     } finally {
       setIsSubmitting(false)
@@ -349,10 +283,23 @@ export default function UsersPage() {
   }
 
   function handleCopyResetLink() {
-    navigator.clipboard.writeText(resetLink).then(() => {
-      setIsCopied(true)
-    })
+    copyResetLink(resetLink)
   }
+
+  async function handleGenerateResetLink(row) {
+    const { resetToken } = await generateResetLink(row.id, actorForUpdate)
+    setResetLink(`/reset/${resetToken}`)
+  }
+
+  const resetLinkNotice = resetLink && (
+    <div className="config-reset-link">
+      <strong className="config-reset-link__label">{t('config.resetLinkLabel')}</strong>
+      <code className="config-reset-link__value">{resetLink}</code>
+      <button className="config-link-button" onClick={handleCopyResetLink}>
+        {t(isCopied ? 'config.copied' : 'config.copyLink')}
+      </button>
+    </div>
+  )
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return
@@ -389,14 +336,6 @@ export default function UsersPage() {
       return rest
     })
   }
-
-  // The only thing that actually calls updateUser for permissions — see
-  // handleTogglePermission above, which only ever touches the local draft.
-  // allowed_permissions is a full replace on the wire (auth-contract.md,
-  // same convention as roles.allowed_scopes), so this always sends the
-  // dialog's complete draft, not just the fields that changed — the diffing
-  // now happens server-side (mock: authService.js's updateUser) against the
-  // last-synced row.
   async function handleSavePermissions(userId) {
     const next = pendingPermissions[userId]
     if (!next) return
@@ -432,15 +371,7 @@ export default function UsersPage() {
         <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>
       )}
 
-      {resetLink && (
-        <div className="config-reset-link">
-          <span className="config-reset-link__label">{t('config.resetLinkLabel')}</span>
-          <code className="config-reset-link__value">{resetLink}</code>
-          <button className="config-link-button" onClick={handleCopyResetLink}>
-            {t(isCopied ? 'config.copied' : 'config.copyLink')}
-          </button>
-        </div>
-      )}
+      {!userFormTarget && resetLinkNotice}
 
       {loadError && <p className="config-section__notice">{loadError}</p>}
 
@@ -557,8 +488,27 @@ export default function UsersPage() {
       </div>
 
       <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog} fullWidth maxWidth="sm">
-        <DialogTitle>{isEditMode ? editingUser?.name : t('config.addUser')}</DialogTitle>
+        <DialogTitle className="config-user-dialog-title">
+          <span>{isEditMode ? editingUser?.name : t('config.addUser')}</span>
+          {canEdit && isEditMode && (
+            <button
+              className="config-link-button"
+              type="button"
+              onClick={() => handleGenerateResetLink(editingUser)}
+            >
+              {t('config.generateResetLink')}
+            </button>
+          )}
+        </DialogTitle>
         <DialogContent>
+          {canEdit && isEditMode && resetLinkNotice}
+          {canEdit && isEditMode && gatewayResetLinkResponse && (
+            <GatewayJsonPreview
+              title="POST /users/{id}/reset-link — Response (live)"
+              data={gatewayResetLinkResponse}
+            />
+          )}
+
           <form
             id="user-form"
             className="auth-form config-add-form"

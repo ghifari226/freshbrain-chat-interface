@@ -1,21 +1,3 @@
-// The full permission catalog, `resource.action` string keys — stored as
-// flat boolean columns on the `users` row (indexed, type-safe queries), but
-// exposed over the wire as `allowed_permissions: string[]` (only the true
-// ones), same convention as allowed_scopes — see permission-catalog.md's
-// "Kenapa boolean, bukan array" for why storage and wire shape differ.
-// Fully separate from allowed_scopes (roles.js's ROLE_SCOPES), which gates
-// chat-time data/tool access, not any of this. Keys contain dots, so
-// hasPermission() below (never dot access) is the one place that reads them.
-//
-// Two flat arrays only now — "Chat capability access" (Freshpedia, Tools,
-// Staging) and "System Access" (roles/permissions/user administration),
-// still used to seed ALL_PERMISSIONS and the Shield dialog's two checkbox
-// sections. The Permissions Catalog page groups by prefix instead (see
-// PERMISSION_GROUPS below), not by this split.
-
-// Permission entries before Role Scope before User, throughout — matches
-// the same order as the Access Configuration landing page/sidebar (System
-// permissions before Role Scopes).
 export const SYSTEM_ACCESS_PERMISSIONS = [
   'permissions.view',
   'permissions.edit',
@@ -29,15 +11,6 @@ export const SYSTEM_ACCESS_PERMISSIONS = [
   'users.delete',
   'users.assign_permissions',
 ]
-
-// Freshpedia/Tools each split "view" and "request" into a live-tier axis
-// and a request-pipeline axis (2026-08-03) — a user can now be granted
-// visibility into published content without also seeing the request
-// backlog, or vice versa, which one shared `.view`/`.request` flag
-// couldn't express. Tools has no live_edit/live_status — its live
-// tier stays read-only; the only way content reaches it is Promote, which
-// is gated by the is_maintainer boolean (see roles.js/authService.js), not
-// a permission key at all.
 export const CHAT_ACCESS_PERMISSIONS = [
   'freshpedia.live_view',
   'freshpedia.live_edit',
@@ -53,32 +26,8 @@ export const CHAT_ACCESS_PERMISSIONS = [
   'tools.request_status',
   'staging.test',
 ]
-
-// All 24, stable order — used to seed/iterate full permission objects.
 export const ALL_PERMISSIONS = [...SYSTEM_ACCESS_PERMISSIONS, ...CHAT_ACCESS_PERMISSIONS]
-
-// Re-added 2026-08-04 (was removed 2026-08-03 when dialog access moved to
-// a pure role-hardlock — see canAssignPermissions below, unchanged by
-// this). It doesn't gate the Shield dialog itself anymore; that's still
-// role-only. What it's for now: a normal, visible, preset-trackable
-// checkbox — and the one field, alongside users.view, that's forced
-// true+locked for any Technology-role target (see
-// TECHNOLOGY_LOCKED_PERMISSIONS below) as a UI signal that Technology
-// always retains these two regardless of what else gets stripped.
-// Superuser gets no equivalent lock — its permissions (via the Superadmin
-// preset, name unchanged even though the role is now "Superuser") are
-// ordinary, freely-toggleable booleans like anyone else's.
 export const TECHNOLOGY_LOCKED_PERMISSIONS = ['users.assign_permissions', 'users.view']
-
-// Permissions Catalog page's 6 display groups — derived purely from each
-// key's prefix, not reassignable (there's no "move this permission to a
-// different group" UI, and a prefix is baked into the key itself). Names
-// are literal, not i18n keys — these are technical/brand-shaped labels
-// (Freshpedia, Tools, ...), not prose, so they're the same in every
-// language by design.
-// Order already matches ADMIN_NAV_ITEMS (adminNav.js) — Permissions before
-// Role scopes, same as the sidebar/admin menu (no reorder needed here,
-// only adminNav.js's array had them the other way around).
 const PERMISSION_CATALOG_GROUP_DEFS = [
   { id: 'freshpedia', label: 'Freshpedia' },
   { id: 'tools', label: 'Tools' },
@@ -120,27 +69,6 @@ export const PERMISSION_LABEL_KEYS = {
   'tools.request_status': 'permissions.toolRequestChangeStatus',
   'staging.test': 'permissions.stagingTest',
 }
-
-// No addPermissionToCatalog — the permission catalog is a fixed, code-level
-// concern (this file), not something grantable/creatable at runtime through
-// the UI. permissions.add (the permission key that used to gate that
-// capability) is gone too, for the same reason: there's nothing left for
-// it to gate. updatePermissionInCatalog below (editing a label) is the only
-// mutation any user, including Superuser, can still make from the UI.
-
-/**
- * Edits only the display label — the key itself is immutable once created
- * (every gating check in this codebase references these exact strings;
- * renaming one live would silently break whatever it gates), and the group
- * is derived from the key's prefix, not something to reassign. No delete at
- * all, for any permission, built-in or custom. The label is a full
- * { id, en } pair (not a strings.js path) — PERMISSION_LABEL_KEYS[key]
- * holds either a path (built-in, untouched) or this resolved object (once
- * edited); useT's t() handles both.
- *
- * @param {string} key
- * @param {{ label?: { id: string, en: string } }} updates
- */
 export function updatePermissionInCatalog(key, { label }) {
   if (!ALL_PERMISSIONS.includes(key)) throw new Error('Permission not found')
 
@@ -150,10 +78,6 @@ export function updatePermissionInCatalog(key, { label }) {
     PERMISSION_LABEL_KEYS[key] = { id, en }
   }
 }
-
-/**
- * @returns {{ key: string, group: string, labelKey: string }[]}
- */
 export function getPermissionCatalog() {
   return ALL_PERMISSIONS.map((key) => ({
     key,
@@ -161,28 +85,14 @@ export function getPermissionCatalog() {
     labelKey: PERMISSION_LABEL_KEYS[key],
   }))
 }
-
-/**
- * The one place every other check in this module (and every direct call
- * site elsewhere — pages/components that need a single field rather than
- * one of the OR-groups below) reads `allowed_permissions` — never dot
- * access, the key itself contains a literal `.`.
- *
- * @param {{ allowed_permissions?: string[] } | undefined | null} bag
- * @param {string} key
- */
 export function hasPermission(bag, key) {
   return Boolean(bag?.allowed_permissions?.includes(key))
 }
-
-/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewUsers(permissions) {
   return ['users.view', 'users.add', 'users.edit', 'users.delete', 'users.assign_permissions'].some(
     (field) => hasPermission(permissions, field),
   )
 }
-
-/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewRoles(permissions) {
   return [
     'roles.view',
@@ -191,100 +101,31 @@ export function canViewRoles(permissions) {
     'roles.assign_scopes',
   ].some((field) => hasPermission(permissions, field))
 }
-
-/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canViewPermissions(permissions) {
   return hasPermission(permissions, 'permissions.view') || hasPermission(permissions, 'permissions.edit')
 }
-
-// Any of the 24 present => can reach /config at all (nav-menu gate).
-/** @param {{ allowed_permissions?: string[] } | undefined} permissions */
 export function canAccessConfigSection(permissions) {
   return Boolean(permissions?.allowed_permissions?.length)
 }
-
-/**
- * Gates the Shield icon and everything inside it — hardcoded to role now,
- * not a permission flag (the users.assign_permissions checkbox itself
- * doesn't gate this dialog anymore, even though it's back as a visible
- * permission — see TECHNOLOGY_LOCKED_PERMISSIONS above). There's no way to
- * grant this to a Finance or HR user by checking a box; only Superuser and
- * Technology can ever assign permissions to other users, full stop.
- *
- * @param {{ role?: string } | undefined} actor
- */
 export function canAssignPermissions(actor) {
   return actor?.role === 'Superuser' || actor?.role === 'Technology'
 }
-
-/**
- * Gates Freshpedia/Tools' Promote action (request status -> staging) —
- * purely the is_maintainer boolean (2026-08-03), never a permission key.
- * Deliberately not one of ALL_PERMISSIONS: a permission key can be
- * hand-toggled in the Shield dialog independently of whatever granted it,
- * which would let someone check the box for a non-maintainer or leave it
- * checked after revoking maintainer status — this check reads is_maintainer
- * directly so there's nothing to drift.
- *
- * @param {{ is_maintainer?: boolean } | undefined} actor
- */
 export function canPromote(actor) {
   return Boolean(actor?.is_maintainer)
 }
-
-/**
- * Page-reachability gate — live_view only, by design: staging.test and
- * freshpedia.request_view still gate their own tab/button *inside* the
- * page (see useStatusFilters + FreshpediaPage.jsx), but neither grants
- * reaching the page on its own. A staging-only or request-only actor
- * can no longer land here at all; they need freshpedia.live_view too.
- *
- * @param {{ allowed_permissions?: string[] } | undefined} permissions
- */
 export function canAccessFreshpedia(permissions) {
   return hasPermission(permissions, 'freshpedia.live_view')
 }
-
-/**
- * Gates only Freshpedia's staging<->production promote/demote transition
- * actions — narrower than it used to be. Editing a published entry's
- * content is a separate permission now (freshpedia.live_edit), split out
- * 2026-08-03 since "can move it between staging/production" and "can edit
- * its content" turned out to be different trust levels in practice.
- * Checked in both FreshpediaPage.jsx (UI) and services/freshpedia.js (mock
- * write-path enforcement).
- *
- * @param {{ allowed_permissions?: string[] } | undefined} permissions
- */
 export function canChangeFreshpediaStatus(permissions) {
   return hasPermission(permissions, 'freshpedia.live_status')
 }
-
-/**
- * Page-reachability gate — live_view only, same reasoning as
- * canAccessFreshpedia above: staging.test/tools.request_view still gate
- * their own tab/button inside the page, not page access itself.
- *
- * @param {{ allowed_permissions?: string[] } | undefined} permissions
- */
 export function canAccessToolCatalog(permissions) {
   return hasPermission(permissions, 'tools.live_view')
 }
-
-/**
- * Boundary helpers only — UsersPage's Shield dialog edits permissions as a
- * per-field checkbox grid (flags), but the wire/session shape is an array.
- * Convert at the edges; never store the flags form anywhere persistent.
- *
- * @param {string[] | undefined} allowedPermissions
- * @returns {Record<string, boolean>}
- */
 export function permissionsArrayToFlags(allowedPermissions) {
   const set = new Set(allowedPermissions ?? [])
   return Object.fromEntries(ALL_PERMISSIONS.map((key) => [key, set.has(key)]))
 }
-
-/** @param {Record<string, boolean>} flags */
 export function permissionFlagsToArray(flags) {
   return ALL_PERMISSIONS.filter((key) => Boolean(flags[key]))
 }

@@ -9,22 +9,11 @@ import GatewayJsonPreview from '../../components/devdoc/GatewayJsonPreview.jsx'
 function isFormValid(form) {
   return Boolean(form.labelId.trim())
 }
-
-// Same 6 prefix-derived groups the catalog itself is organized into
-// (Freshpedia/Tools/Permissions/Roles/Users/Staging) — single source of
-// truth, so the filter chips can't drift out of sync with the sections
-// below them. Labels are literal (untranslated), matching PERMISSION_GROUPS.
 const FILTER_CHIPS = PERMISSION_GROUPS.map((group) => ({
   id: group.id,
   label: group.label,
   match: (key) => group.array.includes(key),
 }))
-
-// The permission catalog is fixed, code-level (permissions.js) — no way to
-// add an 18th boolean column via the UI, only view the existing 17 and edit
-// a label. Editing only ever touches the label (key and group are
-// permanent once created in code, since gating logic elsewhere references
-// the key as a literal string).
 export default function PermissionsPage({ session }) {
   const t = useT()
   const canEdit = hasPermission(session, 'permissions.edit')
@@ -57,8 +46,7 @@ export default function PermissionsPage({ session }) {
       )
     }
     return filtered
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permissions, selectedChips, searchQuery])
+  }, [permissions, selectedChips, searchQuery, t])
 
   const groupedRows = useMemo(
     () =>

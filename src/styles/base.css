@@ -16,16 +16,6 @@ button {
   font: inherit;
   cursor: pointer;
 }
-
-/* Global, not per-usage — applies to every checkbox in the app (Roles'
-   scope checkboxes, Users' permission checkboxes, any future one) without
-   needing a class on each input. accent-color recolors the checked-state
-   fill/checkmark to match the app's own brand blue instead of the OS/
-   browser default blue, in both themes; the unchecked box's border/fill
-   already auto-adapts to light/dark on its own via color-scheme in
-   variables.css, so only the checked color needed pinning down. Slightly
-   bigger than the ~13px browser default so it doesn't read as an
-   undersized, generic OS control next to the rest of this hand-styled UI. */
 input[type='checkbox'] {
   width: 16px;
   height: 16px;
@@ -83,13 +73,6 @@ input[type='checkbox'] {
 .icon-button--active {
   background: var(--surface-response);
 }
-
-/* Staging mode preview toggle — scoped to the chat panel (see
-   ChatPanel.jsx), not global. Invisible until hovered so it doesn't
-   clutter the UI for the small set of people who ever see it at all
-   (gated by canAccessFeature in StagingModeToggle.jsx). No background
-   box by design — state is communicated by the eye/eye-slash icon swap
-   and the banner's font color alone, nothing gets a colored fill. */
 .staging-toggle {
   position: absolute;
   top: 8px;

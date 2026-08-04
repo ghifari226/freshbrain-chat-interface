@@ -27,10 +27,6 @@ function scopesEqual(a, b) {
   const setB = new Set(b)
   return a.every((s) => setB.has(s))
 }
-
-// A system is 'full' when its wildcard tag (e.g. 'wms') is granted, or every
-// one of its sub-scopes is individually granted; 'none' when nothing under
-// it is granted; 'partial' otherwise.
 function getSystemState(scopes, entry) {
   const fullScopeKeys = entry.subScopes.map((sub) => `${entry.system}.${sub}`)
   if (scopes.includes(entry.system)) return 'full'
@@ -52,13 +48,6 @@ function SystemCheckbox({ state, onChange, disabled }) {
     />
   )
 }
-
-// Roles = merged Role Catalog (add/rename role rows — no delete, removed
-// as a safety call) + Role Scopes (assign which scopes each role gets) —
-// one page, one card per role. Each system row collapses to just its
-// checkbox + abbreviation by default; the master chevron (rightmost in the
-// header) expands/collapses every system in that one card at once,
-// independent of every other card's state.
 export default function RolesPage({ session }) {
   const t = useT()
   const canAdd = hasPermission(session, 'roles.add')
@@ -67,28 +56,13 @@ export default function RolesPage({ session }) {
   const canEditAnything = canAdd || canEditName || canAssignScopes
 
   const [catalog, setCatalog] = useState([])
-  // Role list + scope assignment both come from getAllRoles() — add/rename/
-  // scope-assign each go through their own service call (createRole/
-  // renameRole/updateRoleScopes), the same real/mock branch as every other
-  // service in this app, rather than this page mutating config/roles.js's
-  // module state directly.
   const [roles, setRoles] = useState([])
   const [loadError, setLoadError] = useState('')
   const [roleScopes, setRoleScopes] = useState({})
   const [savedRoleScopes, setSavedRoleScopes] = useState({})
-  // roles.id (PATCH /roles/{id}'s path identifier, auth-contract.md) —
-  // name-keyed like roleScopes/savedRoleScopes, re-keyed on rename the same
-  // way (see handleRenameSubmit). Display/search/sort throughout this page
-  // stays name-based (that's what a human picks a role by); id only ever
-  // matters at the three points that call the service layer
-  // (renameRole/updateRoleScopes/the id createRole returns).
   const [roleIdByName, setRoleIdByName] = useState({})
-  // Keyed by role — multiple cards can be dirty (and one can fail to save)
-  // independently of each other, unlike renameError which only ever applies
-  // to the single role currently in rename mode.
   const [scopeSaveErrors, setScopeSaveErrors] = useState({})
   const [searchQuery, setSearchQuery] = useState('')
-  // Empty = show every system's rows in every card.
   const [selectedSystems, setSelectedSystems] = useState(new Set())
   const [isAdding, setIsAdding] = useState(false)
   const [newRoleName, setNewRoleName] = useState('')
@@ -144,10 +118,6 @@ export default function RolesPage({ session }) {
     () => (selectedSystems.size === 0 ? catalog : catalog.filter((entry) => selectedSystems.has(entry.system))),
     [catalog, selectedSystems],
   )
-  // While filtering by system chip, every visible row auto-expands and the
-  // per-row chevron goes away — you already narrowed down to what you want
-  // to see, collapsing it back is just friction. The master toggle greys
-  // out to reflect that it has nothing left to do.
   const isFilteredMode = selectedSystems.size > 0
 
   const visibleRoles = useMemo(() => {
@@ -206,9 +176,6 @@ export default function RolesPage({ session }) {
     setRoleScopes((prev) => ({ ...prev, [role]: [...(savedRoleScopes[role] ?? [])] }))
     clearScopeSaveError(role)
   }
-
-  // One-way — only ever adds, never removes. Distinct from
-  // toggleSystemExpanded (the chevron), which flips both ways.
   function expandSystem(role, system) {
     setExpandedByRole((prev) => {
       if (prev[role]?.has(system)) return prev
@@ -228,9 +195,6 @@ export default function RolesPage({ session }) {
       const next = state === 'full' ? cleared : [...cleared, entry.system]
       return { ...prev, [role]: next }
     })
-    // Clicking the parent checkbox reveals what it just granted/cleared —
-    // expands once if collapsed, but never re-collapses an already-open
-    // one (that would undo a manual expand for no reason).
     if (entry.subScopes.length > 0) {
       expandSystem(role, entry.system)
     }
@@ -279,11 +243,6 @@ export default function RolesPage({ session }) {
     const current = expandedByRole[role]
     return systems.length > 0 && systems.every((system) => current?.has(system))
   }
-
-  // The master chevron: if every currently-visible system in this card is
-  // already expanded, collapse them all; otherwise expand them all — same
-  // "bulk toggle reflects whether everything is already on" shape as the
-  // Shield dialog's per-group select-all checkbox.
   function toggleAllExpanded(role, systems) {
     setExpandedByRole((prev) => {
       const allExpanded = systems.length > 0 && systems.every((system) => prev[role]?.has(system))
@@ -310,9 +269,6 @@ export default function RolesPage({ session }) {
       setRoleIdByName((prev) => ({ ...prev, [created.name]: created.id }))
       setIsAdding(false)
     } catch {
-      // Duplicate name is really the only realistic failure mode here (same
-      // reasoning as UsersPage's createUser handling) — always show the
-      // translated copy rather than the service's raw contract error text.
       setAddError(t('config.roleNameTaken'))
     }
   }
@@ -398,9 +354,6 @@ export default function RolesPage({ session }) {
           const scopes = roleScopes[role] ?? []
           const isDirty = canAssignScopes && !isSuperuser && !scopesEqual(scopes, savedRoleScopes[role] ?? [])
           const isRenaming = renamingRole === role
-          // Systems with nothing to expand (no sub-scopes, e.g. dwh) don't
-          // count toward the master toggle — there's nothing for it to do
-          // to them, same reason they never get their own chevron below.
           const expandableSystems = visibleCatalog
             .filter((entry) => entry.subScopes.length > 0)
             .map((entry) => entry.system)

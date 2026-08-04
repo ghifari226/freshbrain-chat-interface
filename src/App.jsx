@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import Sidebar from './components/layout/Sidebar.jsx'
 import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import {
   sendMessage,
   sendFeedback,
@@ -35,55 +36,25 @@ function AuthenticatedApp({ language, setLanguage }) {
   const [tone, setTone] = useTone()
   const [chatFont, setChatFont] = useChatFont()
   const [conversations, setConversations] = useState([])
-  // The first exchange of a brand-new conversation, held here (not in
-  // `conversations`) until POST /chat's response assigns a real id — the
-  // frontend never invents a conversation id (see domain.ts's
-  // Conversation.id doc comment), so there's nothing to add to the sidebar
-  // or route to yet. null when there's no in-flight new conversation.
   const [pendingMessages, setPendingMessages] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef(null)
-  // Holds the AbortController for whichever send/retry is currently
-  // in flight — single-flight by construction, since the input/Stop
-  // button only ever allows one at a time (see isLoading gating below).
   const abortControllerRef = useRef(null)
-
-  // Fires once on mount — conversations aren't seeded locally anymore, they
-  // come from GET /conversations (mocked).
   useEffect(() => {
     listConversations({ user_id: session?.id, role: session?.role, token: session?.token })
       .then((response) => {
         setConversations(response.conversations)
       })
       .catch(() => {
-        // Best-effort — an empty sidebar is a safe, visible-enough failure
-        // mode; nothing else in the app depends on this resolving.
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // The URL is the source of truth for which conversation is open —
-  // /chat/<id> — rather than duplicating that as separate React state that
-  // could drift out of sync with the address bar. The prefix (matching
-  // ChatGPT's /c/ and Claude's /chat/) makes chat paths recognizable by
-  // inclusion rather than isChatRoute having to exclude every known section
-  // by name — a future top-level route doesn't risk silently being treated
-  // as a conversation id.
+  }, [session?.id, session?.role, session?.token])
   const isChatRoute = path === '/' || path.startsWith('/chat/')
   const activeConversationId = path.startsWith('/chat/') ? path.slice('/chat/'.length) : null
-  // While a brand-new conversation's first exchange is in flight (no real
-  // id yet, still on '/'), fall back to pendingMessages so ChatPanel shows
-  // it in place rather than the welcome screen — see handleSend.
   const activeConversation = activeConversationId
     ? conversations.find((c) => c.id === activeConversationId) ?? null
     : pendingMessages
       ? { title: strings.sidebar.newChat[language], timestamp: null, messages: pendingMessages }
       : null
-
-  // No placeholder conversation gets created (and no title added to Recents)
-  // until the user actually sends a first message — see handleSend, which is
-  // the only place a conversation object is ever created. This just clears
-  // the active selection so ChatPanel falls back to its blank welcome state.
   function handleNewChat() {
     setPendingMessages(null)
     navigate('/')
@@ -97,10 +68,6 @@ function AuthenticatedApp({ language, setLanguage }) {
 
   function handleRenameConversation(conversationId, title) {
     setConversations((prev) => updateById(prev, conversationId, (conversation) => ({ ...conversation, title })))
-
-    // Every conversation in `conversations` already has a real backend id
-    // (see domain.ts's Conversation.id doc comment) — nothing to guard
-    // here, unlike before backendId was removed.
     renameConversation({
       conversation_id: conversationId,
       title,
@@ -108,8 +75,6 @@ function AuthenticatedApp({ language, setLanguage }) {
       role: session?.role,
       token: session?.token,
     }).catch((error) => {
-      // Best-effort — the rename already applied optimistically above; a
-      // failed server-side rename doesn't roll it back in this mock.
       console.error('Failed to rename conversation', error)
     })
   }
@@ -122,16 +87,12 @@ function AuthenticatedApp({ language, setLanguage }) {
       }
       return next
     })
-
-    // Every conversation in `conversations` already has a real backend id —
-    // same rationale as handleRenameConversation above.
     deleteConversation({
       conversation_id: conversationId,
       user_id: session?.id,
       role: session?.role,
       token: session?.token,
     }).catch((error) => {
-      // Best-effort — same rationale as handleRenameConversation above.
       console.error('Failed to delete conversation', error)
     })
   }
@@ -143,10 +104,6 @@ function AuthenticatedApp({ language, setLanguage }) {
         messages: updateById(conversation.messages, messageId, (message) => ({ ...message, feedback })),
       })),
     )
-
-    // Only submit complete feedback — never the intermediate "down clicked,
-    // reason not yet chosen" state, and never a cancel/toggle-off (feedback
-    // is an append-only log, toggling the UI off doesn't retract a row).
     const isComplete = feedback?.rating === 'up' || (feedback?.rating === 'down' && feedback.reason)
     if (!isComplete) return
 
@@ -164,21 +121,9 @@ function AuthenticatedApp({ language, setLanguage }) {
       comment: feedback.comment,
       token: session?.token,
     }).catch((error) => {
-      // Best-effort — MessageFeedback.jsx has no error slot, a failed
-      // submission must never disrupt the chat UI.
       console.error('Failed to submit feedback', error)
     })
   }
-
-  // Shared by handleSend (new prompt) and handleRetry (regenerate the last,
-  // still-unanswered prompt) — everything from "call sendMessage" onward is
-  // identical either way, the only difference is whether a new user message
-  // was just appended (handleSend) or the existing dangling one is being
-  // retried in place (handleRetry, no duplicate user bubble). `priorMessages`
-  // is only read on the isNewConversation success path below — it has to be
-  // passed in rather than read from the `pendingMessages` state/closure,
-  // since the setPendingMessages call that put it there hasn't necessarily
-  // re-rendered yet by the time this runs.
   async function runSend(text, isNewConversation, priorMessages) {
     setIsLoading(true)
     const controller = new AbortController()
@@ -203,9 +148,6 @@ function AuthenticatedApp({ language, setLanguage }) {
       }
 
       if (isNewConversation) {
-        // response.conversation_id is the first real id this conversation
-        // has ever had — only now does it become a routable, listable
-        // conversation.
         setConversations((prev) => [
           {
             id: response.conversation_id,
@@ -217,10 +159,6 @@ function AuthenticatedApp({ language, setLanguage }) {
         ])
         setPendingMessages(null)
         navigate('/chat/' + response.conversation_id)
-
-        // Title generation only makes sense once the conversation has a
-        // real id to attach it to — fires after navigate() above, so it
-        // never delays the answer that's already rendered/routed to.
         generateTitle({ message: text, conversation_id: response.conversation_id, token: session?.token })
           .then((title) => {
             setConversations((prev) =>
@@ -228,28 +166,17 @@ function AuthenticatedApp({ language, setLanguage }) {
             )
           })
           .catch(() => {
-            // Chat delivery remains independent from optional title generation.
           })
       } else {
         setConversations((prev) =>
           updateById(prev, activeConversationId, (conversation) => ({
             ...conversation,
-            // Only ever set on a message after the first one — see
-            // ChatResponse.title's doc comment in types/api.ts. Applied
-            // unconditionally whenever present; no separate rename
-            // endpoint or confirmation step, ai-engine's response is
-            // the source of truth for the title from here on.
             ...(response.title ? { title: response.title } : {}),
             messages: [...conversation.messages, assistantMessage],
           })),
         )
       }
     } catch (error) {
-      // A user-initiated Stop leaves the prompt exactly as-is — no error
-      // bubble, nothing appended. That dangling "last message is a user
-      // message" state is what ChatPanel's Retry-button check keys off of;
-      // see MessageInput.jsx/ChatMessage.jsx. A real failure still shows
-      // today's error bubble.
       if (!isCanceled(error)) {
         const errorMessage = {
           id: crypto.randomUUID(),
@@ -277,11 +204,6 @@ function AuthenticatedApp({ language, setLanguage }) {
 
   function handleSend(text) {
     const userMessage = { id: crypto.randomUUID(), role: 'user', text, createdAt: new Date().toISOString() }
-    // No route/id exists yet for a brand-new conversation — see
-    // pendingMessages' declaration above and Conversation.id's doc comment
-    // in domain.ts. `activeConversationId` (not activeConversation) is the
-    // right check: it's the URL, which stays null for the whole pending
-    // window regardless of what pendingMessages holds.
     const isNewConversation = !activeConversationId
 
     if (isNewConversation) {
@@ -297,12 +219,6 @@ function AuthenticatedApp({ language, setLanguage }) {
 
     runSend(text, isNewConversation, [...(pendingMessages ?? []), userMessage])
   }
-
-  // Regenerates the most recent prompt after a Stop — only ever called
-  // while that prompt is genuinely the last, unanswered message (see
-  // ChatPanel's canRetry/showRetry), so there's always exactly one
-  // candidate: the last message, which must be role 'user'. Re-sends the
-  // same text without appending a duplicate user bubble.
   function handleRetry() {
     const isNewConversation = !activeConversationId
     const messages = isNewConversation ? pendingMessages ?? [] : activeConversation?.messages ?? []
@@ -370,14 +286,26 @@ function AuthenticatedApp({ language, setLanguage }) {
 export default function App() {
   const [language, setLanguage] = useLanguage()
   const [session, setSession] = useAuthSession()
+  const location = useLocation()
+  const resetMatch = location.pathname.match(/^\/reset\/(.+)$/)
 
   return (
     <LanguageProvider language={language}>
       <AuthProvider session={session} setSession={setSession}>
-        {session ? (
+        {resetMatch ? (
+          <ResetPasswordPage
+            token={decodeURIComponent(resetMatch[1])}
+            language={language}
+            setLanguage={setLanguage}
+          />
+        ) : session ? (
           <AuthenticatedApp language={language} setLanguage={setLanguage} />
         ) : (
-          <LoginPage language={language} setLanguage={setLanguage} />
+          <LoginPage
+            language={language}
+            setLanguage={setLanguage}
+            passwordResetSuccess={Boolean(location.state?.passwordResetSuccess)}
+          />
         )}
       </AuthProvider>
     </LanguageProvider>

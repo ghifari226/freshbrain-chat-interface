@@ -7,9 +7,6 @@ const entries = [
   { id: 'staging', status: 'staging' },
   { id: 'request', status: 'request', requestStatus: 'posted' },
   { id: 'draft', status: 'request', requestStatus: 'draft' },
-  // Promoted: status moved on to staging, but requestStatus stays frozen
-  // at 'live' — should show in both Live (via status) and Request (via
-  // requestStatus) tabs, since it's genuinely permanent history in both.
   { id: 'promoted', status: 'staging', requestStatus: 'live' },
 ]
 
@@ -24,8 +21,6 @@ describe('useStatusFilters', () => {
     )
 
     expect(result.current.isRequestActive).toBe(false)
-    // 'promoted' has status='staging', so it's included here regardless of
-    // its frozen requestStatus — the Live tab only ever looks at `status`.
     expect(result.current.filterByStatus(entries).map((entry) => entry.id)).toEqual([
       'production',
       'staging',
@@ -59,17 +54,11 @@ describe('useStatusFilters', () => {
     act(() => result.current.toggleLiveStatus('production'))
     act(() => result.current.toggleTab('request'))
     expect(result.current.isRequestActive).toBe(true)
-    // 'promoted' has requestStatus='live' (frozen, not unset), so it shows
-    // here too as permanent history alongside the still-pending 'request'
-    // (posted) and 'draft' entries.
     expect(result.current.filterByStatus(entries).map((entry) => entry.id)).toEqual([
       'request',
       'draft',
       'promoted',
     ])
-
-    // Switching tabs clears the earlier sub-filter selection — back on
-    // Live, all production+staging show again, not just 'production'.
     act(() => result.current.toggleTab('live'))
     expect(result.current.filterByStatus(entries).map((entry) => entry.id)).toEqual([
       'production',

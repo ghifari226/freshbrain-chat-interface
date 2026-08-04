@@ -15,10 +15,6 @@ import {
   REQUEST_STATUS_TRANSITION_BY_STATUS,
   TOOL_STATUS_COLOR,
 } from './toolCatalogConfig.js'
-
-// On the Request view, the status chip shows the request-pipeline
-// lifecycle (Draft/Posted/Live-frozen) instead of the live `status` field
-// — same reasoning as FreshpediaEntryList.jsx's statusChipProps.
 function statusChipProps(row, isRequestView, t) {
   if (isRequestView && row.requestStatus) {
     return {

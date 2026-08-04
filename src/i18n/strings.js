@@ -1,8 +1,3 @@
-// Master wording file for the FreshBrain UI. Grouped by the area of the
-// app each string belongs to; every entry carries both languages together
-// so they can be reviewed side by side instead of hunting across files.
-// `id` listed before `en` in every pair — Indonesian is the app's default/
-// primary locale (see useLanguage.js), English is the secondary one.
 
 export const strings = {
   sidebar: {
@@ -83,7 +78,6 @@ export const strings = {
     cancel: { id: 'Batal', en: 'Cancel' },
   },
   auth: {
-    // Always English — brand slogan, not translated.
     slogan: 'One brain. Everything fresh.',
     emailLabel: { id: 'Email', en: 'Email' },
     emailPlaceholder: { id: 'Masukkan email Anda', en: 'Enter your email' },
@@ -100,11 +94,45 @@ export const strings = {
       en: 'Invalid email or password',
     },
     emailTaken: { id: 'Email sudah digunakan', en: 'Email already exists' },
-    familyCaption: { id: 'Memahami bisnis Anda', en: 'Understands your businesses' },
+    familyCaption: { id: 'Understands your businesses', en: 'Understands your businesses' },
+    forgotTitle: { id: 'Lupa kata sandi', en: 'Forgot password' },
+    forgotBody: {
+      id: 'Masukkan email Anda dan kami akan mengirimkan link untuk mengatur ulang kata sandi.',
+      en: "Enter your email and we'll send you a link to reset your password.",
+    },
+    forgotSubmit: { id: 'Kirim link reset', en: 'Send reset link' },
+    forgotSubmitLoading: { id: 'Mengirim...', en: 'Sending...' },
+    backToLogin: { id: 'Kembali ke halaman masuk', en: 'Back to login' },
+    resetLinkSentTitle: { id: 'Periksa email Anda', en: 'Check your email' },
+    resetLinkSentBody: {
+      id: 'Kami telah mengirimkan link untuk mengatur ulang kata sandi Anda.',
+      en: "We've sent a link to reset your password.",
+    },
+    passwordResetSuccessTitle: { id: 'Kata sandi berhasil diubah', en: 'Password updated' },
+    passwordResetSuccessBody: {
+      id: 'Silakan masuk dengan kata sandi baru Anda.',
+      en: 'Please log in with your new password.',
+    },
   },
   admin: {
     title: { id: 'Admin', en: 'Admin' },
     pageTitle: { id: 'FreshBrain Admin', en: 'FreshBrain Admin' },
+  },
+  resetPassword: {
+    title: { id: 'Atur kata sandi baru', en: 'Set a new password' },
+    newPasswordLabel: { id: 'Kata sandi baru', en: 'New password' },
+    newPasswordPlaceholder: { id: 'Masukkan kata sandi baru', en: 'Enter new password' },
+    confirmPasswordLabel: { id: 'Konfirmasi kata sandi', en: 'Confirm password' },
+    confirmPasswordPlaceholder: { id: 'Masukkan ulang kata sandi baru', en: 'Re-enter new password' },
+    submitButton: { id: 'Atur kata sandi', en: 'Set password' },
+    submitButtonLoading: { id: 'Menyimpan...', en: 'Saving...' },
+    passwordRequired: { id: 'Kata sandi wajib diisi', en: 'Password is required' },
+    passwordTooShort: { id: 'Kata sandi minimal 8 karakter', en: 'Password must be at least 8 characters' },
+    passwordMismatch: { id: 'Konfirmasi kata sandi tidak cocok', en: "Passwords don't match" },
+    invalidToken: {
+      id: 'Link reset tidak valid atau sudah kedaluwarsa. Silakan minta link baru.',
+      en: 'This reset link is invalid or has expired. Please request a new one.',
+    },
   },
   config: {
     backToChat: { id: 'Kembali ke obrolan', en: 'Back to chat' },
@@ -181,11 +209,12 @@ export const strings = {
       en: "View only. You don't have permission to make changes here.",
     },
     resetLinkLabel: {
-      id: 'Tautan reset (bagikan ke pengguna secara manual):',
-      en: 'Reset link (share with the user manually):',
+      id: 'Link reset password:',
+      en: 'Link reset password:',
     },
     copyLink: { id: 'Salin', en: 'Copy' },
     copied: { id: 'Tersalin', en: 'Copied' },
+    generateResetLink: { id: 'Link reset password', en: 'Link reset password' },
   },
   permissions: {
     sectionLabel: { id: 'Hak akses', en: 'Permissions' },

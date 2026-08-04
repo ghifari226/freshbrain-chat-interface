@@ -244,26 +244,28 @@ export default function Sidebar({
                 <span className="conversation-item__title">{t('sidebar.newChat')}</span>
               </button>
 
-              {conversations.length > 0 && (
-                <div className="sidebar-section">
-                  <div className="sidebar-section__label">{t('sidebar.recents')}</div>
-                  <ul className="conversation-list">
-                    {conversations.map((conversation) => (
-                      <ConversationItem
-                        key={conversation.id}
-                        conversation={conversation}
-                        isActive={conversation.id === activeConversationId}
-                        isMenuOpen={openMenuId === conversation.id}
-                        onSelect={() => onSelectConversation(conversation.id)}
-                        onOpenMenu={() => setOpenMenuId(conversation.id)}
-                        onCloseMenu={() => setOpenMenuId(null)}
-                        onRename={(title) => onRenameConversation(conversation.id, title)}
-                        onDelete={() => onDeleteConversation(conversation.id)}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <div className="sidebar-section">
+                {conversations.length > 0 && (
+                  <>
+                    <div className="sidebar-section__label">{t('sidebar.recents')}</div>
+                    <ul className="conversation-list">
+                      {conversations.map((conversation) => (
+                        <ConversationItem
+                          key={conversation.id}
+                          conversation={conversation}
+                          isActive={conversation.id === activeConversationId}
+                          isMenuOpen={openMenuId === conversation.id}
+                          onSelect={() => onSelectConversation(conversation.id)}
+                          onOpenMenu={() => setOpenMenuId(conversation.id)}
+                          onCloseMenu={() => setOpenMenuId(null)}
+                          onRename={(title) => onRenameConversation(conversation.id, title)}
+                          onDelete={() => onDeleteConversation(conversation.id)}
+                        />
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
             </>
           ) : (
             <>
