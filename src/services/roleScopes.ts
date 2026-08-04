@@ -95,7 +95,7 @@ export async function updateRoleScopes(
   const name = roleNameForId(id)
   if (!name) throw new Error('Role not found')
   if (LOCKED_ROLES.includes(name)) throw new Error('This role cannot be modified')
-  ROLE_SCOPES[name] = allowedScopes
+  ;(ROLE_SCOPES as Record<string, string[]>)[name] = allowedScopes
   const updated = getRoleCatalog().find((r) => r.id === id)
   if (!updated) throw new Error('Role not found')
   return toRoleScope(updated)
