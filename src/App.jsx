@@ -21,6 +21,7 @@ import { useAuth } from './hooks/useAuth.js'
 import { LanguageProvider } from './contexts/LanguageProvider.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { strings } from './i18n/strings.js'
+import { updateById } from './utils/collections.js'
 
 const MuiPage = lazy(() => import('./pages/MuiPage.jsx'))
 const AdminSection = lazy(() => import('./pages/admin/AdminSection.jsx'))
@@ -95,9 +96,7 @@ function AuthenticatedApp({ language, setLanguage }) {
   }
 
   function handleRenameConversation(conversationId, title) {
-    setConversations((prev) =>
-      prev.map((c) => (c.id === conversationId ? { ...c, title } : c)),
-    )
+    setConversations((prev) => updateById(prev, conversationId, (conversation) => ({ ...conversation, title })))
 
     // Every conversation in `conversations` already has a real backend id
     // (see domain.ts's Conversation.id doc comment) — nothing to guard
@@ -139,14 +138,10 @@ function AuthenticatedApp({ language, setLanguage }) {
 
   function handleMessageFeedback(conversationId, messageId, feedback) {
     setConversations((prev) =>
-      prev.map((c) =>
-        c.id === conversationId
-          ? {
-              ...c,
-              messages: c.messages.map((m) => (m.id === messageId ? { ...m, feedback } : m)),
-            }
-          : c,
-      ),
+      updateById(prev, conversationId, (conversation) => ({
+        ...conversation,
+        messages: updateById(conversation.messages, messageId, (message) => ({ ...message, feedback })),
+      })),
     )
 
     // Only submit complete feedback — never the intermediate "down clicked,
@@ -229,7 +224,7 @@ function AuthenticatedApp({ language, setLanguage }) {
         generateTitle({ message: text, conversation_id: response.conversation_id, token: session?.token })
           .then((title) => {
             setConversations((prev) =>
-              prev.map((c) => (c.id === response.conversation_id ? { ...c, title } : c)),
+              updateById(prev, response.conversation_id, (conversation) => ({ ...conversation, title })),
             )
           })
           .catch(() => {
@@ -237,20 +232,16 @@ function AuthenticatedApp({ language, setLanguage }) {
           })
       } else {
         setConversations((prev) =>
-          prev.map((c) =>
-            c.id === activeConversationId
-              ? {
-                  ...c,
-                  // Only ever set on a message after the first one — see
-                  // ChatResponse.title's doc comment in types/api.ts. Applied
-                  // unconditionally whenever present; no separate rename
-                  // endpoint or confirmation step, ai-engine's response is
-                  // the source of truth for the title from here on.
-                  ...(response.title ? { title: response.title } : {}),
-                  messages: [...c.messages, assistantMessage],
-                }
-              : c,
-          ),
+          updateById(prev, activeConversationId, (conversation) => ({
+            ...conversation,
+            // Only ever set on a message after the first one — see
+            // ChatResponse.title's doc comment in types/api.ts. Applied
+            // unconditionally whenever present; no separate rename
+            // endpoint or confirmation step, ai-engine's response is
+            // the source of truth for the title from here on.
+            ...(response.title ? { title: response.title } : {}),
+            messages: [...conversation.messages, assistantMessage],
+          })),
         )
       }
     } catch (error) {
@@ -271,9 +262,10 @@ function AuthenticatedApp({ language, setLanguage }) {
           setPendingMessages((prev) => [...(prev ?? []), errorMessage])
         } else {
           setConversations((prev) =>
-            prev.map((c) =>
-              c.id === activeConversationId ? { ...c, messages: [...c.messages, errorMessage] } : c,
-            ),
+            updateById(prev, activeConversationId, (conversation) => ({
+              ...conversation,
+              messages: [...conversation.messages, errorMessage],
+            })),
           )
         }
       }
@@ -296,9 +288,10 @@ function AuthenticatedApp({ language, setLanguage }) {
       setPendingMessages((prev) => [...(prev ?? []), userMessage])
     } else {
       setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeConversationId ? { ...c, messages: [...c.messages, userMessage] } : c,
-        ),
+        updateById(prev, activeConversationId, (conversation) => ({
+          ...conversation,
+          messages: [...conversation.messages, userMessage],
+        })),
       )
     }
 

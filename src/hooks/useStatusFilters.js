@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // Two top-level tabs (2026-08-03, replacing the old flat 3-way
 // production/staging/request chip row) — Live (production+staging) and
@@ -6,12 +6,14 @@ import { useCallback, useMemo, useState } from 'react'
 // Live tab is active, not siblings of Request at the same level.
 const TABS = ['live', 'request']
 const LIVE_SUB_STATUSES = ['production', 'staging']
+const DEFAULT_LIVE_STATUSES = new Set(LIVE_SUB_STATUSES)
 // Request tab's own sub-filter (2026-08-04) — this exact order (not
 // lifecycle order draft->posted->live), per the user. Always all three;
 // no permission gates this beyond reaching the Request tab at all (see
 // requestStatus's meaning in domain.ts — draft/posted/live-frozen are all
 // entries the actor can already see once request_view is granted).
 const REQUEST_SUB_STATUSES = ['live', 'posted', 'draft']
+const DEFAULT_REQUEST_STATUSES = new Set(REQUEST_SUB_STATUSES)
 
 export function useStatusFilters({
   canViewProduction,
@@ -27,6 +29,14 @@ export function useStatusFilters({
     () => TABS.filter((tab) => (tab === 'live' ? canViewLive : canViewRequest)),
     [canViewLive, canViewRequest],
   )
+
+  useEffect(() => {
+    if (!availableTabs.includes(activeTab) && availableTabs[0]) {
+      setActiveTab(availableTabs[0])
+      setSelectedLiveStatuses(new Set())
+      setSelectedRequestStatuses(new Set())
+    }
+  }, [activeTab, availableTabs])
 
   const availableLiveStatuses = useMemo(
     () =>
@@ -97,14 +107,14 @@ export function useStatusFilters({
         // sub-filter selection means "show all three", same convention as
         // the Live tab's Production/Staging sub-filter below.
         const effectiveRequestStatuses =
-          selectedRequestStatuses.size === 0 ? new Set(REQUEST_SUB_STATUSES) : selectedRequestStatuses
+          selectedRequestStatuses.size === 0 ? DEFAULT_REQUEST_STATUSES : selectedRequestStatuses
         return entries.filter(
           (entry) => Boolean(entry.requestStatus) && effectiveRequestStatuses.has(entry.requestStatus),
         )
       }
 
       const effectiveStatuses =
-        selectedLiveStatuses.size === 0 ? new Set(['production', 'staging']) : selectedLiveStatuses
+        selectedLiveStatuses.size === 0 ? DEFAULT_LIVE_STATUSES : selectedLiveStatuses
 
       return entries.filter((entry) => {
         if (entry.status === 'production' && !canViewProduction) return false
