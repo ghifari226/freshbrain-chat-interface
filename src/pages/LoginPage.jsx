@@ -1,11 +1,13 @@
 import { useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth.js'
 import { useT } from '../hooks/useT.js'
 import { strings } from '../i18n/strings.js'
 import { USE_MOCK_API } from '../config/appConfig.js'
 import { requestPasswordReset } from '../services/authService.js'
+import AuthLanguageToggle from '../components/auth/AuthLanguageToggle.jsx'
 
-export default function LoginPage({ language, setLanguage }) {
+export default function LoginPage({ language, setLanguage, passwordResetSuccess }) {
   const { login } = useAuth()
   const t = useT()
   const [email, setEmail] = useState('')
@@ -18,9 +20,11 @@ export default function LoginPage({ language, setLanguage }) {
   const [forgotEmail, setForgotEmail] = useState('')
   const [isSendingReset, setIsSendingReset] = useState(false)
   const [mockResetLink, setMockResetLink] = useState('')
+  const [notice, setNotice] = useState(passwordResetSuccess ? 'passwordReset' : '')
 
   async function handleSubmit(event) {
     event.preventDefault()
+    setNotice('')
 
     const errors = {}
     if (!email.trim()) errors.email = 'emailRequired'
@@ -47,16 +51,17 @@ export default function LoginPage({ language, setLanguage }) {
     try {
       const result = await requestPasswordReset(forgotEmail.trim())
       setMockResetLink(result.mockResetLink ?? '')
+      setNotice('resetSent')
     } finally {
       setIsSendingReset(false)
-      setMode('sent')
+      setMode('login')
+      setForgotEmail('')
     }
   }
 
   function backToLogin() {
     setMode('login')
     setForgotEmail('')
-    setMockResetLink('')
   }
 
   return (
@@ -86,30 +91,26 @@ export default function LoginPage({ language, setLanguage }) {
 
         <div className="auth-box">
           <div className="auth-box__toolbar">
-            <div className="auth-lang-toggle auth-lang-toggle--compact">
-              <button
-                className={
-                  'auth-lang-toggle__option' +
-                  (language === 'id' ? ' auth-lang-toggle__option--active' : '')
-                }
-                onClick={() => setLanguage('id')}
-              >
-                ID
-              </button>
-              <button
-                className={
-                  'auth-lang-toggle__option' +
-                  (language === 'en' ? ' auth-lang-toggle__option--active' : '')
-                }
-                onClick={() => setLanguage('en')}
-              >
-                EN
-              </button>
-            </div>
+            <AuthLanguageToggle language={language} setLanguage={setLanguage} compact />
           </div>
 
           {mode === 'login' && (
             <form className="auth-form" onSubmit={handleSubmit} noValidate>
+              {notice === 'resetSent' && (
+                <div className="auth-form__notice">
+                  <strong>{t('auth.resetLinkSentTitle')}</strong>
+                  <span>{t('auth.resetLinkSentBody')}</span>
+                  {USE_MOCK_API && mockResetLink && <span>Dev: {mockResetLink}</span>}
+                </div>
+              )}
+
+              {notice === 'passwordReset' && (
+                <div className="auth-form__notice">
+                  <strong>{t('auth.passwordResetSuccessTitle')}</strong>
+                  <span>{t('auth.passwordResetSuccessBody')}</span>
+                </div>
+              )}
+
               {formError && <div className="auth-form__error">{t('auth.' + formError)}</div>}
 
               <div className="form-field">
@@ -190,24 +191,10 @@ export default function LoginPage({ language, setLanguage }) {
               </button>
 
               <button className="auth-forgot__link" type="button" onClick={backToLogin}>
+                <ArrowLeft className="auth-forgot__link-icon" />
                 {t('auth.backToLogin')}
               </button>
             </form>
-          )}
-
-          {mode === 'sent' && (
-            <div className="auth-form">
-              <h2 className="auth-heading">{t('auth.resetLinkSentTitle')}</h2>
-              <p className="form-field__hint">{t('auth.resetLinkSentBody')}</p>
-
-              {USE_MOCK_API && mockResetLink && (
-                <p className="form-field__hint">Dev: {mockResetLink}</p>
-              )}
-
-              <button className="auth-forgot__link" type="button" onClick={backToLogin}>
-                {t('auth.backToLogin')}
-              </button>
-            </div>
           )}
         </div>
       </div>

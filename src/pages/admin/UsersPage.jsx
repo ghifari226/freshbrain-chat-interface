@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { KeyRound, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
+import { Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import {
   IconButton,
   Dialog,
@@ -179,6 +179,7 @@ export default function UsersPage() {
     setForm(EMPTY_FORM)
     setFormError('')
     setFieldErrors({})
+    setResetLink(null)
     setUserFormTarget('new')
   }
 
@@ -186,6 +187,7 @@ export default function UsersPage() {
     setForm({ name: row.name, email: row.email, phone: localPhoneDigitsFromStored(row.phone), role: row.role })
     setFormError('')
     setFieldErrors({})
+    setResetLink(null)
     setUserFormTarget(row.id)
   }
 
@@ -250,6 +252,16 @@ export default function UsersPage() {
     const { resetToken } = await generateResetLink(row.id, actorForUpdate)
     setResetLink(`/reset/${resetToken}`)
   }
+
+  const resetLinkNotice = resetLink && (
+    <div className="config-reset-link">
+      <strong className="config-reset-link__label">{t('config.resetLinkLabel')}</strong>
+      <code className="config-reset-link__value">{resetLink}</code>
+      <button className="config-link-button" onClick={handleCopyResetLink}>
+        {t(isCopied ? 'config.copied' : 'config.copyLink')}
+      </button>
+    </div>
+  )
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return
@@ -321,15 +333,7 @@ export default function UsersPage() {
         <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>
       )}
 
-      {resetLink && (
-        <div className="config-reset-link">
-          <span className="config-reset-link__label">{t('config.resetLinkLabel')}</span>
-          <code className="config-reset-link__value">{resetLink}</code>
-          <button className="config-link-button" onClick={handleCopyResetLink}>
-            {t(isCopied ? 'config.copied' : 'config.copyLink')}
-          </button>
-        </div>
-      )}
+      {!userFormTarget && resetLinkNotice}
 
       {loadError && <p className="config-section__notice">{loadError}</p>}
 
@@ -397,13 +401,6 @@ export default function UsersPage() {
                           </IconButton>
                         </Tooltip>
                       )}
-                      {canEdit && (
-                        <Tooltip title={t('config.generateResetLink')}>
-                          <IconButton size="small" onClick={() => handleGenerateResetLink(row)}>
-                            <KeyRound className="table-action-icon" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
                       {canAssign && (
                         <Tooltip title={t('permissions.sectionLabel')}>
                           <IconButton size="small" onClick={() => setPermissionsDialogUserId(row.id)}>
@@ -449,8 +446,21 @@ export default function UsersPage() {
       )}
 
       <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog} fullWidth maxWidth="sm">
-        <DialogTitle>{isEditMode ? editingUser?.name : t('config.addUser')}</DialogTitle>
+        <DialogTitle className="config-user-dialog-title">
+          <span>{isEditMode ? editingUser?.name : t('config.addUser')}</span>
+          {canEdit && isEditMode && (
+            <button
+              className="config-link-button"
+              type="button"
+              onClick={() => handleGenerateResetLink(editingUser)}
+            >
+              {t('config.generateResetLink')}
+            </button>
+          )}
+        </DialogTitle>
         <DialogContent>
+          {canEdit && isEditMode && resetLinkNotice}
+
           <form
             id="user-form"
             className="auth-form config-add-form"

@@ -410,25 +410,35 @@
 .scope-checkbox__label {
   color: var(--text-muted);
 }
+.config-user-dialog-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .config-reset-link {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  background: var(--surface-response);
+  background: rgba(65, 154, 210, 0.12);
   border-radius: 8px;
   padding: 10px 12px;
   margin: 0 0 16px;
   font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .config-reset-link__label {
-  color: var(--text-muted);
+  color: var(--accent);
 }
 
 .config-reset-link__value {
   font-family: monospace;
-  color: var(--text-chat);
+  color: var(--accent);
+  word-break: break-all;
 }
 
 .config-add-form {
@@ -537,6 +547,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 20px;
 }
 
 .permission-group {

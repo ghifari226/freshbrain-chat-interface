@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth.js'
+import { useNavigate } from 'react-router-dom'
 import { useT } from '../hooks/useT.js'
 import { strings } from '../i18n/strings.js'
+import { confirmPasswordReset } from '../services/authService.js'
+import AuthLanguageToggle from '../components/auth/AuthLanguageToggle.jsx'
 
 const MIN_PASSWORD_LENGTH = 8
 
 export default function ResetPasswordPage({ token, language, setLanguage }) {
-  const { completeReset } = useAuth()
+  const navigate = useNavigate()
   const t = useT()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -27,7 +29,8 @@ export default function ResetPasswordPage({ token, language, setLanguage }) {
 
     setIsSubmitting(true)
     try {
-      await completeReset(token, password)
+      await confirmPasswordReset(token, password)
+      navigate('/', { replace: true, state: { passwordResetSuccess: true } })
     } catch {
       setFormError('invalidToken')
     } finally {
@@ -62,26 +65,7 @@ export default function ResetPasswordPage({ token, language, setLanguage }) {
 
         <div className="auth-box">
           <div className="auth-box__toolbar">
-            <div className="auth-lang-toggle auth-lang-toggle--compact">
-              <button
-                className={
-                  'auth-lang-toggle__option' +
-                  (language === 'id' ? ' auth-lang-toggle__option--active' : '')
-                }
-                onClick={() => setLanguage('id')}
-              >
-                ID
-              </button>
-              <button
-                className={
-                  'auth-lang-toggle__option' +
-                  (language === 'en' ? ' auth-lang-toggle__option--active' : '')
-                }
-                onClick={() => setLanguage('en')}
-              >
-                EN
-              </button>
-            </div>
+            <AuthLanguageToggle language={language} setLanguage={setLanguage} compact />
           </div>
 
           <h1 className="auth-heading">{t('resetPassword.title')}</h1>

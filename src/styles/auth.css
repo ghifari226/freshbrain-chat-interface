@@ -63,12 +63,6 @@
   font-size: 10px;
 }
 
-.auth-box__toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: -8px;
-}
-
 .auth-card {
   width: 100%;
   max-width: 360px;
@@ -117,6 +111,12 @@
   box-shadow: 0 20px 40px -12px rgba(15, 41, 66, 0.45);
 }
 
+.auth-box__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -8px;
+}
+
 .auth-form {
   width: 100%;
   display: flex;
@@ -127,6 +127,17 @@
 .auth-form__error {
   background: #fdecec;
   color: #d93636;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.auth-form__notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #eaf3fb;
+  color: #1c6fb0;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;
@@ -210,6 +221,9 @@
 }
 
 .auth-forgot__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: transparent;
   color: #1c6fb0;
@@ -218,6 +232,11 @@
   font-weight: 600;
   padding: 0;
   cursor: pointer;
+}
+
+.auth-forgot__link-icon {
+  width: 14px;
+  height: 14px;
 }
 .auth-family {
   display: flex;

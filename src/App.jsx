@@ -286,8 +286,8 @@ function AuthenticatedApp({ language, setLanguage }) {
 export default function App() {
   const [language, setLanguage] = useLanguage()
   const [session, setSession] = useAuthSession()
-  const { pathname } = useLocation()
-  const resetMatch = pathname.match(/^\/reset\/(.+)$/)
+  const location = useLocation()
+  const resetMatch = location.pathname.match(/^\/reset\/(.+)$/)
 
   return (
     <LanguageProvider language={language}>
@@ -301,7 +301,11 @@ export default function App() {
         ) : session ? (
           <AuthenticatedApp language={language} setLanguage={setLanguage} />
         ) : (
-          <LoginPage language={language} setLanguage={setLanguage} />
+          <LoginPage
+            language={language}
+            setLanguage={setLanguage}
+            passwordResetSuccess={Boolean(location.state?.passwordResetSuccess)}
+          />
         )}
       </AuthProvider>
     </LanguageProvider>
