@@ -102,12 +102,12 @@ export default function LoginPage({ language, setLanguage, passwordResetSuccess 
       <div className="auth-layout">
         <div className="auth-devdoc-column">
           <GatewayJsonPreview
-            title="POST /forgot-password — Request (live)"
-            data={{ email: forgotEmail }}
-          />
-          <GatewayJsonPreview
             title="POST /login — Request (live)"
             data={{ email, password: 'x'.repeat(password.length) }}
+          />
+          <GatewayJsonPreview
+            title="POST /forgot-password — Request (live)"
+            data={{ email: forgotEmail }}
           />
           <GatewayJsonPreview
             title="POST /forgot-password — Response 200 (example)"
