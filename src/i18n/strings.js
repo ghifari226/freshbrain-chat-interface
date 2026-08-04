@@ -220,11 +220,14 @@ export const strings = {
       en: 'Freshpedia — request change status',
     },
 
-    toolLiveView: { id: 'Katalog tool — live view', en: 'Tools — live view' },
-    toolRequestView: { id: 'Katalog tool — request view', en: 'Tools — request view' },
-    toolRequestAdd: { id: 'Katalog tool — request add', en: 'Tools — request add' },
-    toolRequestEdit: { id: 'Katalog tool — request edit', en: 'Tools — request edit' },
-    toolRequestChangeStatus: { id: 'Katalog tool — request change status', en: 'Tools — request change status' },
+    toolLiveView: { id: 'Katalog tool — live view', en: 'Tool catalog — live view' },
+    toolRequestView: { id: 'Katalog tool — request view', en: 'Tool catalog — request view' },
+    toolRequestAdd: { id: 'Katalog tool — request add', en: 'Tool catalog — request add' },
+    toolRequestEdit: { id: 'Katalog tool — request edit', en: 'Tool catalog — request edit' },
+    toolRequestChangeStatus: {
+      id: 'Katalog tool — request change status',
+      en: 'Tool catalog — request change status',
+    },
 
     stagingTest: { id: 'Staging test', en: 'Staging test' },
   },
