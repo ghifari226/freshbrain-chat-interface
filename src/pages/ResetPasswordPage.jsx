@@ -22,7 +22,10 @@ const EXAMPLE_RESET_PASSWORD_RESPONSE = {
   allowed_scopes: ['wms.inventory', 'wms.inbound', 'wms.fulfillment', 'tms.shipment'],
   allowed_permissions: ['...'],
   is_maintainer: true,
-  token: 'eyJhbGciOiJIUzI1NiIs...',
+  access_token: 'eyJhbGciOi...',
+  refresh_token: 'eyJhbGciOi...',
+  access_expires_in: 900,
+  refresh_expires_in: 604800,
 }
 
 export default function ResetPasswordPage({ token, language, setLanguage }) {

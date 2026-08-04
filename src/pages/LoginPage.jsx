@@ -25,7 +25,10 @@ const EXAMPLE_LOGIN_RESPONSE = {
   allowed_scopes: ['wms.inventory', 'wms.inbound', 'wms.fulfillment', 'tms.shipment'],
   allowed_permissions: [...ALL_PERMISSIONS],
   is_maintainer: true,
-  token: 'eyJhbGciOiJIUzI1NiIs...',
+  access_token: 'eyJhbGciOi...',
+  refresh_token: 'eyJhbGciOi...',
+  access_expires_in: 900,
+  refresh_expires_in: 604800,
 }
 
 // dev-doc only — static example of POST /forgot-password's 200 response
@@ -96,152 +99,157 @@ export default function LoginPage({ language, setLanguage, passwordResetSuccess 
         <img src="/assets/logos/freshbrain-horizontal-inverse.svg" alt="FreshBrain" className="auth-page__logo" />
       </div>
 
-      <div className="auth-card">
-        <div className="auth-slogan">
-          {strings.auth.slogan
-            .split('. ')
-            .map((sentence, index, sentences) => {
-              const text = index < sentences.length - 1 ? `${sentence}.` : sentence
-              const words = text.split(' ')
-              const lastWord = words.pop()
-              const leadingText = words.length > 0 ? `${words.join(' ')} ` : ''
-
-              return (
-                <div key={index} className="auth-slogan__line">
-                  {leadingText}
-                  <span className="auth-slogan__accent">{lastWord}</span>
-                </div>
-              )
-            })}
+      <div className="auth-layout">
+        <div className="auth-devdoc-column">
+          <GatewayJsonPreview
+            title="POST /forgot-password — Request (live)"
+            data={{ email: forgotEmail }}
+          />
+          <GatewayJsonPreview
+            title="POST /login — Request (live)"
+            data={{ email, password: 'x'.repeat(password.length) }}
+          />
+          <GatewayJsonPreview
+            title="POST /forgot-password — Response 200 (example)"
+            data={EXAMPLE_FORGOT_PASSWORD_RESPONSE}
+          />
         </div>
 
-        <div className="auth-box">
-          <div className="auth-box__toolbar">
-            <AuthLanguageToggle language={language} setLanguage={setLanguage} compact />
+        <div className="auth-card">
+          <div className="auth-slogan">
+            {strings.auth.slogan
+              .split('. ')
+              .map((sentence, index, sentences) => {
+                const text = index < sentences.length - 1 ? `${sentence}.` : sentence
+                const words = text.split(' ')
+                const lastWord = words.pop()
+                const leadingText = words.length > 0 ? `${words.join(' ')} ` : ''
+
+                return (
+                  <div key={index} className="auth-slogan__line">
+                    {leadingText}
+                    <span className="auth-slogan__accent">{lastWord}</span>
+                  </div>
+                )
+              })}
           </div>
 
-          {mode === 'login' && (
-            <form className="auth-form" onSubmit={handleSubmit} noValidate>
-              {notice === 'resetSent' && (
-                <div className="auth-form__notice">
-                  <strong>{t('auth.resetLinkSentTitle')}</strong>
-                  <span>{t('auth.resetLinkSentBody')}</span>
-                  {USE_MOCK_API && mockResetLink && <span>Dev: {mockResetLink}</span>}
-                </div>
-              )}
+          <div className="auth-box">
+            <div className="auth-box__toolbar">
+              <AuthLanguageToggle language={language} setLanguage={setLanguage} compact />
+            </div>
 
-              {notice === 'passwordReset' && (
-                <div className="auth-form__notice">
-                  <strong>{t('auth.passwordResetSuccessTitle')}</strong>
-                  <span>{t('auth.passwordResetSuccessBody')}</span>
-                </div>
-              )}
-
-              {formError && <div className="auth-form__error">{t('auth.' + formError)}</div>}
-
-              <div className="form-field">
-                <label className="form-field__label" htmlFor="login-email">
-                  {t('auth.emailLabel')}
-                </label>
-                <input
-                  id="login-email"
-                  className="form-field__input"
-                  type="email"
-                  value={email}
-                  onChange={(event) => {
-                    setEmail(event.target.value)
-                    setFieldErrors((prev) => ({ ...prev, email: '' }))
-                  }}
-                  placeholder={t('auth.emailPlaceholder')}
-                  autoComplete="email"
-                />
-                {fieldErrors.email && (
-                  <span className="form-field__error">{t('auth.' + fieldErrors.email)}</span>
+            {mode === 'login' && (
+              <form className="auth-form" onSubmit={handleSubmit} noValidate>
+                {notice === 'resetSent' && (
+                  <div className="auth-form__notice">
+                    <strong>{t('auth.resetLinkSentTitle')}</strong>
+                    <span>{t('auth.resetLinkSentBody')}</span>
+                    {USE_MOCK_API && mockResetLink && <span>Dev: {mockResetLink}</span>}
+                  </div>
                 )}
-              </div>
 
-              <div className="form-field">
-                <label className="form-field__label" htmlFor="login-password">
-                  {t('auth.passwordLabel')}
-                </label>
-                <input
-                  id="login-password"
-                  className="form-field__input"
-                  type="password"
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value)
-                    setFieldErrors((prev) => ({ ...prev, password: '' }))
-                  }}
-                  placeholder={t('auth.passwordPlaceholder')}
-                  autoComplete="current-password"
-                />
-                {fieldErrors.password && (
-                  <span className="form-field__error">{t('auth.' + fieldErrors.password)}</span>
+                {notice === 'passwordReset' && (
+                  <div className="auth-form__notice">
+                    <strong>{t('auth.passwordResetSuccessTitle')}</strong>
+                    <span>{t('auth.passwordResetSuccessBody')}</span>
+                  </div>
                 )}
-              </div>
 
-              <div className="auth-forgot">
-                <button className="auth-forgot__link" type="button" onClick={() => setMode('forgot')}>
-                  {t('auth.forgotPassword')}
+                {formError && <div className="auth-form__error">{t('auth.' + formError)}</div>}
+
+                <div className="form-field">
+                  <label className="form-field__label" htmlFor="login-email">
+                    {t('auth.emailLabel')}
+                  </label>
+                  <input
+                    id="login-email"
+                    className="form-field__input"
+                    type="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value)
+                      setFieldErrors((prev) => ({ ...prev, email: '' }))
+                    }}
+                    placeholder={t('auth.emailPlaceholder')}
+                    autoComplete="email"
+                  />
+                  {fieldErrors.email && (
+                    <span className="form-field__error">{t('auth.' + fieldErrors.email)}</span>
+                  )}
+                </div>
+
+                <div className="form-field">
+                  <label className="form-field__label" htmlFor="login-password">
+                    {t('auth.passwordLabel')}
+                  </label>
+                  <input
+                    id="login-password"
+                    className="form-field__input"
+                    type="password"
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value)
+                      setFieldErrors((prev) => ({ ...prev, password: '' }))
+                    }}
+                    placeholder={t('auth.passwordPlaceholder')}
+                    autoComplete="current-password"
+                  />
+                  {fieldErrors.password && (
+                    <span className="form-field__error">{t('auth.' + fieldErrors.password)}</span>
+                  )}
+                </div>
+
+                <div className="auth-forgot">
+                  <button className="auth-forgot__link" type="button" onClick={() => setMode('forgot')}>
+                    {t('auth.forgotPassword')}
+                  </button>
+                </div>
+
+                <button className="auth-submit" type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? t('auth.loginButtonLoading') : t('auth.loginButton')}
                 </button>
-              </div>
+              </form>
+            )}
 
-              <button className="auth-submit" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? t('auth.loginButtonLoading') : t('auth.loginButton')}
-              </button>
-            </form>
-          )}
+            {mode === 'forgot' && (
+              <form className="auth-form" onSubmit={handleForgotSubmit} noValidate>
+                <p className="form-field__hint">{t('auth.forgotBody')}</p>
 
-          {mode === 'forgot' && (
-            <form className="auth-form" onSubmit={handleForgotSubmit} noValidate>
-              <p className="form-field__hint">{t('auth.forgotBody')}</p>
+                <div className="form-field">
+                  <label className="form-field__label" htmlFor="forgot-email">
+                    {t('auth.emailLabel')}
+                  </label>
+                  <input
+                    id="forgot-email"
+                    className="form-field__input"
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(event) => setForgotEmail(event.target.value)}
+                    placeholder={t('auth.emailPlaceholder')}
+                    autoComplete="email"
+                  />
+                </div>
 
-              <div className="form-field">
-                <label className="form-field__label" htmlFor="forgot-email">
-                  {t('auth.emailLabel')}
-                </label>
-                <input
-                  id="forgot-email"
-                  className="form-field__input"
-                  type="email"
-                  value={forgotEmail}
-                  onChange={(event) => setForgotEmail(event.target.value)}
-                  placeholder={t('auth.emailPlaceholder')}
-                  autoComplete="email"
-                />
-              </div>
+                <button className="auth-submit" type="submit" disabled={isSendingReset}>
+                  {isSendingReset ? t('auth.forgotSubmitLoading') : t('auth.forgotSubmit')}
+                </button>
 
-              <button className="auth-submit" type="submit" disabled={isSendingReset}>
-                {isSendingReset ? t('auth.forgotSubmitLoading') : t('auth.forgotSubmit')}
-              </button>
-
-              <button className="auth-forgot__link" type="button" onClick={backToLogin}>
-                <ArrowLeft className="auth-forgot__link-icon" />
-                {t('auth.backToLogin')}
-              </button>
-            </form>
-          )}
+                <button className="auth-forgot__link" type="button" onClick={backToLogin}>
+                  <ArrowLeft className="auth-forgot__link-icon" />
+                  {t('auth.backToLogin')}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="auth-devdoc">
-        <GatewayJsonPreview
-          title="POST /login — Request (live)"
-          data={{ email, password: 'x'.repeat(password.length) }}
-        />
-        <GatewayJsonPreview
-          title="POST /login — Response 200 (example)"
-          data={EXAMPLE_LOGIN_RESPONSE}
-        />
-        <GatewayJsonPreview
-          title="POST /forgot-password — Request (live)"
-          data={{ email: forgotEmail }}
-        />
-        <GatewayJsonPreview
-          title="POST /forgot-password — Response 200 (example)"
-          data={EXAMPLE_FORGOT_PASSWORD_RESPONSE}
-        />
+        <div className="auth-devdoc-column">
+          <GatewayJsonPreview
+            title="POST /login — Response 200 (example)"
+            data={EXAMPLE_LOGIN_RESPONSE}
+          />
+        </div>
       </div>
 
       <div className="auth-family">
