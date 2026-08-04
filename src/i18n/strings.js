@@ -1,8 +1,3 @@
-// Master wording file for the FreshBrain UI. Grouped by the area of the
-// app each string belongs to; every entry carries both languages together
-// so they can be reviewed side by side instead of hunting across files.
-// `id` listed before `en` in every pair — Indonesian is the app's default/
-// primary locale (see useLanguage.js), English is the secondary one.
 
 export const strings = {
   sidebar: {
@@ -83,7 +78,6 @@ export const strings = {
     cancel: { id: 'Batal', en: 'Cancel' },
   },
   auth: {
-    // Always English — brand slogan, not translated.
     slogan: 'One brain. Everything fresh.',
     emailLabel: { id: 'Email', en: 'Email' },
     emailPlaceholder: { id: 'Masukkan email Anda', en: 'Enter your email' },

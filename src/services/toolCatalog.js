@@ -1,67 +1,11 @@
-// Tool Catalog CRUD against ai-engine (moved off chat-gateway 2026-07-28 —
-// same reasoning as freshpedia.js: the tool registry is ai-engine's own
-// content, tightly coupled to its actual tool implementations under
-// be/freshbrain-ai-engine/tools/, not an auth/identity concern; chat-gateway
-// still owns the tool.* permission values themselves, just not this data).
-//
-// Split into two collections (2026-07-29), same idea as freshpedia.js:
-// `/tool-catalog` (published — staging+production) and
-// `/tool-catalog-request` (the submission queue). Still no staging<->
-// production transition or PATCH for published entries (live tier stays
-// read-only, no live_edit permission exists for Tools — see
-// config/permissions.js). The one promotion path added (2026-08-03,
-// promoteToolCatalogRequestEntry below) is request->staging only, from
-// requestStatus='posted' only, gated purely by actor.is_maintainer like
-// Freshpedia's — see freshpedia-contract.md's equivalent note and this
-// repo's tool-catalog-contract.md. requestStatus itself follows the same
-// Draft->Posted->Live(frozen) lifecycle as Freshpedia's, toggled between
-// draft/posted via updateToolCatalogRequestStatus (tools.request_status,
-// distinct from tools.request_edit which only covers content fields), and
-// frozen permanently at 'live' once promoted — see
-// getToolCatalogRequestEntries below for why that keeps a promoted entry
-// visible in the Request tab as history.
-//
-// Contract lives at freshbrain-agreement's tool-catalog-contract.md.
-// `signal` is only actually threaded through by ToolCatalogPage's list
-// loads today — create/update accept it too but no caller passes one yet.
 import { USE_MOCK_API } from '../config/appConfig.js'
 import { authHeaders, aiEngineApi } from './api.ts'
 import { hasPermission } from '../config/permissions.js'
 import { mockDelay } from './mockDelay.ts'
-
-/**
- * Shape returned by every function in this file. `createdBy`/`updatedBy`
- * are `users.id` (uid, see authService.js's MOCK_USERS) — same convention
- * as freshpedia.js.
- * @typedef {{
- *   id: string,
- *   system: string,
- *   name: string,
- *   status: 'request' | 'staging' | 'production',
- *   requestStatus?: 'draft' | 'posted' | 'live',
- *   createdBy: string,
- *   createdAt: string,
- *   updatedBy: string,
- *   updatedAt: string,
- *   description: string,
- *   exampleQuestions: string[],
- * }} ToolCatalogEntry
- */
-
 function toEntry(row) {
   return { ...row }
 }
-
-// Ghifari's and Delanda's users.id, from authService.js's MOCK_USERS —
-// same reuse as freshpedia.js, so createdBy/updatedBy actually resolve.
 const GHIFARI_UID = 'b7e2d5f1-0000-4c22-9d33-000000000002'
-const DELANDA_UID = 'b7e2d5f1-0000-4c22-9d33-000000000003'
-
-// Module-level, mutable — same role as MOCK_USERS/MOCK_ENTRIES elsewhere.
-// Resets on reload; no backend persistence yet. `id` is a fixed literal
-// uid per row (stable across HMR/reload, same convention as
-// freshpedia.js/roles.js/authService.js); createToolCatalogEntry generates
-// a fresh one for genuinely new entries.
 const MOCK_TOOLS = [
   {
     id: 'a2f6b3c1-0000-4e11-8b22-000000000001',
@@ -109,60 +53,6 @@ const MOCK_TOOLS = [
     ],
   },
   {
-    id: 'a2f6b3c1-0000-4e11-8b22-000000000004',
-    system: 'tms',
-    name: 'shipment',
-    status: 'production',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-08T09:10:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-08T09:10:00Z',
-    description: 'Melacak status pengiriman barang ke pelanggan.',
-    exampleQuestions: [
-      'Di mana posisi pengiriman #5678 sekarang?',
-      'Berapa lama estimasi pengiriman ke kota X?',
-    ],
-  },
-  {
-    id: 'a2f6b3c1-0000-4e11-8b22-000000000005',
-    system: 'dilema',
-    name: 'orders',
-    status: 'staging',
-    createdBy: DELANDA_UID,
-    createdAt: '2026-07-16T09:00:00Z',
-    updatedBy: DELANDA_UID,
-    updatedAt: '2026-07-16T09:00:00Z',
-    description: 'Melihat data pesanan penjualan langsung.',
-    exampleQuestions: ['Berapa total pesanan bulan ini?', 'Pesanan mana saja yang masih pending?'],
-  },
-  {
-    id: 'a2f6b3c1-0000-4e11-8b22-000000000006',
-    system: 'dilema',
-    name: 'tenants',
-    status: 'production',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-08T09:15:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-08T09:15:00Z',
-    description: 'Melihat data tenant/mitra penjualan langsung.',
-    exampleQuestions: [
-      'Siapa saja tenant aktif saat ini?',
-      'Berapa total transaksi tenant X bulan ini?',
-    ],
-  },
-  {
-    id: 'a2f6b3c1-0000-4e11-8b22-000000000007',
-    system: 'odoo',
-    name: 'revenue',
-    status: 'production',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-08T09:20:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-08T09:20:00Z',
-    description: 'Melihat data pendapatan dari sistem ERP.',
-    exampleQuestions: ['Berapa revenue bulan lalu?', 'Bagaimana tren revenue 3 bulan terakhir?'],
-  },
-  {
     id: 'a2f6b3c1-0000-4e11-8b22-000000000008',
     system: 'wms',
     name: 'cyclecount',
@@ -178,26 +68,7 @@ const MOCK_TOOLS = [
       'Apakah ada selisih stok dari cycle count minggu ini?',
     ],
   },
-  {
-    id: 'a2f6b3c1-0000-4e11-8b22-000000000009',
-    system: 'tms',
-    name: 'route',
-    status: 'request',
-    requestStatus: 'posted',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-19T15:00:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-19T15:00:00Z',
-    description: 'Melihat rute pengiriman yang sedang berjalan.',
-    exampleQuestions: ['Rute mana yang paling sering delay?'],
-  },
 ]
-
-/**
- * `/tool-catalog` — published entries only (staging+production). Never
- * returns a request-status row; see getToolCatalogRequestEntries.
- * @returns {Promise<ToolCatalogEntry[]>}
- */
 export async function getToolCatalogEntries({ signal, token } = {}) {
   if (!USE_MOCK_API) {
     const { data } = await aiEngineApi.get(
@@ -209,17 +80,6 @@ export async function getToolCatalogEntries({ signal, token } = {}) {
   await mockDelay(500, 900, signal)
   return MOCK_TOOLS.filter((entry) => entry.status !== 'request').map(toEntry)
 }
-
-/**
- * `/tool-catalog-request` — every entry ever submitted through the request
- * flow, keyed off `requestStatus` (set once at creation, never unset)
- * rather than `status` — same reasoning as freshpedia.js's
- * getFreshpediaRequestEntries: a promoted entry's `status` moves on to
- * 'staging', but it keeps showing up here too (frozen at
- * requestStatus='live') as permanent history. ToolCatalogPage.jsx dedupes
- * by id when merging this with getToolCatalogEntries()'s results.
- * @returns {Promise<ToolCatalogEntry[]>}
- */
 export async function getToolCatalogRequestEntries({ signal, token } = {}) {
   if (!USE_MOCK_API) {
     const { data } = await aiEngineApi.get(
@@ -231,16 +91,6 @@ export async function getToolCatalogRequestEntries({ signal, token } = {}) {
   await mockDelay(500, 900, signal)
   return MOCK_TOOLS.filter((entry) => Boolean(entry.requestStatus)).map(toEntry)
 }
-
-/**
- * Entries are always born in `/tool-catalog-request` — contributors can
- * never self-promote straight into the published collection; only a
- * maintainer can, via promoteToolCatalogRequestEntry below.
- *
- * @param {{ system: string, name: string, description: string, exampleQuestions: string[] }} input
- * @param {{ id: string, token?: string, allowed_permissions?: string[] }} actor
- * @returns {Promise<ToolCatalogEntry>}
- */
 export async function createToolCatalogEntry(input, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
     const { data } = await aiEngineApi.post(
@@ -274,21 +124,6 @@ export async function createToolCatalogEntry(input, actor, { signal } = {}) {
   MOCK_TOOLS.push(entry)
   return toEntry(entry)
 }
-
-/**
- * `PATCH /tool-catalog-request/{id}` — pending entries only, editable by
- * anyone holding tools.request_edit, not restricted to the entry's own
- * submitter. No published-entry equivalent exists (no
- * `PATCH /tool-catalog/{id}`) — the live tier stays read-only; the only
- * way an entry reaches it is promoteToolCatalogRequestEntry below, and
- * that doesn't touch these content fields. "Edit Request" is a personal
- * action, not a review step.
- *
- * @param {string} id
- * @param {{ system?: string, name?: string, description?: string, exampleQuestions?: string[] }} updates
- * @param {{ id: string, token?: string, allowed_permissions?: string[] }} actor
- * @returns {Promise<ToolCatalogEntry>}
- */
 export async function updateToolCatalogRequestEntry(id, updates, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
     const { data } = await aiEngineApi.patch(
@@ -322,20 +157,6 @@ export async function updateToolCatalogRequestEntry(id, updates, actor, { signal
 
   return toEntry(entry)
 }
-
-/**
- * `POST /tool-catalog-request/{id}/status` — moves an entry's `status` into
- * the published tier, landing in 'staging' (there's no staging->production
- * step for Tools, see this file's header comment). Only valid from
- * requestStatus='posted' — a draft can't be promoted directly. Gated
- * purely by actor.is_maintainer, not a permission key — same reasoning as
- * freshpedia.js's promoteFreshpediaRequestEntry. Freezes requestStatus at
- * 'live' rather than clearing it.
- *
- * @param {string} id
- * @param {{ id: string, token?: string, is_maintainer?: boolean }} actor
- * @returns {Promise<ToolCatalogEntry>}
- */
 export async function promoteToolCatalogRequestEntry(id, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
     const { data } = await aiEngineApi.post(
@@ -365,20 +186,6 @@ export async function promoteToolCatalogRequestEntry(id, actor, { signal } = {})
   entry.updatedAt = new Date().toISOString()
   return toEntry(entry)
 }
-
-/**
- * `POST /tool-catalog-request/{id}/request-status` — the bidirectional
- * Draft<->Posted toggle, distinct from both content edits
- * (updateToolCatalogRequestEntry, gated by tools.request_edit) and
- * promotion (promoteToolCatalogRequestEntry, gated by is_maintainer). Only
- * valid while still status='request' — once promoted, requestStatus is
- * frozen at 'live' and this always 404s.
- *
- * @param {string} id
- * @param {'draft'|'posted'} nextRequestStatus
- * @param {{ token?: string, allowed_permissions?: string[] }} actor
- * @returns {Promise<ToolCatalogEntry>}
- */
 export async function updateToolCatalogRequestStatus(id, nextRequestStatus, actor, { signal } = {}) {
   if (!USE_MOCK_API) {
     const { data } = await aiEngineApi.post(

@@ -8,19 +8,12 @@
   --accent: #419ad2;
   --accent-text: #ffffff;
   --danger: #d93636;
-
-  /* Surfaces: each key UI area gets its own background. These defaults
-     (used before data-theme/data-tone are set, e.g. pre-hydration) match
-     the cool tone below, since cool is the FreshBrain default. */
   --surface-chat: #f7fbfd;
   --surface-sidebar: #f5fafc;
   --surface-bubble-user: #eef4f6;
   --surface-response: #eef4f6;
   --surface-input: #fdfeff;
   --surface-sidebar-highlight: #e9f1f4;
-
-  /* Text: chat content, the brand wordmark, and sidebar navigation each
-     get their own color so warm mode can give each area its own tint. */
   --text-chat: #0a1116;
   --text-logo: #0d0d0d;
   --text-sidebar: #0a1116;
@@ -52,17 +45,6 @@
     --border: #232b38;
   }
 }
-
-/* Explicit theme/tone overrides win over the OS-preference defaults above.
-   Cool is the FreshBrain-brand tint (barely-there cyan/navy, derived from
-   the FreshBrain logo gradient and FreshFactory's "cold storage for cool
-   business" tagline) and is the default tone; neutral is the old literal
-   gray/black palette, kept as an explicit opt-out; warm gives each area
-   (chat, sidebar, wordmark) its own tint. The tone-only neutral/warm rules
-   below have higher specificity than the theme-only rule, so they win
-   regardless of source order or whether data-tone is set yet. --text-logo
-   stays brightness-only (unset in the neutral/warm blocks) since the
-   wordmark keeps a fixed color across all three tones. */
 :root[data-theme='light'] {
   --surface-chat: #f7fbfd;
   --surface-sidebar: #f5fafc;

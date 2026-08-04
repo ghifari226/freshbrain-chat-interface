@@ -1,10 +1,3 @@
-// Permission bundles for the Shield dialog's preset dropdown (2026-08-03).
-// Picking a preset sets a user's permissions to exactly that bundle;
-// hand-toggling a checkbox away from a bundle falls back to "Custom" (see
-// matchPresetForPermissions below) — Custom is never itself a selectable
-// preset, just what's shown when nothing else matches. Plain string labels,
-// not i18n keys, same convention as roles.js's ROLES — these are role-title
-// shaped, not prose.
 import { ALL_PERMISSIONS } from './permissions.js'
 
 function allExcept(excluded) {
@@ -15,11 +8,6 @@ function allExcept(excluded) {
 function allWithPrefix(prefix) {
   return ALL_PERMISSIONS.filter((key) => key.startsWith(prefix + '.'))
 }
-
-// Renamed 2026-08-03 (labels only, unless noted) to a "Capability ___"
-// naming scheme for the group-scoped presets, plus three brand-new narrow
-// Freshpedia presets and a "No access" preset — order below is the
-// intended display order in the Shield dialog's preset dropdown.
 export const PERMISSION_PRESETS = [
   {
     id: 'admin-hr',
@@ -29,10 +17,6 @@ export const PERMISSION_PRESETS = [
   {
     id: 'admin-tech',
     label: 'Admin tech',
-    // Everything except user CRUD (Admin HR's job) and the day-to-day
-    // content-editing permissions (Capability all requests' job) —
-    // system/infra oversight and read access to everything, not hands-on
-    // content work.
     permissions: allExcept([
       'users.add',
       'users.edit',
@@ -50,7 +34,6 @@ export const PERMISSION_PRESETS = [
   {
     id: 'capability-all-requests',
     label: 'Capability all requests',
-    // Renamed from "Requestor" — permission set unchanged.
     permissions: [
       'freshpedia.live_view',
       'freshpedia.request_view',
@@ -87,13 +70,11 @@ export const PERMISSION_PRESETS = [
   {
     id: 'capability-tester',
     label: 'Capability tester',
-    // Renamed from "Tester" — permission set unchanged.
     permissions: ['freshpedia.live_view', 'tools.live_view', 'staging.test'],
   },
   {
     id: 'capability-tools-requestor',
     label: 'Capability tools requestor',
-    // Renamed from "Capability tools" — permission set unchanged (all tools.*).
     permissions: allWithPrefix('tools'),
   },
   {
@@ -114,8 +95,6 @@ export const PERMISSION_PRESETS = [
   {
     id: 'view-only-user-roles',
     label: 'View-only user roles',
-    // Renamed from "View-only System" — permission set unchanged (it
-    // already meant exactly this: read access to role scopes + users).
     permissions: ['roles.view', 'users.view'],
   },
 ]
@@ -125,21 +104,11 @@ function permissionSetsEqual(a, b) {
   const bSet = new Set(b)
   return a.every((key) => bSet.has(key))
 }
-
-/**
- * @param {Record<string, boolean>} flags - the Shield dialog's checkbox flags
- * @returns {string} a PERMISSION_PRESETS id, or 'custom' if nothing matches
- */
 export function matchPresetForPermissions(flags) {
   const activeKeys = ALL_PERMISSIONS.filter((key) => Boolean(flags[key]))
   const match = PERMISSION_PRESETS.find((preset) => permissionSetsEqual(preset.permissions, activeKeys))
   return match?.id ?? 'custom'
 }
-
-/**
- * @param {string} presetId
- * @returns {Record<string, boolean>}
- */
 export function flagsForPreset(presetId) {
   const preset = PERMISSION_PRESETS.find((p) => p.id === presetId)
   const permissionSet = new Set(preset?.permissions ?? [])

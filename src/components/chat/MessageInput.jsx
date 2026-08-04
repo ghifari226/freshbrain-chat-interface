@@ -19,8 +19,7 @@ const MessageInput = forwardRef(function MessageInput(
 
   useEffect(() => {
     if (autoFocus) textareaRef.current?.focus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [autoFocus])
 
   useEffect(() => {
     const textarea = textareaRef.current

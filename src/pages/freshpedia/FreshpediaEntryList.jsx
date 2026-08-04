@@ -14,10 +14,6 @@ function entryDescriptor(entry, entries, t) {
   }
   return t(`freshpedia.${entry.type}Type`)
 }
-
-// On the Request tab, the status chip shows the request-pipeline lifecycle
-// (Draft/Posted/Live-frozen) instead of the live `status` field — 'live'
-// here means "promoted, requestStatus frozen", not the Live tab itself.
 function statusChipProps(entry, isRequestActive, t) {
   if (isRequestActive && entry.requestStatus) {
     return {
@@ -49,14 +45,6 @@ export default function FreshpediaEntryList({
   return (
     <ul className="entry-index">
       {visibleEntries.map((entry) => {
-        // Keyed on which tab we're rendering, not entry.status — a
-        // promoted entry's status moves on to staging/production while
-        // its requestStatus freezes at 'live' (see freshpediaConfig.js),
-        // so it stays visible in the Request tab as history with a
-        // live-tier status. Without this, that row picked up canEditLive
-        // and the Live tab's Production/Staging toggle (transition below)
-        // even while being browsed as frozen Request-tab history — a bug,
-        // not intended: only the Live tab should ever offer that toggle.
         const canEdit = isRequestActive ? canEditRequest : canEditLive
         const transition = isRequestActive ? undefined : TRANSITION_BY_STATUS[entry.status]
         const requestStatusTransition =

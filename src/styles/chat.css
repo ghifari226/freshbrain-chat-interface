@@ -229,9 +229,6 @@
   height: 28px;
   font-size: 13px;
 }
-
-/* Selected thumb fills with currentColor (see MessageFeedback.jsx) — muted
-   gray reads as "selected" without going stark white/black. */
 .message-feedback__button[aria-pressed='true'] {
   color: var(--text-muted);
 }

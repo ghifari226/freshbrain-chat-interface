@@ -1,17 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-
-// Two top-level tabs (2026-08-03, replacing the old flat 3-way
-// production/staging/request chip row) — Live (production+staging) and
-// Request. Production/Staging are now a sub-filter shown only while the
-// Live tab is active, not siblings of Request at the same level.
 const TABS = ['live', 'request']
 const LIVE_SUB_STATUSES = ['production', 'staging']
 const DEFAULT_LIVE_STATUSES = new Set(LIVE_SUB_STATUSES)
-// Request tab's own sub-filter (2026-08-04) — this exact order (not
-// lifecycle order draft->posted->live), per the user. Always all three;
-// no permission gates this beyond reaching the Request tab at all (see
-// requestStatus's meaning in domain.ts — draft/posted/live-frozen are all
-// entries the actor can already see once request_view is granted).
 const REQUEST_SUB_STATUSES = ['live', 'posted', 'draft']
 const DEFAULT_REQUEST_STATUSES = new Set(REQUEST_SUB_STATUSES)
 
@@ -46,18 +36,10 @@ export function useStatusFilters({
       ),
     [canViewProduction, canViewStaging],
   )
-
-  // Always all three while the Request tab is reachable at all — see the
-  // comment on REQUEST_SUB_STATUSES above for why there's no per-status gate.
   const availableRequestStatuses = useMemo(
     () => (canViewRequest ? REQUEST_SUB_STATUSES : []),
     [canViewRequest],
   )
-
-  // Switching tabs clears both sub-status filters (2026-08-04) — a stale
-  // Production-only selection from Live silently carrying over into
-  // Request (where it means nothing) or vice versa was confusing; a fresh
-  // tab starts unfiltered.
   const toggleTab = useCallback((tab) => {
     setActiveTab(tab)
     setSelectedLiveStatuses(new Set())
@@ -99,13 +81,6 @@ export function useStatusFilters({
   const filterByStatus = useCallback(
     (entries) => {
       if (isRequestActive) {
-        // requestStatus (not status) drives Request-tab membership — set
-        // once at creation and never unset, so a promoted entry (status
-        // moved on to staging/production, requestStatus frozen at 'live')
-        // still shows up here as permanent history. See
-        // services/freshpedia.js's getFreshpediaRequestEntries. Empty
-        // sub-filter selection means "show all three", same convention as
-        // the Live tab's Production/Staging sub-filter below.
         const effectiveRequestStatuses =
           selectedRequestStatuses.size === 0 ? DEFAULT_REQUEST_STATUSES : selectedRequestStatuses
         return entries.filter(

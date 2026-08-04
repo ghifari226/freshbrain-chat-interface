@@ -36,11 +36,6 @@ export default function ChatPanel({ conversation, isLoading, onSend, onStop, onR
       </main>
     )
   }
-
-  // Retry only ever applies to the very last message, and only once
-  // generation isn't in flight — a dangling last message with no reply
-  // means the previous attempt was canceled (App.jsx's runSend leaves no
-  // error bubble on a Stop, see isCanceled there), not a normal error.
   const lastMessage = conversation.messages[conversation.messages.length - 1]
   const canRetry = !isLoading && lastMessage?.role === 'user'
 

@@ -1,9 +1,5 @@
 import { Chip } from '@mui/material'
 import CatalogStatusFilters from '../../components/catalog/CatalogStatusFilters.jsx'
-
-// requestStatus's chip label follows ToolCatalogTable.jsx's statusChipProps
-// convention — 'live' means "promoted, frozen", shown with the same
-// liveTabLabel text as the outer Live tab.
 function labelForRequestStatus(status, t) {
   return status === 'live' ? t('toolCatalog.liveTabLabel') : t(`toolCatalog.${status}Status`)
 }

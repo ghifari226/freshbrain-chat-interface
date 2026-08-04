@@ -21,11 +21,6 @@ export interface ActorIdentity extends TokenActor {
   email: string
   name: string
 }
-
-// POST /chat's request shape (auth-contract.md's "Setiap request
-// berikutnya") — `role`/`allowed_scopes` are the only Family 2/3-adjacent
-// fields that reach ai-engine at all; the 17 permission booleans never leave
-// chat-interface/chat-gateway.
 export interface ChatRequest {
   message: string
   conversation_id: string | null
@@ -40,21 +35,8 @@ export interface ChatResponse {
   answer: string
   conversation_id: string
   message_id: string
-  // Only ever populated on a message after the first one — the first
-  // message's title comes from the separate, decoupled POST /chat/title
-  // call (TitleRequest below) so the visible answer never waits on title
-  // generation. Absent/undefined on most turns; present when ai-engine
-  // detects a mid-conversation rename request (e.g. "rename this to X")
-  // and decided to update the conversation's title as a side effect of
-  // answering — the frontend just applies it if present, no separate
-  // endpoint involved.
   title?: string
 }
-
-// POST /feedback's request shape (auth-contract.md) — role is a snapshot at
-// submission time, same convention as ChatRequest.role. reason is required
-// when rating is 'down', enforced both client-side (MessageFeedback.jsx's
-// disabled submit button) and server-side.
 export interface FeedbackRequest {
   message_id: string
   conversation_id: string
@@ -70,13 +52,6 @@ export interface FeedbackRequest {
 export interface FeedbackResponse {
   id: string
 }
-
-// POST /chat/title's request shape — no auth-contract.md entry yet, see
-// apiClient.ts's header note. Scoped to the conversation, not the user:
-// conversation_id is null for the only case the frontend calls this today
-// (naming a brand-new conversation, before /chat's response assigns a
-// backendId) — no user_id/role, unlike ChatRequest/FeedbackRequest, since
-// titling has no RBAC/scope-gated-answer angle.
 export interface TitleRequest {
   message: string
   conversation_id: string | null
@@ -87,13 +62,6 @@ export interface TitleRequest {
 export interface TitleResponse {
   title: string
 }
-
-// GET /conversations — no auth-contract.md entry yet, same convention as
-// /chat/title. A query, not a body: user_id/role travel as query params
-// (see apiClient.ts's listConversations), token stays header-only as usual.
-// Returns full Conversation objects (messages included) since there's no
-// separate message-pagination endpoint — the sidebar list and a loaded
-// conversation's history are the same object, not two fetches.
 export interface ListConversationsRequest {
   user_id: string
   role: string
@@ -104,12 +72,6 @@ export interface ListConversationsRequest {
 export interface ConversationsListResponse {
   conversations: Conversation[]
 }
-
-// PATCH /conversations/{id} — conversation_id is always a real backendId
-// here (never null); renaming a conversation that hasn't been sent to
-// POST /chat yet has nothing server-side to rename, so App.jsx only calls
-// this once a conversation has one (same guard style as
-// handleMessageFeedback's backendId/backendMessageId check).
 export interface RenameConversationRequest {
   conversation_id: string
   title: string
@@ -123,9 +85,6 @@ export interface RenameConversationResponse {
   conversation_id: string
   title: string
 }
-
-// DELETE /conversations/{id} — same conversation_id/guard convention as
-// RenameConversationRequest above.
 export interface DeleteConversationRequest {
   conversation_id: string
   user_id: string

@@ -1,10 +1,6 @@
 import { Chip } from '@mui/material'
 import CatalogStatusFilters from '../../components/catalog/CatalogStatusFilters.jsx'
 import { ENTRY_TYPES } from './freshpediaConfig.js'
-
-// requestStatus's chip label follows FreshpediaEntryList.jsx's
-// statusChipProps convention — 'live' means "promoted, frozen", shown with
-// the same liveTabLabel text as the outer Live tab.
 function labelForRequestStatus(status, t) {
   return status === 'live' ? t('freshpedia.liveTabLabel') : t(`freshpedia.${status}Status`)
 }

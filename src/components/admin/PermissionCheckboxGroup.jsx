@@ -1,14 +1,6 @@
 import { Lock } from 'lucide-react'
 import { Tooltip } from '@mui/material'
 import { PERMISSION_LABEL_KEYS } from '../../config/permissions.js'
-
-// One group of checkboxes in the Shield dialog (System Access / Chat
-// Access — just two now). isFieldLocked marks Technology's hardcoded
-// fields (checked+disabled, never editable); isFieldDisabled marks fields
-// blocked by the self-escalation guard (actor editing their own row,
-// doesn't already hold this field). The header checkbox bulk-selects every
-// field in the group that isn't locked/disabled — purely a UI convenience,
-// not a stored permission of its own.
 export default function PermissionCheckboxGroup({
   titleKey,
   fields,

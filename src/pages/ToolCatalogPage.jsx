@@ -57,10 +57,6 @@ export default function ToolCatalogPage() {
   const [form, setForm] = useState(EMPTY_TOOL_FORM)
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  // A promoted request entry (requestStatus 'live') stays visible in the
-  // Request tab as frozen history — see ToolCatalogTable.jsx's Eye/Pencil
-  // swap. Set once at open time from the entry being opened, same rationale
-  // as FreshpediaPage.jsx's identical state.
   const [isEntryReadOnly, setIsEntryReadOnly] = useState(false)
 
   useEffect(() => {
@@ -106,9 +102,6 @@ export default function ToolCatalogPage() {
       return next
     })
   }
-
-  // Switching Live/Request also clears the system filter and search box —
-  // see FreshpediaPage.jsx's identical handleToggleTab for why.
   function handleToggleTab(tab) {
     statusFilters.toggleTab(tab)
     setSelectedSystems(new Set())
@@ -145,10 +138,6 @@ export default function ToolCatalogPage() {
         const created = await createToolCatalogEntry(form, session)
         addEntry(created)
       } else {
-        // Only ever a request-status entry — openEditEntryDialog is only
-        // reachable from the Request view (ToolCatalogTable.jsx's
-        // isRequestView guard on the edit button), unlike Freshpedia
-        // there's no published-entry edit path to branch to.
         const updated = await updateToolCatalogRequestEntry(entryFormTarget, form, session)
         replaceEntry(updated)
       }

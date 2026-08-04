@@ -50,13 +50,6 @@
 .sidebar-collapsed__recents {
   position: relative;
 }
-
-/* Collapsed rail's expand control shows the brand mark at rest — reads as
-   "FreshBrain", not a generic control — and swaps to the actual
-   expand-sidebar icon on hover, right when someone's about to click it.
-   Both images always render; theme picks light/dark, :hover picks
-   logo-vs-icon (higher specificity than the theme rule, so it wins
-   regardless of light/dark). */
 .sidebar-collapsed__toggle-logo {
   width: 26px;
   height: 26px;
@@ -91,15 +84,6 @@
 .sidebar-collapsed__toggle:hover .sidebar-collapsed__toggle-icon {
   display: block;
 }
-
-/* Name tooltip for icon-only sidebar buttons — every icon in the collapsed
-   rail (no text label at all once collapsed) plus the couple of icon-only
-   controls that stay icon-only even when expanded (search, the sidebar
-   toggle). Scoped by the data-tooltip attribute itself, not collapsed
-   state, since most expanded nav items already show a text label and never
-   get the attribute. data-tooltip is left unset (see Sidebar.jsx) while a
-   button's own flyout menu is open, so the two floating elements (both
-   anchored to the same left edge) never show at once. */
 .sidebar .icon-button {
   position: relative;
 }
@@ -153,10 +137,6 @@
   font: inherit;
   text-align: left;
 }
-
-/* Horizontal lockup (icon+wordmark baked into one image) — no more manual
-   "FreshBrain" text span next to a square icon, width is intrinsic to the
-   image's own aspect ratio. */
 .sidebar-header__logo {
   height: 26px;
   width: auto;
@@ -197,9 +177,6 @@
   display: flex;
   gap: 4px;
 }
-
-/* New chat + history rows share this look */
-
 .conversation-item {
   position: relative;
   width: 100%;
@@ -236,9 +213,6 @@
   flex-direction: column;
   min-height: 0;
 }
-
-/* Nav variant (Config/Freshpedia/Tool Catalog) — sits in the same
-   .sidebar-section slot chat's recents list uses. */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -272,18 +246,6 @@
   color: var(--text-muted);
   flex-shrink: 0;
 }
-
-/* Dark mode: inherit the item's own label color instead of staying
-   muted-gray regardless of state — .sidebar-nav__item--active/:hover above
-   already sets `color: var(--text-sidebar-highlight)` on the button, so the
-   icon just needs to stop overriding it locally. This alone gives the right
-   look in both tones without a separate cool/warm rule: in cool dark mode
-   --text-sidebar and --text-sidebar-highlight are the same white, so every
-   icon just reads as white; in warm dark mode they differ, so only the
-   active/hovered item's icon brightens to match its brightened label,
-   exactly like the text already does. :where() keeps this at the same
-   specificity as the base rule above (source order alone decides between
-   them), so it can't be more specific than the base rule ever needs to be. */
 :where([data-theme='dark']) .sidebar-nav__item-icon {
   color: inherit;
 }
@@ -386,9 +348,6 @@
   top: 30px;
   right: 4px;
 }
-
-/* User row + menu, pinned to the bottom */
-
 .user-menu {
   position: relative;
   border-top: 1px solid var(--border);
@@ -442,9 +401,6 @@
   right: 8px;
   bottom: calc(100% + 4px);
 }
-
-/* Collapsed sidebar rail */
-
 .user-menu--collapsed {
   border-top: none;
   padding-top: 0;

@@ -1,9 +1,3 @@
-/* Config/Freshpedia/Tool Catalog render as a flex sibling of the app's
-   persistent Sidebar (see App.jsx), same pattern as .chat-panel in
-   chat.css — flex:1 to fill the remaining width, own scroll region. No
-   variable overrides here: it inherits whatever [data-theme]/[data-tone]
-   variables.css put on <html>, so appearance settings apply the same way
-   they do in chat. */
 .config-page {
   flex: 1;
   min-width: 0;
@@ -30,11 +24,6 @@
   font-weight: 600;
   cursor: default;
 }
-
-/* Breadcrumb: "Access Configuration" de-emphasizes to this once a sub-page
-   is active — still clickable (it's the way back), just no longer reads as
-   the current page. Weight stays the same as the active segment on
-   purpose; color is what signals "not here right now", not boldness. */
 .config-page__title--muted {
   color: var(--text-muted);
   cursor: pointer;
@@ -48,10 +37,6 @@
   color: var(--text-muted);
   font-size: 14px;
 }
-
-/* Widened from a 720px cap — the Roles page's 4-per-row card grid needs
-   real horizontal room. 90% rather than a flat 100% so there's still a
-   sliver of breathing room against the viewport edge on wide monitors. */
 .config-page__body {
   width: 90%;
   max-width: 1600px;
@@ -64,15 +49,6 @@
   font-size: 18px;
   font-weight: 600;
 }
-
-/* min-height matches .section-toggle-row's height below (driven by the
-   Live/Request toggle's own natural height) — without this, a
-   button-only title-row (Roles/Users/Permissions' "Add" buttons) is only
-   as tall as the button itself, which vertically centers a few px higher
-   than the same button would on Freshpedia/Tools (centered against the
-   taller toggle instead). Matching the two row heights is what makes the
-   button actually land on the same y across every admin page, not just
-   look coincidentally close. */
 .config-section__title-row {
   display: flex;
   align-items: center;
@@ -109,13 +85,6 @@
   font-size: 13px;
   margin: 0 0 20px;
 }
-
-/* Landing page — a centered, top-to-bottom menu (Freshpedia, Tool
-   Catalog, Role Scopes, Permissions, Users all as equal peers), each row
-   a bordered card with its icon beside the label, not a multi-column
-   grid — wide/tall enough to read as "covering the page" without
-   abandoning the single-column order. */
-
 .admin-home {
   display: flex;
   flex-direction: column;
@@ -164,9 +133,6 @@
   color: var(--accent);
   flex-shrink: 0;
 }
-
-/* Scope catalog (read-only) */
-
 .scope-catalog {
   display: flex;
   flex-direction: column;
@@ -216,10 +182,6 @@
 .scope-catalog__sub-item--active {
   background: var(--accent);
 }
-
-/* Higher specificity than .scope-catalog__sub-tag--clickable:hover on
-   purpose — otherwise the cursor sitting on the chip right after the click
-   that activated it repaints the text back to accent-on-accent (invisible). */
 .scope-catalog__sub-item--active .scope-catalog__sub-tag.scope-catalog__sub-tag--clickable {
   color: #ffffff;
 }
@@ -248,10 +210,6 @@
   color: var(--text-muted);
   font-size: 13px;
 }
-
-/* Roles — merged catalog (add/rename/delete) + scope assignment.
-   Fixed 4-per-row grid per the current design; drops to fewer columns only
-   when the viewport is too narrow for that many at a readable width. */
 .role-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -307,12 +265,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* Fixed-size, doesn't compete with the name for space — the name (which
-   already ellipsis-truncates for long role names) should be the one to
-   shrink first, not this short, constant-length badge. Tighter padding/
-   font than a standalone .scope-pill since this one has to fit inline
-   next to the name in an already-narrow card header. */
 .role-card__name-group .scope-pill--fixed {
   flex-shrink: 0;
   padding: 2px 6px;
@@ -325,9 +277,6 @@
   gap: 2px;
   flex-shrink: 0;
 }
-
-/* Save/cancel sit next to the filled pencil — bump their glyph so the
-   stroke-only icons read at the same visual weight. */
 .role-card__header-actions .icon-button--pending {
   font-size: 18px;
 }
@@ -344,11 +293,6 @@
   min-width: 0;
   padding: 6px 8px;
 }
-
-/* Superuser's system rows — always-checked, non-interactive stand-ins for
-   its real ['*'] scope value (not a per-system breakdown, so no expand
-   chevron either). Dimmed so they read as fixed/non-editable at a glance,
-   same intent as the disabled SystemCheckbox state elsewhere. */
 .role-card__system--fixed {
   opacity: 0.6;
 }
@@ -378,10 +322,6 @@
   border-top: 1px solid var(--border);
   padding-top: 10px;
 }
-
-/* Single column, foldering/lineage style — each row gets an elbow
-   connector down from the row above (::before) and, unless it's the last
-   sub-scope, a continuing trunk line down to the next row (::after). */
 .role-card__sub-scopes {
   display: flex;
   flex-direction: column;
@@ -445,18 +385,6 @@
   font-weight: 600;
   color: var(--text-chat);
 }
-
-/* Grows to fill the rest of the row — the whole empty stretch between the
-   abbreviation and the card's edge is clickable, not just the chevron
-   glyph. margin-left (not padding) is what creates the little dead zone
-   right after the checkbox/tag control, so it's genuinely unclickable
-   rather than just visually spaced — that's the boundary between "toggle
-   the checkbox" and "toggle expand/collapse". */
-/* No hover background — since this button now spans the whole trailing
-   stretch of the row (flex: 1), a highlight on hover would light up that
-   entire empty area, which reads as an odd oversized box rather than a
-   normal icon-button hover. The pointer cursor alone is enough of a
-   signal that it's clickable. */
 .role-card__system-toggle {
   flex: 1;
   margin-left: 12px;
@@ -471,9 +399,6 @@
   cursor: pointer;
   font-size: 12px;
 }
-
-/* Unsaved-change indicator — shown next to a role name (RolesPage) or a
-   user's name (UsersPage) when there's a local edit not yet persisted. */
 .icon-button--pending {
   color: var(--accent);
 }
@@ -485,9 +410,6 @@
 .scope-checkbox__label {
   color: var(--text-muted);
 }
-
-/* Users (editable) */
-
 .config-reset-link {
   display: flex;
   align-items: center;
@@ -515,12 +437,6 @@
   padding: 16px;
   margin-bottom: 16px;
 }
-
-/* Theme-aware counterparts of auth.css's .form-field__label/__input/
-   __select/__error, which are pinned to light/cool but scoped to
-   .auth-page there — these same class names are reused for every form
-   field and the search box across Freshpedia/Tool Catalog/Users, so they
-   need to follow [data-theme]/[data-tone] instead. */
 .form-field__label {
   font-size: 13px;
   font-weight: 500;
@@ -543,10 +459,6 @@
 .form-field__select:focus {
   border-color: var(--accent);
 }
-
-/* Read-only stand-in for .form-field__input — Permissions' edit dialog
-   shows the key as fixed text (it can't be changed once created) rather
-   than a disabled input, so it doesn't visually invite editing. */
 .form-field__static {
   display: block;
   font-family: monospace;
@@ -559,12 +471,6 @@
   font-size: 12px;
   color: var(--danger);
 }
-
-/* Phone field: fixed, non-editable +62 (this is an internal ID tool, one
-   country, so a flag/country picker would just be a dropdown with a single
-   option in it) plus a digits-only input that self-formats with dashes as
-   the user types — see formatLocalPhoneDigits in UsersPage.jsx. Styled as
-   one box so the prefix and the input read as a single field. */
 .phone-field {
   display: flex;
   align-items: center;
@@ -627,12 +533,6 @@
   font-weight: 600;
   padding: 0;
 }
-
-/* Shield dialog's Access Config / User Management / Chat Access groups —
-   each its own bordered card so the three sections read as distinct,
-   matching the app's existing bordered-card visual language (role-card,
-   config-add-form) rather than a single flat checkbox list. */
-
 .permission-group-list {
   display: flex;
   flex-direction: column;
@@ -656,9 +556,6 @@
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
-
-/* Wraps the group label + its bulk select-all/deselect-all checkbox
-   (Shield dialog only — Permissions page renders __label standalone). */
 .permission-group__header {
   display: flex;
   align-items: center;
@@ -669,10 +566,6 @@
 .permission-group__select-all {
   margin: 0;
 }
-
-/* Permission Catalog reuses .permission-group as a section wrapper around a
-   plain .entry-index list — needs to fill the flex column's width instead
-   of shrinking to its content, unlike the checkbox rows it was designed for. */
 .permission-group > .entry-index {
   width: 100%;
 }
@@ -694,17 +587,6 @@
   height: 13px;
   vertical-align: -2px;
 }
-
-/* Live/Request switch (FreshpediaPage.jsx/ToolCatalogPage.jsx, via
-   SectionToggle.jsx) — centered at the very top of the page. Reuses
-   SettingsModal.jsx's .theme-toggle pattern (equal-width segmented box)
-   rather than a third toggle style; a plain MUI Tabs underline was tried
-   first (2026-08-04) and replaced with this. New Request shares this same
-   row (not stacked below it), positioned absolutely so it never affects
-   the row's height or the toggle's centering — the toggle itself (always
-   rendered, unlike the button which only shows on the Request tab) is the
-   only thing that sets this row's height, so switching tabs never shifts
-   the table/list below it vertically. */
 .section-toggle-row {
   position: relative;
   display: flex;
@@ -712,13 +594,6 @@
   align-items: center;
   margin-bottom: 12px;
 }
-
-/* !important needed on position — MUI's Button always sets its own
-   `position: relative` (for the ripple effect) with enough specificity to
-   beat a plain class rule otherwise, which silently left this un-absolute
-   and pushed into normal flex flow instead (defeating the whole point:
-   the row's height would change depending on whether this button is
-   rendered). Same pattern as .MuiChip-sizeSmall's overrides above. */
 .section-toggle-row__action {
   position: absolute !important;
   right: 0;
@@ -742,12 +617,6 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-
-/* Status chips (Production/Staging/Request) and the secondary filter axis
-   (Tool Catalog's systems, Freshpedia's types) sit inline on one row with a
-   real divider between them, rather than stacked as two separate rows —
-   makes it visually obvious these are two different kinds of filter, not
-   one long chip list. */
 .filter-bar__chip-groups {
   display: flex;
   align-items: center;
@@ -763,14 +632,6 @@
   flex-shrink: 0;
   opacity: 0.5;
 }
-
-/* Every filter/status chip across Roles, Permissions, Users, Freshpedia,
-   and Tool Catalog uses MUI's size="small" Chip — bumped up globally here
-   rather than per-page, so it stays one source of truth. Landing between
-   the 24px stock small-chip height and the ~29px size="small" Button
-   height next to it, not all the way up to full button size. Radius is
-   999px (not a fixed px matched to the new height) so it self-adjusts to
-   a full stadium/pill shape regardless of exactly how tall this ends up. */
 .MuiChip-sizeSmall {
   height: 28px !important;
   border-radius: 999px !important;
@@ -784,13 +645,6 @@
 .filter-bar__search {
   width: 100%;
 }
-
-/* Secondary filter-chip rows (Tool Catalog's system chips, Freshpedia's
-   type chips) — brand lime rather than MUI's default primary blue, so they
-   read as a distinct filter axis from the status chips next to them. Dark
-   text is required here, not a style choice — white-on-#c9e047 fails
-   contrast, this color is too light/bright for MUI's default
-   light-on-filled chip text. */
 .chip--secondary-active {
   background-color: #c9e047 !important;
   color: rgba(0, 0, 0, 0.87) !important;
@@ -799,9 +653,6 @@
 .role-edit-cell {
   width: 100%;
 }
-
-/* Shared flat status-list row shape — Freshpedia and Tool Catalog both use
-   this for their Production/Staging/Request lists. */
 .entry-index {
   list-style: none;
   margin: 0;
@@ -827,18 +678,6 @@
   gap: 6px;
   flex-shrink: 0;
 }
-
-/* Freshpedia-only modifier (2026-08-04) — NOT applied to PermissionsPage's
-   plain entry-index rows (no status chip there, nothing to misalign).
-   Fixed-width chip and actions columns so icons start at the same x for
-   every row regardless of chip label length ("Draft" vs "Production") or
-   how many icons a given row actually renders — matching
-   ToolCatalogTable.jsx's native <table> column alignment, which gets this
-   for free since its actions column auto-sizes to the widest row across
-   the whole table. A plain flex block can't replicate that (each row is
-   independent, and a right-flush block's start position shifts with its
-   own content width), so this switches to a 3-column grid with explicit
-   track sizes instead of the base class's flex/space-between. */
 .entry-index__entry-row--with-chip {
   display: grid;
   grid-template-columns: 1fr 108px 132px;
@@ -847,17 +686,9 @@
 .entry-index__status-chip-slot {
   display: flex;
 }
-
-/* The "— Definition"/"— Document"/"— Alias (...)" part of a Freshpedia
-   entry row — de-emphasized against the entry's own title. */
 .entry-index__entry-desc {
   color: var(--text-muted);
 }
-
-/* Permissions page entry rows — label reads first and prominent (this is
-   what a human is scanning for), the technical key sits below it in muted
-   monospace so it reads as secondary metadata, not a continuation of the
-   label. */
 .permission-entry__label {
   color: var(--text-chat);
   font-weight: 600;
@@ -867,26 +698,11 @@
   font-family: monospace;
   color: var(--text-muted);
 }
-
-/* Permissions Catalog's 6 prefix-derived groups (Freshpedia/Tools/
-   Permissions/Roles/Users/Staging) — single column of .permission-group
-   cards (reusing that class's existing bordered-card look, shared with
-   the Shield dialog) rather than the flex-column stack
-   .permission-group-list uses there. Group sizes vary a lot (1 to 5
-   entries), which staggered unevenly in a 2-column grid — one column
-   keeps every card's width consistent regardless of how long its
-   neighbor is. */
 .permission-catalog-grid {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
-/* Permissions Catalog's per-entry row — title on the left, its greyed key
-   and edit button together on the right. Scoped separately from
-   .entry-index__entry-row/.entry-index__actions since those are shared
-   with Freshpedia/Tool Catalog's own status lists and keep their own
-   inline layout. */
 .permission-entry-row {
   display: flex;
   align-items: center;
@@ -901,18 +717,6 @@
   gap: 6px;
   flex-shrink: 0;
 }
-
-/* Transition-icon and edit-icon colors on entry-index rows — green for a
-   move that lands on Production, yellow for a move that lands on Staging
-   (matches that status's own chip color), blue for edit. Light-mode values
-   are MUI's light-palette success.main/warning.main (green[800]/#ed6c02) —
-   the exact same resolved colors the Production/Staging Chips already use,
-   since MuiPage.jsx hands createTheme a plain { mode } with no palette
-   overrides. Dark mode needs its own values for the same reason: MUI's
-   dark palette resolves success/warning to lighter shades (green[400]/
-   orange[400]) for contrast against a dark background — hardcoding only
-   the light-mode hex here (as before) left these two icons using the
-   light-mode color even in dark mode, unlike the theme-aware Chips. */
 .icon-button--success {
   color: #2e7d32;
 }
@@ -970,8 +774,6 @@
   width: 16px;
   height: 16px;
 }
-
-/* Dynamic example-question list rows inside the Tool Catalog form. */
 .form-field__list-row {
   display: flex;
   align-items: center;
@@ -998,9 +800,6 @@
   .entry-index__entry-row {
     flex-wrap: wrap;
   }
-
-  /* The fixed 3-column grid doesn't fit narrow screens — fall back to the
-     base class's wrapping flex behavior instead. */
   .entry-index__entry-row--with-chip {
     display: flex;
   }

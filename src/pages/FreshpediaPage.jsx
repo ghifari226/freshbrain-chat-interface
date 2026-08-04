@@ -60,11 +60,6 @@ export default function FreshpediaPage({ language }) {
   const [form, setForm] = useState(EMPTY_FRESHPEDIA_FORM)
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  // A promoted request entry (requestStatus 'live') stays visible in the
-  // Request tab as frozen history — see FreshpediaEntryList.jsx's Eye/
-  // Pencil swap. Set once at open time from the entry being opened, not
-  // re-derived from `entries` afterward, so the dialog's mode can't
-  // possibly flip mid-edit.
   const [isEntryReadOnly, setIsEntryReadOnly] = useState(false)
 
   const visibleEntries = useMemo(() => {
@@ -90,13 +85,6 @@ export default function FreshpediaPage({ language }) {
       return next
     })
   }
-
-  // Switching Live/Request also clears the type filter and search box —
-  // statusFilters.toggleTab already clears its own sub-status filters, but
-  // selectedTypes/searchQuery live here in the page, not the hook, so they
-  // need their own reset. A stale "Alias" type filter or search term
-  // carrying over from Live into Request (or vice versa) would silently
-  // hide entries with no visible explanation.
   function handleToggleTab(tab) {
     statusFilters.toggleTab(tab)
     setSelectedTypes(new Set())
@@ -138,9 +126,6 @@ export default function FreshpediaPage({ language }) {
         const created = await createFreshpediaEntry(form, session)
         addEntry(created)
       } else {
-        // Which PATCH endpoint depends on which collection the entry is
-        // currently in — a request-status entry lives in
-        // /freshpedia-request, everything else in /freshpedia.
         const target = entries.find((entry) => entry.id === entryFormTarget)
         const update = target?.status === 'request' ? updateFreshpediaRequestEntry : updateFreshpediaEntry
         const updated = await update(entryFormTarget, form, session)

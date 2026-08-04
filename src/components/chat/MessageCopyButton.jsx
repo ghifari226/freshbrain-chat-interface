@@ -12,7 +12,6 @@ export default function MessageCopyButton({ text }) {
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Clipboard can fail in insecure contexts — leave the button idle.
     }
   }
 
