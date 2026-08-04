@@ -280,6 +280,7 @@ export const strings = {
     aliasType: { id: 'Alias', en: 'Alias' },
 
     noEntriesNotice: { id: 'Belum ada entri di sini.', en: 'No entries here yet.' },
+    comingSoonNotice: { id: 'Segera hadir', en: 'Coming soon' },
 
     addEntry: { id: 'Request baru', en: 'New request' },
     addEntrySubmit: { id: 'Ajukan', en: 'Submit' },

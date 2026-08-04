@@ -46,7 +46,7 @@ export default function PermissionCheckboxGroup({
               onChange={() => onToggle(field)}
             />
             <span className="permission-checkbox__label">
-              {locked && <Lock />} {t(PERMISSION_LABEL_KEYS[field])}
+              {locked && <Lock />} {t(PERMISSION_LABEL_KEYS[field] ?? field)}
             </span>
           </label>
         )

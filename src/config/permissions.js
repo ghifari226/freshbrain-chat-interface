@@ -82,7 +82,7 @@ export function getPermissionCatalog() {
   return ALL_PERMISSIONS.map((key) => ({
     key,
     group: PERMISSION_GROUPS.find((g) => g.array.includes(key))?.id,
-    labelKey: PERMISSION_LABEL_KEYS[key],
+    labelKey: PERMISSION_LABEL_KEYS[key] ?? key,
   }))
 }
 export function hasPermission(bag, key) {

@@ -200,7 +200,7 @@ export default function FreshpediaPage({ language }) {
           t={t}
         />
 
-        {loadError && <p className="config-section__notice">{loadError}</p>}
+        {loadError && <p className="config-section__notice">{t('freshpedia.comingSoonNotice')}</p>}
 
         {entriesLoaded && !loadError && (
           <FreshpediaEntryList
