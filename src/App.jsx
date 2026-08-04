@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import Sidebar from './components/layout/Sidebar.jsx'
 import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import {
   sendMessage,
   sendFeedback,
@@ -285,11 +286,19 @@ function AuthenticatedApp({ language, setLanguage }) {
 export default function App() {
   const [language, setLanguage] = useLanguage()
   const [session, setSession] = useAuthSession()
+  const { pathname } = useLocation()
+  const resetMatch = pathname.match(/^\/reset\/(.+)$/)
 
   return (
     <LanguageProvider language={language}>
       <AuthProvider session={session} setSession={setSession}>
-        {session ? (
+        {resetMatch ? (
+          <ResetPasswordPage
+            token={decodeURIComponent(resetMatch[1])}
+            language={language}
+            setLanguage={setLanguage}
+          />
+        ) : session ? (
           <AuthenticatedApp language={language} setLanguage={setLanguage} />
         ) : (
           <LoginPage language={language} setLanguage={setLanguage} />

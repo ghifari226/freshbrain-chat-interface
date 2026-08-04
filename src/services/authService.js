@@ -41,6 +41,32 @@ const MOCK_USERS = [
 function makeResetToken() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10)
 }
+// Visiting /reset/:token is a real browser navigation (full reload), which
+// re-initializes MOCK_USERS from scratch — an in-memory-only resetToken field
+// wouldn't survive that. Persist the token -> user id mapping in localStorage
+// so the mock flow is actually testable via a real URL, same as production.
+const MOCK_RESET_TOKENS_KEY = 'freshbrain_mock_reset_tokens'
+function readMockResetTokens() {
+  try {
+    return JSON.parse(localStorage.getItem(MOCK_RESET_TOKENS_KEY)) ?? {}
+  } catch {
+    return {}
+  }
+}
+function writeMockResetToken(token, userId) {
+  const tokens = readMockResetTokens()
+  tokens[token] = userId
+  localStorage.setItem(MOCK_RESET_TOKENS_KEY, JSON.stringify(tokens))
+}
+function consumeMockResetToken(token) {
+  const tokens = readMockResetTokens()
+  const userId = tokens[token]
+  if (userId) {
+    delete tokens[token]
+    localStorage.setItem(MOCK_RESET_TOKENS_KEY, JSON.stringify(tokens))
+  }
+  return userId
+}
 function shapeUserPermissions(user) {
   const perms = {}
   for (const field of ALL_PERMISSIONS) perms[field] = Boolean(user[field])
@@ -237,4 +263,72 @@ export async function deleteUser(id, actor, { signal } = {}) {
     throw new Error('User not found')
   }
   MOCK_USERS.splice(index, 1)
+}
+export async function requestPasswordReset(email, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    await gatewayApi.post('/forgot-password', { email }, { signal })
+    return { success: true }
+  }
+
+  await mockDelay(500, 900, signal)
+
+  const user = MOCK_USERS.find((u) => u.email === email)
+  if (!user) {
+    // Always resolve success — never reveal whether the email exists.
+    return { success: true }
+  }
+
+  user.resetToken = makeResetToken()
+  writeMockResetToken(user.resetToken, user.id)
+  const mockResetLink = `/reset/${user.resetToken}`
+  console.info(`[mock] Password reset link for ${email}: ${mockResetLink}`)
+
+  // mockResetLink is dev-only — there's no real mail transport locally, so this
+  // is surfaced back to the same browser purely to make the flow testable.
+  // The real backend only ever returns { success: true }.
+  return { success: true, mockResetLink }
+}
+export async function generateResetLink(id, actor, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.post(
+      `/users/${encodeURIComponent(id)}/reset-link`,
+      {},
+      { signal, headers: authHeaders(actor?.token) },
+    )
+    return data
+  }
+
+  await mockDelay(500, 900, signal)
+
+  const user = MOCK_USERS.find((u) => u.id === id)
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  const actorUser = MOCK_USERS.find((u) => u.id === actor?.id)
+  if (!actorUser || !shapeUserPermissions(actorUser)['users.edit']) {
+    throw new Error('You do not have permission to generate a reset link')
+  }
+
+  user.resetToken = makeResetToken()
+  writeMockResetToken(user.resetToken, user.id)
+  return { resetToken: user.resetToken }
+}
+export async function confirmPasswordReset(token, password, { signal } = {}) {
+  if (!USE_MOCK_API) {
+    const { data } = await gatewayApi.post('/reset-password', { token, password }, { signal })
+    return data
+  }
+
+  await mockDelay(500, 900, signal)
+
+  const userId = consumeMockResetToken(token)
+  const user = userId && MOCK_USERS.find((u) => u.id === userId)
+  if (!user) {
+    throw new Error('Invalid or expired reset link')
+  }
+
+  user.password = password
+  user.resetToken = null
+  return toSession(user)
 }

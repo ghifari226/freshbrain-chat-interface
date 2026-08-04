@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from './AuthContext.js'
-import { authenticate } from '../services/authService.js'
+import { authenticate, confirmPasswordReset } from '../services/authService.js'
 import { setUnauthorizedHandler } from '../services/api.ts'
 
 export function AuthProvider({ session, setSession, children }) {
@@ -20,6 +20,12 @@ export function AuthProvider({ session, setSession, children }) {
     session,
     async login(email, password) {
       const nextSession = await authenticate(email, password)
+      setSession(nextSession)
+      navigate('/')
+      return nextSession
+    },
+    async completeReset(token, password) {
+      const nextSession = await confirmPasswordReset(token, password)
       setSession(nextSession)
       navigate('/')
       return nextSession

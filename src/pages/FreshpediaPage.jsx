@@ -202,7 +202,7 @@ export default function FreshpediaPage({ language }) {
 
         {loadError && <p className="config-section__notice">{loadError}</p>}
 
-        {entriesLoaded && (
+        {entriesLoaded && !loadError && (
           <FreshpediaEntryList
             canChangeRequestStatus={canChangeRequestStatus}
             canChangeStatus={canChangeStatus}

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth.js'
 import { useT } from '../hooks/useT.js'
 import { strings } from '../i18n/strings.js'
+import { USE_MOCK_API } from '../config/appConfig.js'
+import { requestPasswordReset } from '../services/authService.js'
 
 export default function LoginPage({ language, setLanguage }) {
   const { login } = useAuth()
@@ -11,6 +13,11 @@ export default function LoginPage({ language, setLanguage }) {
   const [fieldErrors, setFieldErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [mode, setMode] = useState('login')
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [isSendingReset, setIsSendingReset] = useState(false)
+  const [mockResetLink, setMockResetLink] = useState('')
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -30,6 +37,26 @@ export default function LoginPage({ language, setLanguage }) {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  async function handleForgotSubmit(event) {
+    event.preventDefault()
+    if (!forgotEmail.trim()) return
+
+    setIsSendingReset(true)
+    try {
+      const result = await requestPasswordReset(forgotEmail.trim())
+      setMockResetLink(result.mockResetLink ?? '')
+    } finally {
+      setIsSendingReset(false)
+      setMode('sent')
+    }
+  }
+
+  function backToLogin() {
+    setMode('login')
+    setForgotEmail('')
+    setMockResetLink('')
   }
 
   return (
@@ -81,61 +108,107 @@ export default function LoginPage({ language, setLanguage }) {
             </div>
           </div>
 
-          <form className="auth-form" onSubmit={handleSubmit} noValidate>
-            {formError && <div className="auth-form__error">{t('auth.' + formError)}</div>}
+          {mode === 'login' && (
+            <form className="auth-form" onSubmit={handleSubmit} noValidate>
+              {formError && <div className="auth-form__error">{t('auth.' + formError)}</div>}
 
-            <div className="form-field">
-              <label className="form-field__label" htmlFor="login-email">
-                {t('auth.emailLabel')}
-              </label>
-              <input
-                id="login-email"
-                className="form-field__input"
-                type="email"
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value)
-                  setFieldErrors((prev) => ({ ...prev, email: '' }))
-                }}
-                placeholder={t('auth.emailPlaceholder')}
-                autoComplete="email"
-              />
-              {fieldErrors.email && (
-                <span className="form-field__error">{t('auth.' + fieldErrors.email)}</span>
+              <div className="form-field">
+                <label className="form-field__label" htmlFor="login-email">
+                  {t('auth.emailLabel')}
+                </label>
+                <input
+                  id="login-email"
+                  className="form-field__input"
+                  type="email"
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    setFieldErrors((prev) => ({ ...prev, email: '' }))
+                  }}
+                  placeholder={t('auth.emailPlaceholder')}
+                  autoComplete="email"
+                />
+                {fieldErrors.email && (
+                  <span className="form-field__error">{t('auth.' + fieldErrors.email)}</span>
+                )}
+              </div>
+
+              <div className="form-field">
+                <label className="form-field__label" htmlFor="login-password">
+                  {t('auth.passwordLabel')}
+                </label>
+                <input
+                  id="login-password"
+                  className="form-field__input"
+                  type="password"
+                  value={password}
+                  onChange={(event) => {
+                    setPassword(event.target.value)
+                    setFieldErrors((prev) => ({ ...prev, password: '' }))
+                  }}
+                  placeholder={t('auth.passwordPlaceholder')}
+                  autoComplete="current-password"
+                />
+                {fieldErrors.password && (
+                  <span className="form-field__error">{t('auth.' + fieldErrors.password)}</span>
+                )}
+              </div>
+
+              <div className="auth-forgot">
+                <button className="auth-forgot__link" type="button" onClick={() => setMode('forgot')}>
+                  {t('auth.forgotPassword')}
+                </button>
+              </div>
+
+              <button className="auth-submit" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? t('auth.loginButtonLoading') : t('auth.loginButton')}
+              </button>
+            </form>
+          )}
+
+          {mode === 'forgot' && (
+            <form className="auth-form" onSubmit={handleForgotSubmit} noValidate>
+              <p className="form-field__hint">{t('auth.forgotBody')}</p>
+
+              <div className="form-field">
+                <label className="form-field__label" htmlFor="forgot-email">
+                  {t('auth.emailLabel')}
+                </label>
+                <input
+                  id="forgot-email"
+                  className="form-field__input"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(event) => setForgotEmail(event.target.value)}
+                  placeholder={t('auth.emailPlaceholder')}
+                  autoComplete="email"
+                />
+              </div>
+
+              <button className="auth-submit" type="submit" disabled={isSendingReset}>
+                {isSendingReset ? t('auth.forgotSubmitLoading') : t('auth.forgotSubmit')}
+              </button>
+
+              <button className="auth-forgot__link" type="button" onClick={backToLogin}>
+                {t('auth.backToLogin')}
+              </button>
+            </form>
+          )}
+
+          {mode === 'sent' && (
+            <div className="auth-form">
+              <h2 className="auth-heading">{t('auth.resetLinkSentTitle')}</h2>
+              <p className="form-field__hint">{t('auth.resetLinkSentBody')}</p>
+
+              {USE_MOCK_API && mockResetLink && (
+                <p className="form-field__hint">Dev: {mockResetLink}</p>
               )}
-            </div>
 
-            <div className="form-field">
-              <label className="form-field__label" htmlFor="login-password">
-                {t('auth.passwordLabel')}
-              </label>
-              <input
-                id="login-password"
-                className="form-field__input"
-                type="password"
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value)
-                  setFieldErrors((prev) => ({ ...prev, password: '' }))
-                }}
-                placeholder={t('auth.passwordPlaceholder')}
-                autoComplete="current-password"
-              />
-              {fieldErrors.password && (
-                <span className="form-field__error">{t('auth.' + fieldErrors.password)}</span>
-              )}
-            </div>
-
-            <div className="auth-forgot">
-              <button className="auth-forgot__link" type="button">
-                {t('auth.forgotPassword')}
+              <button className="auth-forgot__link" type="button" onClick={backToLogin}>
+                {t('auth.backToLogin')}
               </button>
             </div>
-
-            <button className="auth-submit" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? t('auth.loginButtonLoading') : t('auth.loginButton')}
-            </button>
-          </form>
+          )}
         </div>
       </div>
 

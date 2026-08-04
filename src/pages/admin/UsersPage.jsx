@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, ShieldCheck, Trash2 } from 'lucide-react'
+import { KeyRound, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import {
   IconButton,
   Dialog,
@@ -20,7 +20,7 @@ import {
   TableRow,
   TableSortLabel,
 } from '@mui/material'
-import { createUser, deleteUser, getAllUsers, updateUser } from '../../services/authService.js'
+import { createUser, deleteUser, generateResetLink, getAllUsers, updateUser } from '../../services/authService.js'
 import { errorMessage, isCanceled } from '../../services/api.ts'
 import { ROLES } from '../../config/roles.js'
 import {
@@ -36,6 +36,7 @@ import {
 import { PERMISSION_PRESETS, flagsForPreset, matchPresetForPermissions } from '../../config/presets.js'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
+import { useCopyToClipboard } from '../../hooks/useCopyToClipboard.js'
 import PermissionCheckboxGroup from '../../components/admin/PermissionCheckboxGroup.jsx'
 import {
   MIN_PHONE_DIGITS,
@@ -79,7 +80,7 @@ export default function UsersPage() {
   const [fieldErrors, setFieldErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetLink, setResetLink] = useState(null)
-  const [isCopied, setIsCopied] = useState(false)
+  const [isCopied, copyResetLink] = useCopyToClipboard()
   const [userFormTarget, setUserFormTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [permissionsDialogUserId, setPermissionsDialogUserId] = useState(null)
@@ -222,7 +223,6 @@ export default function UsersPage() {
         )
         setUsers((prev) => [...prev, user])
         setResetLink(`/reset/${resetToken}`)
-        setIsCopied(false)
       } else {
         const id = userFormTarget
         const updated = await updateUser(
@@ -243,9 +243,12 @@ export default function UsersPage() {
   }
 
   function handleCopyResetLink() {
-    navigator.clipboard.writeText(resetLink).then(() => {
-      setIsCopied(true)
-    })
+    copyResetLink(resetLink)
+  }
+
+  async function handleGenerateResetLink(row) {
+    const { resetToken } = await generateResetLink(row.id, actorForUpdate)
+    setResetLink(`/reset/${resetToken}`)
   }
 
   async function handleConfirmDelete() {
@@ -391,6 +394,13 @@ export default function UsersPage() {
                         <Tooltip title={t('config.editUser')}>
                           <IconButton size="small" onClick={() => openEditUserDialog(row)}>
                             <Pencil className="table-action-icon icon-button--edit" fill="currentColor" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {canEdit && (
+                        <Tooltip title={t('config.generateResetLink')}>
+                          <IconButton size="small" onClick={() => handleGenerateResetLink(row)}>
+                            <KeyRound className="table-action-icon" />
                           </IconButton>
                         </Tooltip>
                       )}

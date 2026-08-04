@@ -95,10 +95,39 @@ export const strings = {
     },
     emailTaken: { id: 'Email sudah digunakan', en: 'Email already exists' },
     familyCaption: { id: 'Memahami bisnis Anda', en: 'Understands your businesses' },
+    forgotTitle: { id: 'Lupa kata sandi', en: 'Forgot password' },
+    forgotBody: {
+      id: 'Masukkan email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi.',
+      en: "Enter your email and we'll send you a link to reset your password.",
+    },
+    forgotSubmit: { id: 'Kirim tautan reset', en: 'Send reset link' },
+    forgotSubmitLoading: { id: 'Mengirim...', en: 'Sending...' },
+    backToLogin: { id: 'Kembali ke halaman masuk', en: 'Back to login' },
+    resetLinkSentTitle: { id: 'Periksa email Anda', en: 'Check your email' },
+    resetLinkSentBody: {
+      id: 'Jika email tersebut terdaftar, kami telah mengirimkan tautan untuk mengatur ulang kata sandi Anda.',
+      en: "If that email is registered, we've sent a link to reset your password.",
+    },
   },
   admin: {
     title: { id: 'Admin', en: 'Admin' },
     pageTitle: { id: 'FreshBrain Admin', en: 'FreshBrain Admin' },
+  },
+  resetPassword: {
+    title: { id: 'Atur kata sandi baru', en: 'Set a new password' },
+    newPasswordLabel: { id: 'Kata sandi baru', en: 'New password' },
+    newPasswordPlaceholder: { id: 'Masukkan kata sandi baru', en: 'Enter new password' },
+    confirmPasswordLabel: { id: 'Konfirmasi kata sandi', en: 'Confirm password' },
+    confirmPasswordPlaceholder: { id: 'Masukkan ulang kata sandi baru', en: 'Re-enter new password' },
+    submitButton: { id: 'Atur kata sandi', en: 'Set password' },
+    submitButtonLoading: { id: 'Menyimpan...', en: 'Saving...' },
+    passwordRequired: { id: 'Kata sandi wajib diisi', en: 'Password is required' },
+    passwordTooShort: { id: 'Kata sandi minimal 8 karakter', en: 'Password must be at least 8 characters' },
+    passwordMismatch: { id: 'Konfirmasi kata sandi tidak cocok', en: "Passwords don't match" },
+    invalidToken: {
+      id: 'Tautan reset tidak valid atau sudah kedaluwarsa. Silakan minta tautan baru.',
+      en: 'This reset link is invalid or has expired. Please request a new one.',
+    },
   },
   config: {
     backToChat: { id: 'Kembali ke obrolan', en: 'Back to chat' },
@@ -180,6 +209,7 @@ export const strings = {
     },
     copyLink: { id: 'Salin', en: 'Copy' },
     copied: { id: 'Tersalin', en: 'Copied' },
+    generateResetLink: { id: 'Buat tautan reset', en: 'Generate reset link' },
   },
   permissions: {
     sectionLabel: { id: 'Hak akses', en: 'Permissions' },
