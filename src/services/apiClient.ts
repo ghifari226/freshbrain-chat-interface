@@ -9,16 +9,21 @@ import axios from 'axios'
 import type {
   ChatRequest,
   ChatResponse,
+  ConversationsListResponse,
+  DeleteConversationRequest,
+  DeleteConversationResponse,
   FeedbackRequest,
   FeedbackResponse,
-  RequestOptions,
+  ListConversationsRequest,
+  RenameConversationRequest,
+  RenameConversationResponse,
+  TitleRequest,
+  TitleResponse,
 } from '../types/api.ts'
+import type { Conversation } from '../types/domain.ts'
 import { aiEngineApi, authHeaders } from './api.ts'
+import { makeMockConversations } from '../mocks/mockConversations.js'
 import { mockDelay } from './mockDelay.ts'
-
-function makeId() {
-  return Math.random().toString(36).slice(2, 10)
-}
 
 // Internal helper only — camelCase params here, translated to the
 // contract's snake_case body just before the request goes out. sendMessage
@@ -58,6 +63,20 @@ async function postChat({
   return data
 }
 
+// dev-doc mock only — ai-engine's real rename-intent detection is an LLM
+// call we can't fake meaningfully; this keyword match exists purely so
+// ChatResponse.title's listen-and-apply path (App.jsx) is demoable end to
+// end without a real backend. Only ever checked for messages on an
+// existing conversation — see sendMessage below, matching the doc comment
+// on ChatResponse.title in types/api.ts.
+const RENAME_INTENT_PATTERN =
+  /(?:rename (?:this (?:thread|conversation|chat) )?to|(?:ganti|ubah) judul(?:nya)? (?:jadi|ke))\s+["']?([^"'.!]+?)["']?[.!]*$/i
+
+function matchRenameIntent(message: string): string | null {
+  const match = message.trim().match(RENAME_INTENT_PATTERN)
+  return match ? match[1].trim() : null
+}
+
 export async function sendMessage({
   message,
   conversation_id,
@@ -69,10 +88,15 @@ export async function sendMessage({
 }: ChatRequest): Promise<ChatResponse> {
   if (USE_MOCK_API) {
     await mockDelay(900, 1500, signal)
+    // Only checked on an existing conversation — the first message's title
+    // always comes from the separate POST /chat/title call instead (see
+    // ChatResponse.title's doc comment in types/api.ts).
+    const renamedTitle = conversation_id ? matchRenameIntent(message) : null
     return {
       answer: `You said: "${message}" (Tidak dapat terhubung ke ai-engine)`,
-      conversation_id: conversation_id ?? makeId(),
-      message_id: makeId(),
+      conversation_id: conversation_id ?? crypto.randomUUID(),
+      message_id: crypto.randomUUID(),
+      ...(renamedTitle ? { title: renamedTitle } : {}),
     }
   }
 
@@ -120,7 +144,7 @@ export async function sendFeedback({
 }: FeedbackRequest): Promise<FeedbackResponse> {
   if (USE_MOCK_API) {
     await mockDelay(200, 500, signal)
-    return { id: makeId() }
+    return { id: crypto.randomUUID() }
   }
 
   const { data } = await aiEngineApi.post<FeedbackResponse>(
@@ -140,12 +164,18 @@ export async function sendFeedback({
 }
 
 // No auth-contract.md entry for this one — see the header note above.
-export async function generateTitle(
-  message: string,
-  { signal }: RequestOptions = {},
-): Promise<string> {
+export async function generateTitle({
+  message,
+  conversation_id,
+  token,
+  signal,
+}: TitleRequest): Promise<string> {
   if (!USE_MOCK_API) {
-    const { data } = await aiEngineApi.post<{ title: string }>('/chat/title', { message }, { signal })
+    const { data } = await aiEngineApi.post<TitleResponse>(
+      '/chat/title',
+      { message, conversation_id },
+      { signal, headers: authHeaders(token) },
+    )
     return data.title
   }
 
@@ -154,4 +184,71 @@ export async function generateTitle(
   const summary = words.slice(0, 6).join(' ')
   const title = summary.charAt(0).toUpperCase() + summary.slice(1)
   return words.length > 6 ? `${title}…` : title
+}
+
+// No auth-contract.md entry for this one — see the header note above. A
+// query, not a body — user_id/role travel as query params, matching a GET's
+// shape (see ListConversationsRequest's doc comment in types/api.ts).
+export async function listConversations({
+  user_id,
+  role,
+  token,
+  signal,
+}: ListConversationsRequest): Promise<ConversationsListResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(400, 900, signal)
+    // makeMockConversations.js is plain JS (untyped) — same js/ts boundary
+    // cast used for ROLE_SCOPES/ROLE_IDS in roleScopes.ts.
+    return { conversations: makeMockConversations() as Conversation[] }
+  }
+
+  const { data } = await aiEngineApi.get<ConversationsListResponse>('/conversations', {
+    signal,
+    headers: authHeaders(token),
+    params: { user_id, role },
+  })
+  return data
+}
+
+// No auth-contract.md entry for this one — see the header note above.
+export async function renameConversation({
+  conversation_id,
+  title,
+  user_id,
+  role,
+  token,
+  signal,
+}: RenameConversationRequest): Promise<RenameConversationResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(200, 500, signal)
+    return { conversation_id, title }
+  }
+
+  const { data } = await aiEngineApi.patch<RenameConversationResponse>(
+    `/conversations/${conversation_id}`,
+    { title, user_id, role },
+    { signal, headers: authHeaders(token) },
+  )
+  return data
+}
+
+// No auth-contract.md entry for this one — see the header note above.
+export async function deleteConversation({
+  conversation_id,
+  user_id,
+  role,
+  token,
+  signal,
+}: DeleteConversationRequest): Promise<DeleteConversationResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(200, 500, signal)
+    return { conversation_id }
+  }
+
+  const { data } = await aiEngineApi.delete<DeleteConversationResponse>(`/conversations/${conversation_id}`, {
+    signal,
+    headers: authHeaders(token),
+    data: { user_id, role },
+  })
+  return data
 }

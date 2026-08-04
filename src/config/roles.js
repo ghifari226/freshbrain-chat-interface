@@ -1,14 +1,16 @@
 // Role metadata shared by auth (default scopes on login/register) and the
 // /roles admin view. Single source of truth so the two don't drift.
 
-// Renamed 2026-07-24: CEO -> Superadmin (now also the bootstrap-locked
-// role, see permissions.js's SUPERADMIN_LOCKED_PERMISSIONS), Ops Manager ->
-// Logistic Manager, Warehouse Staff -> Client Service Management (which
-// folds into the "Client Service Management" job title MOCK_USERS already
-// used — that title is no longer an orphan not backed by a real ROLES
-// entry).
+// Renamed 2026-07-24: CEO -> Superadmin, Ops Manager -> Logistic Manager,
+// Warehouse Staff -> Client Service Management (which folds into the
+// "Client Service Management" job title MOCK_USERS already used — that
+// title is no longer an orphan not backed by a real ROLES entry).
+// Renamed again 2026-08-04: Superadmin -> Superuser (still the role
+// permission assignment is hardlocked to, alongside Technology — see
+// permissions.js's canAssignPermissions). The "Superadmin" *preset* in
+// presets.js keeps its old name on purpose, unrelated to this rename.
 export const ROLES = [
-  'Superadmin',
+  'Superuser',
   'Logistic Manager',
   'Finance',
   'Client Service Management',
@@ -20,11 +22,11 @@ export const ROLES = [
 // default. There is no allowed_scopes column on users at all; every user's
 // effective scopes are resolved by looking up their role here.
 export const ROLE_SCOPES = {
-  Superadmin: ['*'],
+  Superuser: ['*'],
   'Logistic Manager': ['wms', 'tms'],
   Finance: ['odoo'],
   'Client Service Management': ['wms.inventory'],
-  // Explicit list (not '*', which stays Superadmin-exclusive) so Technology
+  // Explicit list (not '*', which stays Superuser-exclusive) so Technology
   // can query data cross-system for support/debugging without wildcarding.
   Technology: ['wms', 'tms', 'dilema', 'odoo', 'dwh'],
   // Human Resource manages the user directory, it doesn't query chat data.
@@ -40,7 +42,7 @@ export const ROLE_SCOPES = {
 // HMR/reload, unlike crypto.randomUUID()); addRoleToCatalog generates a
 // fresh one for genuinely new roles.
 export const ROLE_IDS = {
-  Superadmin: 'a3f1c2d4-0000-4a11-8b11-000000000001',
+  Superuser: 'a3f1c2d4-0000-4a11-8b11-000000000001',
   'Logistic Manager': 'a3f1c2d4-0000-4a11-8b11-000000000002',
   Finance: 'a3f1c2d4-0000-4a11-8b11-000000000003',
   'Client Service Management': 'a3f1c2d4-0000-4a11-8b11-000000000004',
@@ -56,16 +58,19 @@ export function roleNameForId(id) {
   return Object.entries(ROLE_IDS).find(([, roleId]) => roleId === id)?.[0]
 }
 
-// Only Superadmin has hardcoded meaning left (permanent "*" scope plus the
-// bootstrap-locked permissions in permissions.js) — the Roles admin page
-// can't be allowed to rename it, or those guarantees stop meaning
-// anything. Technology used to be locked here too (it held the bootstrap
-// permission-lock before 2026-07-24), but now that the lock lives on
-// Superadmin, Technology has no role-conditional code left anywhere
-// (see authService.js) — it's just an ordinary role, safe to rename like
-// any other. (There's no delete feature at all anymore — removed as a
-// safety call, see RolesPage.jsx.)
-export const LOCKED_ROLES = ['Superadmin']
+// Superuser has hardcoded meaning (permanent "*" scope) — the Roles admin
+// page can't be allowed to rename it, or that guarantee stops meaning
+// anything. Technology is also hardcoded now, alongside Superuser, as the
+// only two roles that can assign permissions to other users (see
+// permissions.js's canAssignPermissions) — but that check is
+// role-name-based, not a LOCKED_ROLES entry, so Technology stays
+// renameable here; renaming it would just silently drop that access. It's
+// also the only role whose *permissions* get a forced-checkbox lock (see
+// permissions.js's TECHNOLOGY_LOCKED_PERMISSIONS) — Superuser gets no such
+// lock, unlike before 2026-08-04's rename.
+// (There's no delete feature at all anymore — removed as a safety call,
+// see RolesPage.jsx.)
+export const LOCKED_ROLES = ['Superuser']
 
 /**
  * Mutates the shared ROLES/ROLE_SCOPES/ROLE_IDS objects in place, so every
@@ -84,8 +89,8 @@ export function addRoleToCatalog(name) {
 
 /**
  * Renames a role in place — scopes carry over unchanged, only the key
- * changes. Blocked for LOCKED_ROLES (renaming "Superadmin" would silently
- * break every hardcoded `role === 'Superadmin'` check elsewhere). Callers
+ * changes. Blocked for LOCKED_ROLES (renaming "Superuser" would silently
+ * break every hardcoded `role === 'Superuser'` check elsewhere). Callers
  * are expected to also block this when the role is still assigned to any
  * user — renaming doesn't cascade-update MOCK_USERS' `role` field, so an
  * in-use role would be left orphaned otherwise.

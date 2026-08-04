@@ -60,9 +60,9 @@ function SystemCheckbox({ state, onChange, disabled }) {
 // independent of every other card's state.
 export default function RolesPage({ session }) {
   const t = useT()
-  const canAdd = hasPermission(session, 'role_scope.add_role')
-  const canEditName = hasPermission(session, 'role_scope.edit_role')
-  const canAssignScopes = hasPermission(session, 'role_scope.assign_scopes')
+  const canAdd = hasPermission(session, 'roles.add')
+  const canEditName = hasPermission(session, 'roles.edit')
+  const canAssignScopes = hasPermission(session, 'roles.assign_scopes')
   const canEditAnything = canAdd || canEditName || canAssignScopes
 
   const [catalog, setCatalog] = useState([])
@@ -150,8 +150,8 @@ export default function RolesPage({ session }) {
       ? roles.filter((role) => role.toLowerCase().includes(query))
       : roles
     return [...filtered].sort((left, right) => {
-      if (left === 'Superadmin') return -1
-      if (right === 'Superadmin') return 1
+      if (left === 'Superuser') return -1
+      if (right === 'Superuser') return 1
       return left.localeCompare(right, 'en', { sensitivity: 'base' })
     })
   }, [roles, searchQuery])
@@ -366,9 +366,9 @@ export default function RolesPage({ session }) {
       <div className="role-grid">
         {visibleRoles.map((role) => {
           const isLocked = LOCKED_ROLES.includes(role)
-          const isSuperadmin = role === 'Superadmin'
+          const isSuperuser = role === 'Superuser'
           const scopes = roleScopes[role] ?? []
-          const isDirty = canAssignScopes && !isSuperadmin && !scopesEqual(scopes, savedRoleScopes[role] ?? [])
+          const isDirty = canAssignScopes && !isSuperuser && !scopesEqual(scopes, savedRoleScopes[role] ?? [])
           const isRenaming = renamingRole === role
           // Systems with nothing to expand (no sub-scopes, e.g. dwh) don't
           // count toward the master toggle — there's nothing for it to do
@@ -409,7 +409,7 @@ export default function RolesPage({ session }) {
                   <>
                     <div className="role-card__name-group">
                       <span className="role-card__name">{role}</span>
-                      {isSuperadmin && (
+                      {isSuperuser && (
                         <span className="scope-pill scope-pill--fixed">{t('config.allAccess')}</span>
                       )}
                     </div>
@@ -451,7 +451,7 @@ export default function RolesPage({ session }) {
                           </button>
                         </Tooltip>
                       )}
-                      {!isSuperadmin && expandableSystems.length > 0 && (
+                      {!isSuperuser && expandableSystems.length > 0 && (
                         <Tooltip
                           title={t(
                             isFilteredMode
@@ -483,7 +483,7 @@ export default function RolesPage({ session }) {
                 <span className="form-field__error">{scopeSaveErrors[role]}</span>
               )}
 
-              {isSuperadmin ? (
+              {isSuperuser ? (
                 <div className="role-card__systems">
                   {visibleCatalog.map((entry) => (
                     <div className="role-card__system" key={entry.system}>

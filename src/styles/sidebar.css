@@ -51,41 +51,6 @@
   position: relative;
 }
 
-/* Access Config's collapsed-rail flyout is a hover preview, not a click
-   toggle (unlike Recents just above, which shares the positioning class
-   but keeps its click-open/click-outside-close behavior) — closes itself
-   the instant the mouse leaves, no state or listeners needed. A click on
-   the icon underneath always just navigates to /config regardless of
-   whether the flyout happened to be showing. :focus-within keeps this
-   reachable via keyboard tabbing, not just a mouse. */
-.sidebar-collapsed__config-flyout .menu--recents {
-  display: none;
-}
-
-.sidebar-collapsed__config-flyout:hover .menu--recents,
-.sidebar-collapsed__config-flyout:focus-within .menu--recents {
-  display: flex;
-}
-
-/* No gap between the icon and the flyout — Recents (above) can afford the
-   base 8px gap since it's click-toggled, but a hover-only menu needs the
-   mouse to cross zero empty space getting from the icon to the menu
-   itself, otherwise that dead strip breaks :hover mid-transit and the menu
-   vanishes before the pointer ever reaches it. */
-.sidebar-collapsed__config-flyout .menu--recents {
-  left: 100%;
-}
-
-/* Force-hidden the instant an item is clicked (see Sidebar.jsx), regardless
-   of the mouse still technically hovering — otherwise a hover-only menu
-   has no way to react to "you just picked one," and it reads as lingering
-   rather than a completed action. !important because it must win over the
-   :hover rule above while the mouse hasn't moved away yet (same element,
-   same specificity otherwise). */
-.sidebar-collapsed__config-flyout--suppressed .menu--recents {
-  display: none !important;
-}
-
 /* Collapsed rail's expand control shows the brand mark at rest — reads as
    "FreshBrain", not a generic control — and swaps to the actual
    expand-sidebar icon on hover, right when someone's about to click it.
@@ -264,17 +229,6 @@
   color: var(--text-muted);
 }
 
-/* Back to Chat specifically (not New Chat, which shares .conversation-item--new
-   but stays neutral) — accent-colored to call out the app's main feature,
-   the chat itself, from wherever else you've navigated to. */
-.conversation-item--accent {
-  color: var(--accent);
-}
-
-.conversation-item--accent .conversation-item__icon {
-  color: var(--accent);
-}
-
 .sidebar-section {
   flex: 1;
   overflow-y: auto;
@@ -340,47 +294,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.sidebar-nav__item-chevron {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  stroke-width: 2.5px;
-  color: inherit;
-}
-
-/* Sets Settings apart from Freshpedia/Tool Catalog/Access Config above it,
-   the same "lil bit of space" .conversation-item--new's margin-bottom
-   already gives Back to Chat above the nav list. */
-.sidebar-nav__item--settings {
-  margin-top: 8px;
-}
-
-.sidebar-nav__children {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-left: 24px;
-  margin-bottom: 2px;
-}
-
-.sidebar-nav__child-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: transparent;
-  color: var(--text-sidebar);
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.sidebar-nav__child-item:hover,
-.sidebar-nav__child-item--active {
-  background: var(--surface-sidebar-highlight);
-  color: var(--text-sidebar-highlight);
 }
 
 .sidebar-section__label {
@@ -518,21 +431,10 @@
 }
 
 .user-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--surface-response);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
-}
-
-.user-avatar svg {
-  width: 18px;
-  height: 18px;
+  object-fit: contain;
 }
 
 .menu--user {

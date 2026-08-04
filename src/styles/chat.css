@@ -202,6 +202,18 @@
   }
 }
 
+.message-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-top: 6px;
+  opacity: 0;
+}
+
+.message__group:hover .message-actions {
+  opacity: 1;
+}
+
 .message-feedback {
   margin-top: 6px;
 }
@@ -209,11 +221,6 @@
 .message-feedback__actions {
   display: flex;
   gap: 2px;
-  opacity: 0;
-}
-
-.message__group:hover .message-feedback__actions,
-.message-feedback__actions--open {
   opacity: 1;
 }
 
@@ -223,12 +230,10 @@
   font-size: 13px;
 }
 
-.message-feedback__button--up {
-  color: var(--accent);
-}
-
-.message-feedback__button--down {
-  color: var(--danger);
+/* Selected thumb fills with currentColor (see MessageFeedback.jsx) — muted
+   gray reads as "selected" without going stark white/black. */
+.message-feedback__button[aria-pressed='true'] {
+  color: var(--text-muted);
 }
 
 .message-feedback__reason {
@@ -362,7 +367,7 @@
 
 @media (hover: none) {
   .message-actions,
-  .feedback-actions {
+  .message-feedback__actions {
     opacity: 1;
   }
 }

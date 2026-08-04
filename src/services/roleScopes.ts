@@ -61,8 +61,10 @@ export async function createRole(
 }
 
 // Renames a role in place — scopes carry over unchanged (see
-// renameRoleInCatalog). Rejected for LOCKED_ROLES (Superadmin) both here and
-// server-side, per auth-contract.md's "Superadmin terkunci total" rule.
+// renameRoleInCatalog). Rejected for LOCKED_ROLES (Superuser, renamed from
+// Superadmin 2026-08-04 — the contract doc's quoted rule below still says
+// the old name) both here and server-side, per auth-contract.md's
+// "Superadmin terkunci total" rule.
 export async function renameRole(
   id: string,
   newName: string,

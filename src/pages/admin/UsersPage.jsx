@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Lock, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
+import { Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import {
   IconButton,
   Dialog,
@@ -27,23 +27,33 @@ import {
   ALL_PERMISSIONS,
   SYSTEM_ACCESS_PERMISSIONS,
   CHAT_ACCESS_PERMISSIONS,
-  PERMISSION_LABEL_KEYS,
-  SUPERADMIN_LOCKED_PERMISSIONS,
+  TECHNOLOGY_LOCKED_PERMISSIONS,
   canAssignPermissions,
   hasPermission,
   permissionsArrayToFlags,
   permissionFlagsToArray,
 } from '../../config/permissions.js'
+import { PERMISSION_PRESETS, flagsForPreset, matchPresetForPermissions } from '../../config/presets.js'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
+import PermissionCheckboxGroup from '../../components/admin/PermissionCheckboxGroup.jsx'
+import {
+  MIN_PHONE_DIGITS,
+  digitsOnly,
+  formatLocalPhoneDigits,
+  formatPhoneForDisplay,
+  localPhoneDigitsFromStored,
+  phoneMatches,
+  significantPhoneDigits,
+} from './userPhone.js'
 
-// Superadmin is ROLES[0] but is never assignable through this form (see
+// Superuser is ROLES[0] but is never assignable through this form (see
 // roleOptions below) — defaulting to it here would silently create a
-// Superadmin unless the admin happened to touch the Role field themselves.
-const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superadmin') }
+// Superuser unless the admin happened to touch the Role field themselves.
+const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !== 'Superuser') }
 
 // Order-independent — see the identical concern in RolesPage's scopesEqual.
-// Both args are flag-shaped ({ 'user.view': boolean, ... }), never the
+// Both args are flag-shaped ({ 'users.view': boolean, ... }), never the
 // wire-shaped allowed_permissions array directly — see flagsForUser below.
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
@@ -58,133 +68,34 @@ function flagsForUser(user) {
   return permissionsArrayToFlags(user?.allowed_permissions)
 }
 
-function digitsOnly(value) {
-  return value.replace(/\D/g, '')
+// Same match-or-Custom logic as the Shield dialog's activePresetOption
+// (below), just applied to a row's stored permissions instead of a draft —
+// lets the table show which bundle a user's current permissions resolve to
+// without opening the dialog.
+function presetLabelForUser(user, t) {
+  const presetId = matchPresetForPermissions(flagsForUser(user))
+  const preset = PERMISSION_PRESETS.find((p) => p.id === presetId)
+  return preset?.label ?? t('permissions.customPreset')
 }
 
-// Storage/wire format is pure digits, no +, space, or dash — "6281110000001"
-// — matching how phone numbers actually live on the backend; auth-contract.md
-// just says `"phone": "string"` and doesn't mandate a display format, so the
-// dashed "+62 811-1000-0001" look is purely a presentation concern, applied
-// only in this form's input (formatLocalPhoneDigits, the local part after the
-// fixed +62 prefix) and the table column (formatPhoneForDisplay) below.
-// 3-4-5 grouping, capped at 12 digits — Indonesian mobile numbers run up to
-// 13 digits including the leading trunk 0 (e.g. 0812-3456-78901), and +62
-// already stands in for that leading 0, so the local part alone maxes out
-// at 12.
-function formatLocalPhoneDigits(value) {
-  const digits = digitsOnly(value).slice(0, 12)
-  return [digits.slice(0, 3), digits.slice(3, 7), digits.slice(7, 12)].filter(Boolean).join('-')
-}
-
-// Reverses formatLocalPhoneDigits — strips the leading 62 country code (if
-// present) off a raw stored digit string, back into the dashed local part
-// the form's input displays and edits.
-function localPhoneDigitsFromStored(phone) {
-  const digits = digitsOnly(phone)
-  const local = digits.startsWith('62') ? digits.slice(2) : digits
-  return formatLocalPhoneDigits(local)
-}
-
-function formatPhoneForDisplay(phone) {
-  if (!phone) return ''
-  return `+62 ${localPhoneDigitsFromStored(phone)}`
-}
-
-// A single leading 0 is the familiar local-format habit (0812-3456-7890) —
-// accepted on input, but stripped before it's combined with +62 on submit,
-// since +62 already stands in for that trunk 0 (otherwise it'd end up
-// double-counted, e.g. 620812... instead of 62812...). Anything else is
-// submitted as-is, as long as it clears the minimum length.
-function significantPhoneDigits(localPart) {
-  const digits = digitsOnly(localPart)
-  return digits.startsWith('0') ? digits.slice(1) : digits
-}
-
-const MIN_PHONE_DIGITS = 9
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-// A query starting with "0" is ambiguous: it might be a local-format trunk
-// prefix ("0811..." for stored "6281110000001") or just a substring that
-// happens to start with 0 (e.g. the last-4-digits "0006"). Rather than
-// guessing, try both readings and match if either is found in the phone's
-// digits — phone numbers themselves are stored as pure digits starting with
-// "62", never with a literal leading 0, so only the query needs the
-// alternate form.
-function phoneMatches(phoneDigits, queryDigits) {
-  if (phoneDigits.includes(queryDigits)) return true
-  if (queryDigits.startsWith('0')) return phoneDigits.includes(`62${queryDigits.slice(1)}`)
-  return false
-}
-
-// One group of checkboxes in the Shield dialog (System Access / Chat
-// Access — just two now). isFieldLocked marks Superadmin's hardcoded
-// fields (checked+disabled, never editable); isFieldDisabled marks fields
-// blocked by the self-escalation guard (actor editing their own row,
-// doesn't already hold this field). The header checkbox bulk-selects every
-// field in the group that isn't locked/disabled — purely a UI convenience,
-// not a stored permission of its own.
-function PermissionCheckboxGroup({ titleKey, fields, dialogPermissions, isFieldLocked, isFieldDisabled, onToggle, onToggleAll, t }) {
-  const toggleableFields = fields.filter((field) => !isFieldLocked(field) && !isFieldDisabled(field))
-  const checkedToggleableCount = toggleableFields.filter((field) => Boolean(dialogPermissions[field])).length
-  const allChecked = toggleableFields.length > 0 && checkedToggleableCount === toggleableFields.length
-  const someChecked = checkedToggleableCount > 0 && !allChecked
-
-  return (
-    <div className="permission-group">
-      <div className="permission-group__header">
-        <span className="permission-group__label">{t(titleKey)}</span>
-        {toggleableFields.length > 0 && (
-          <Tooltip title={t('permissions.selectAllToggle')}>
-            <input
-              type="checkbox"
-              className="permission-group__select-all"
-              aria-label={t('permissions.selectAllToggle')}
-              checked={allChecked}
-              ref={(el) => {
-                if (el) el.indeterminate = someChecked
-              }}
-              onChange={() => onToggleAll(toggleableFields, !allChecked)}
-            />
-          </Tooltip>
-        )}
-      </div>
-      {fields.map((field) => {
-        const locked = isFieldLocked(field)
-        return (
-          <label className="permission-checkbox" key={field}>
-            <input
-              type="checkbox"
-              checked={locked || Boolean(dialogPermissions[field])}
-              disabled={locked || isFieldDisabled(field)}
-              onChange={() => onToggle(field)}
-            />
-            <span className="permission-checkbox__label">
-              {locked && <Lock />} {t(PERMISSION_LABEL_KEYS[field])}
-            </span>
-          </label>
-        )
-      })}
-    </div>
-  )
-}
 
 export default function UsersPage() {
   const t = useT()
   const { session, updateSession } = useAuth()
-  const canAdd = hasPermission(session, 'user.add')
-  const canEdit = hasPermission(session, 'user.edit')
-  const canDelete = hasPermission(session, 'user.delete')
+  const canAdd = hasPermission(session, 'users.add')
+  const canEdit = hasPermission(session, 'users.edit')
+  const canDelete = hasPermission(session, 'users.delete')
   const canAssign = canAssignPermissions(session)
   const actorForUpdate = useMemo(
     () => ({ id: session?.id, token: session?.token }),
     [session?.id, session?.token],
   )
-  // Superadmin is visible in the table (existing Superadmin users show their
+  // Superuser is visible in the table (existing Superuser users show their
   // real role) but never assignable through this picker — bootstrap-locked,
   // not something granted via the UI, for anyone, regardless of the actor's
   // own permissions.
-  const roleOptions = ROLES.filter((r) => r !== 'Superadmin')
+  const roleOptions = ROLES.filter((r) => r !== 'Superuser')
 
   // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
@@ -226,18 +137,31 @@ export default function UsersPage() {
   const isPermissionsDialogDirty = permissionsDialogUser
     ? !permissionsEqual(dialogPermissions, flagsForUser(permissionsDialogUser))
     : false
-
-  function isSuperadminLockedField(field) {
-    return permissionsDialogUser?.role === 'Superadmin' && SUPERADMIN_LOCKED_PERMISSIONS.includes(field)
-  }
+  // Highlights whichever preset's exact permission set matches the current
+  // draft — never editable directly, purely derived from dialogPermissions
+  // (see matchPresetForPermissions). Falls back to a synthetic "Custom"
+  // entry (not a real PERMISSION_PRESETS member, so it can never be
+  // selected from the dropdown itself) when nothing matches.
+  const activePresetId = matchPresetForPermissions(dialogPermissions)
+  const activePresetOption =
+    PERMISSION_PRESETS.find((preset) => preset.id === activePresetId) ??
+    { id: 'custom', label: t('permissions.customPreset') }
 
   // Mirrors updateUser's runtime guard for immediate feedback — the actor
   // can't check a box for a field they don't already hold themselves,
   // whether editing their own row or (structurally impossible here, since
-  // the dialog can't even open on someone else without user.assign_permissions)
-  // anyone else's.
+  // the dialog can't even open on someone else without being Superuser or
+  // Technology) anyone else's.
   function isSelfEscalationBlocked(field) {
     return permissionsDialogUserId === session?.id && !hasPermission(session, field)
+  }
+
+  // Mirrors updateUser's Technology-lock write guard for immediate
+  // feedback — users.assign_permissions/users.view show checked+disabled
+  // whenever the dialog's *target* (not the actor) is Technology. Superuser
+  // gets no equivalent — its checkboxes are ordinary and freely toggleable.
+  function isTechnologyLockedField(field) {
+    return permissionsDialogUser?.role === 'Technology' && TECHNOLOGY_LOCKED_PERMISSIONS.includes(field)
   }
 
   // Built from the actual data rather than ROLES — every MOCK_USERS role
@@ -427,6 +351,10 @@ export default function UsersPage() {
     })
   }
 
+  function handleSelectPreset(userId, presetId) {
+    setPendingPermissions((prev) => ({ ...prev, [userId]: flagsForPreset(presetId) }))
+  }
+
   function discardPendingPermissions(userId) {
     setPendingPermissions((prev) => {
       const { [userId]: _discard, ...rest } = prev
@@ -536,6 +464,7 @@ export default function UsersPage() {
               <TableCell>{t('auth.emailLabel')}</TableCell>
               <TableCell>{t('config.phoneLabel')}</TableCell>
               <TableCell>{t('auth.roleLabel')}</TableCell>
+              {canAssign && <TableCell>{t('config.adminPresetLabel')}</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -578,6 +507,7 @@ export default function UsersPage() {
                 <TableCell>{row.email}</TableCell>
                 <TableCell>{formatPhoneForDisplay(row.phone)}</TableCell>
                 <TableCell>{row.role}</TableCell>
+                {canAssign && <TableCell>{presetLabelForUser(row, t)}</TableCell>}
               </TableRow>
             ))}
           </TableBody>
@@ -721,12 +651,31 @@ export default function UsersPage() {
       <Dialog open={Boolean(permissionsDialogUser)} onClose={closePermissionsDialog} fullWidth maxWidth="sm">
         <DialogTitle>{permissionsDialogUser?.name}</DialogTitle>
         <DialogContent>
+          <div className="form-field">
+            <label className="form-field__label" htmlFor="permission-preset">
+              {t('permissions.presetLabel')}
+            </label>
+            <Autocomplete
+              id="permission-preset"
+              size="small"
+              disableClearable
+              autoHighlight
+              options={PERMISSION_PRESETS}
+              value={activePresetOption}
+              getOptionLabel={(preset) => preset.label}
+              isOptionEqualToValue={(option, current) => option.id === current.id}
+              onChange={(_event, newValue) => {
+                if (newValue) handleSelectPreset(permissionsDialogUserId, newValue.id)
+              }}
+              renderInput={(params) => <TextField {...params} placeholder={t('permissions.presetLabel')} />}
+            />
+          </div>
           <div className="permission-group-list">
             <PermissionCheckboxGroup
               titleKey="permissions.chatAccessSectionLabel"
               fields={CHAT_ACCESS_PERMISSIONS}
-              dialogPermissions={dialogPermissions}
-              isFieldLocked={isSuperadminLockedField}
+              permissions={dialogPermissions}
+              isFieldLocked={isTechnologyLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
               onToggle={(field) => handleTogglePermission(permissionsDialogUserId, field)}
               onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogUserId, fields, next)}
@@ -735,8 +684,8 @@ export default function UsersPage() {
             <PermissionCheckboxGroup
               titleKey="permissions.systemAccessSectionLabel"
               fields={SYSTEM_ACCESS_PERMISSIONS}
-              dialogPermissions={dialogPermissions}
-              isFieldLocked={isSuperadminLockedField}
+              permissions={dialogPermissions}
+              isFieldLocked={isTechnologyLockedField}
               isFieldDisabled={isSelfEscalationBlocked}
               onToggle={(field) => handleTogglePermission(permissionsDialogUserId, field)}
               onToggleAll={(fields, next) => handleToggleAllPermissions(permissionsDialogUserId, fields, next)}

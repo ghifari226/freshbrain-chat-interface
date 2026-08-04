@@ -36,16 +36,6 @@
   color: var(--danger);
 }
 
-/* Back to Chat specifically — accent-colored to call out the app's main
-   feature, the chat itself, from the profile popup. */
-.menu__item--accent {
-  color: var(--accent);
-}
-
-.menu__item--accent .menu__item-icon {
-  color: var(--accent);
-}
-
 .menu__item-icon {
   width: 16px;
   height: 16px;

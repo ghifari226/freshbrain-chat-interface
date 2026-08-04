@@ -2,19 +2,20 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
-  BookOpen,
   ChevronDown,
   LogOut,
   Settings,
-  ShieldCheck,
-  User,
-  Wrench,
+  UserShield,
 } from 'lucide-react'
 import SettingsModal from '../modals/SettingsModal.jsx'
 import ProfileModal from '../modals/ProfileModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
-import { canAccessConfigSection, canAccessFreshpedia, canAccessToolCatalog } from '../../config/permissions.js'
+import { canAccessConfigSection } from '../../config/permissions.js'
+
+function isAdminPath(path) {
+  return path.startsWith('/admin')
+}
 
 export default function UserMenu({
   collapsed = false,
@@ -35,6 +36,8 @@ export default function UserMenu({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const wrapRef = useRef(null)
+  const onAdminPages = isAdminPath(path)
+  const canSeeAdmin = canAccessConfigSection(session)
 
   useEffect(() => {
     if (!isOpen) return
@@ -59,24 +62,10 @@ export default function UserMenu({
               setIsOpen(false)
             }}
           >
-            <span className="user-avatar">
-              <User />
-            </span>
+            <img src="/assets/user.svg" alt="" className="user-avatar" />
             <span className="menu__profile-name">{session?.name}</span>
           </button>
           <div className="menu__divider" />
-          {path !== '/' && (
-            <button
-              className="menu__item menu__item--accent"
-              onClick={() => {
-                navigate('/')
-                setIsOpen(false)
-              }}
-            >
-              <ArrowLeft className="menu__item-icon" />
-              {t('config.backToChat')}
-            </button>
-          )}
           <button
             className="menu__item"
             onClick={() => {
@@ -87,42 +76,30 @@ export default function UserMenu({
             <Settings className="menu__item-icon" />
             {t('userMenu.settings')}
           </button>
-          <div className="menu__divider" />
-          {canAccessFreshpedia(session) && (
+          {onAdminPages ? (
             <button
               className="menu__item"
               onClick={() => {
-                navigate('/freshpedia')
+                navigate('/')
                 setIsOpen(false)
               }}
             >
-              <BookOpen className="menu__item-icon" />
-              {t('userMenu.freshpedia')}
+              <ArrowLeft className="menu__item-icon" />
+              {t('config.backToChat')}
             </button>
-          )}
-          {canAccessToolCatalog(session) && (
-            <button
-              className="menu__item"
-              onClick={() => {
-                navigate('/tool-catalog')
-                setIsOpen(false)
-              }}
-            >
-              <Wrench className="menu__item-icon" />
-              {t('userMenu.toolCatalog')}
-            </button>
-          )}
-          {canAccessConfigSection(session) && (
-            <button
-              className="menu__item"
-              onClick={() => {
-                navigate('/config')
-                setIsOpen(false)
-              }}
-            >
-              <ShieldCheck className="menu__item-icon" />
-              {t('userMenu.accessConfig')}
-            </button>
+          ) : (
+            canSeeAdmin && (
+              <button
+                className="menu__item"
+                onClick={() => {
+                  navigate('/admin')
+                  setIsOpen(false)
+                }}
+              >
+                <UserShield className="menu__item-icon" />
+                {t('userMenu.admin')}
+              </button>
+            )
           )}
           <div className="menu__divider" />
           <button
@@ -143,9 +120,7 @@ export default function UserMenu({
         aria-label={t('userMenu.accountMenu')}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span className="user-avatar">
-          <User />
-        </span>
+        <img src="/assets/user.svg" alt="" className="user-avatar" />
         {!collapsed && (
           <>
             <span className="user-menu__name">{session?.name}</span>
