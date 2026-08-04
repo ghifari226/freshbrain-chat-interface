@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@mui/material'
 import SectionToggle from '../components/catalog/SectionToggle.jsx'
 import FreshpediaEntryDialog from './freshpedia/FreshpediaEntryDialog.jsx'
@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../hooks/useAuth.js'
 import { useAuthorizedPage } from '../hooks/useAuthorizedPage.js'
 import { useStatusFilters } from '../hooks/useStatusFilters.js'
+import { useCatalogEntries } from '../hooks/useCatalogEntries.js'
 import { useT } from '../hooks/useT.js'
 import { canAccessFreshpedia, canChangeFreshpediaStatus, canPromote, hasPermission } from '../config/permissions.js'
 import {
@@ -24,7 +25,7 @@ import {
   updateFreshpediaRequestEntry,
   updateFreshpediaRequestStatus,
 } from '../services/freshpedia.js'
-import { errorMessage, isCanceled } from '../services/api.ts'
+import { errorMessage } from '../services/api.ts'
 
 export default function FreshpediaPage({ language }) {
   const t = useT()
@@ -47,9 +48,12 @@ export default function FreshpediaPage({ language }) {
   })
   const { filterByStatus } = statusFilters
 
-  const [entries, setEntries] = useState([])
-  const [entriesLoaded, setEntriesLoaded] = useState(false)
-  const [loadError, setLoadError] = useState('')
+  const { entries, entriesLoaded, loadError, addEntry, replaceEntry } = useCatalogEntries({
+    loadPublished: getFreshpediaEntries,
+    loadRequests: getFreshpediaRequestEntries,
+    canViewRequests: canViewRequest,
+    token: session?.token,
+  })
   const [selectedTypes, setSelectedTypes] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [entryFormTarget, setEntryFormTarget] = useState(null)
@@ -62,39 +66,6 @@ export default function FreshpediaPage({ language }) {
   // re-derived from `entries` afterward, so the dialog's mode can't
   // possibly flip mid-edit.
   const [isEntryReadOnly, setIsEntryReadOnly] = useState(false)
-
-  // Two collections, one list: /freshpedia (published) and
-  // /freshpedia-request (pending) are fetched separately and merged into
-  // one `entries` array — everything downstream (visibleEntries, the
-  // Live/Request tabs) already treats entries uniformly by `.status`
-  // regardless of which endpoint they came from. The request fetch only
-  // fires when canViewRequest is already true, same gate the Request tab
-  // and Add Entry button use — matches the access the old single-endpoint
-  // fetch effectively had. Deduped by id when merging: a promoted entry
-  // now satisfies both endpoints' predicates (status!=='request' for the
-  // former, requestStatus truthy for the latter), so naively flattening
-  // would render it twice.
-  useEffect(() => {
-    const controller = new AbortController()
-    const requests = [getFreshpediaEntries({ signal: controller.signal, token: session?.token })]
-    if (canViewRequest) {
-      requests.push(getFreshpediaRequestEntries({ signal: controller.signal, token: session?.token }))
-    }
-    Promise.all(requests)
-      .then((results) => {
-        const merged = new Map()
-        for (const entry of results.flat()) merged.set(entry.id, entry)
-        setEntries(Array.from(merged.values()))
-        setEntriesLoaded(true)
-      })
-      .catch((error) => {
-        if (!isCanceled(error)) {
-          setLoadError(errorMessage(error))
-          setEntriesLoaded(true)
-        }
-      })
-    return () => controller.abort()
-  }, [session?.token, canViewRequest])
 
   const visibleEntries = useMemo(() => {
     const locale = language === 'id' ? 'id' : 'en'
@@ -165,7 +136,7 @@ export default function FreshpediaPage({ language }) {
     try {
       if (entryFormTarget === 'new') {
         const created = await createFreshpediaEntry(form, session)
-        setEntries((current) => [...current, created])
+        addEntry(created)
       } else {
         // Which PATCH endpoint depends on which collection the entry is
         // currently in — a request-status entry lives in
@@ -173,9 +144,7 @@ export default function FreshpediaPage({ language }) {
         const target = entries.find((entry) => entry.id === entryFormTarget)
         const update = target?.status === 'request' ? updateFreshpediaRequestEntry : updateFreshpediaEntry
         const updated = await update(entryFormTarget, form, session)
-        setEntries((current) =>
-          current.map((entry) => (entry.id === entryFormTarget ? updated : entry)),
-        )
+        replaceEntry(updated)
       }
       setForm(EMPTY_FRESHPEDIA_FORM)
       setEntryFormTarget(null)
@@ -193,23 +162,17 @@ export default function FreshpediaPage({ language }) {
       transition.toStatus,
       session,
     )
-    setEntries((current) =>
-      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
-    )
+    replaceEntry(updated)
   }
 
   async function handlePromote(entry) {
     const updated = await promoteFreshpediaRequestEntry(entry.id, session)
-    setEntries((current) =>
-      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
-    )
+    replaceEntry(updated)
   }
 
   async function handleChangeRequestStatus(entry, nextRequestStatus) {
     const updated = await updateFreshpediaRequestStatus(entry.id, nextRequestStatus, session)
-    setEntries((current) =>
-      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
-    )
+    replaceEntry(updated)
   }
 
   if (!isAuthorized) return null

@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../hooks/useAuth.js'
 import { useAuthorizedPage } from '../hooks/useAuthorizedPage.js'
 import { useStatusFilters } from '../hooks/useStatusFilters.js'
+import { useCatalogEntries } from '../hooks/useCatalogEntries.js'
 import { useT } from '../hooks/useT.js'
 import { canAccessToolCatalog, canPromote, hasPermission } from '../config/permissions.js'
 import { getScopeCatalog } from '../config/scopeCatalog.js'
@@ -22,7 +23,7 @@ import {
   updateToolCatalogRequestEntry,
   updateToolCatalogRequestStatus,
 } from '../services/toolCatalog.js'
-import { errorMessage, isCanceled } from '../services/api.ts'
+import { errorMessage } from '../services/api.ts'
 
 export default function ToolCatalogPage() {
   const t = useT()
@@ -43,9 +44,13 @@ export default function ToolCatalogPage() {
   })
   const { filterByStatus } = statusFilters
 
-  const [entries, setEntries] = useState([])
+  const { entries, loadError, addEntry, replaceEntry } = useCatalogEntries({
+    loadPublished: getToolCatalogEntries,
+    loadRequests: getToolCatalogRequestEntries,
+    canViewRequests: canViewRequest,
+    token: session?.token,
+  })
   const [systems, setSystems] = useState([])
-  const [loadError, setLoadError] = useState('')
   const [selectedSystems, setSelectedSystems] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [entryFormTarget, setEntryFormTarget] = useState(null)
@@ -57,31 +62,6 @@ export default function ToolCatalogPage() {
   // swap. Set once at open time from the entry being opened, same rationale
   // as FreshpediaPage.jsx's identical state.
   const [isEntryReadOnly, setIsEntryReadOnly] = useState(false)
-
-  // Two collections, one list — same pattern as FreshpediaPage.jsx:
-  // /tool-catalog (published) and /tool-catalog-request (pending) are
-  // fetched separately and merged into one `entries` array. The request
-  // fetch only fires when canViewRequest is already true, same gate the
-  // Request tab and Add Entry button use. Deduped by id when merging — see
-  // FreshpediaPage.jsx's identical comment for why (a promoted entry
-  // satisfies both endpoints' predicates now).
-  useEffect(() => {
-    const controller = new AbortController()
-    const requests = [getToolCatalogEntries({ signal: controller.signal, token: session?.token })]
-    if (canViewRequest) {
-      requests.push(getToolCatalogRequestEntries({ signal: controller.signal, token: session?.token }))
-    }
-    Promise.all(requests)
-      .then((results) => {
-        const merged = new Map()
-        for (const entry of results.flat()) merged.set(entry.id, entry)
-        setEntries(Array.from(merged.values()))
-      })
-      .catch((error) => {
-        if (!isCanceled(error)) setLoadError(errorMessage(error))
-      })
-    return () => controller.abort()
-  }, [session?.token, canViewRequest])
 
   useEffect(() => {
     let cancelled = false
@@ -163,16 +143,14 @@ export default function ToolCatalogPage() {
     try {
       if (entryFormTarget === 'new') {
         const created = await createToolCatalogEntry(form, session)
-        setEntries((current) => [...current, created])
+        addEntry(created)
       } else {
         // Only ever a request-status entry — openEditEntryDialog is only
         // reachable from the Request view (ToolCatalogTable.jsx's
         // isRequestView guard on the edit button), unlike Freshpedia
         // there's no published-entry edit path to branch to.
         const updated = await updateToolCatalogRequestEntry(entryFormTarget, form, session)
-        setEntries((current) =>
-          current.map((entry) => (entry.id === entryFormTarget ? updated : entry)),
-        )
+        replaceEntry(updated)
       }
       setForm(EMPTY_TOOL_FORM)
       setEntryFormTarget(null)
@@ -185,16 +163,12 @@ export default function ToolCatalogPage() {
 
   async function handlePromote(entry) {
     const updated = await promoteToolCatalogRequestEntry(entry.id, session)
-    setEntries((current) =>
-      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
-    )
+    replaceEntry(updated)
   }
 
   async function handleChangeRequestStatus(entry, nextRequestStatus) {
     const updated = await updateToolCatalogRequestStatus(entry.id, nextRequestStatus, session)
-    setEntries((current) =>
-      current.map((candidate) => (candidate.id === entry.id ? updated : candidate)),
-    )
+    replaceEntry(updated)
   }
 
   if (!isAuthorized) return null
