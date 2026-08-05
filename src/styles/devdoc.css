@@ -31,6 +31,17 @@
   gap: 16px;
 }
 
+/* Sits inside .auth-card, below .auth-box — fills the empty space under the
+   narrow centered form instead of stacking every preview into the side
+   columns. Width comes from .auth-card's own 100%/max-width, same as
+   .auth-slogan and .auth-box. */
+.auth-devdoc-below {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 @media (max-width: 767.98px) {
   .auth-layout {
     flex-direction: column;
@@ -88,4 +99,60 @@
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
+}
+
+/* JwtHandshakePreview — same box as .gateway-json-preview, but the title
+   stays black (it's not a request/response, just a reference) and the two
+   sides are color-coded to match which service the .env block belongs to. */
+.jwt-handshake__title {
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.jwt-handshake__label {
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+
+.jwt-handshake__label--red {
+  color: var(--danger);
+}
+
+.jwt-handshake__label--green {
+  color: #2e7d32;
+}
+
+.jwt-handshake__body {
+  color: #1a1a1a;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.jwt-handshake__body + .jwt-handshake__body {
+  margin-top: 6px;
+}
+
+.jwt-handshake__note {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* flow indicator between the two sides — Gateway Backend signs, the token
+   flows down to AI Engine to verify. One blank line's worth of space above
+   and below so it reads as its own beat, not glued to either side. */
+.jwt-handshake__arrow {
+  color: #1a1a1a;
+  font-size: 16px;
+  line-height: 1;
+  text-align: center;
+  margin: 18px 0;
 }

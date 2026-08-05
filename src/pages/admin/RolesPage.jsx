@@ -542,9 +542,9 @@ export default function RolesPage({ session }) {
       </div>
 
       <div className="config-devdoc">
-        <GatewayJsonPreview title="GET /roles — Response (live)" data={gatewayRolesResponse} />
+        <GatewayJsonPreview title="GET /roles — Response" data={gatewayRolesResponse} />
         <GatewayJsonPreview
-          title={`PATCH /roles/${gatewayRolesPatchTarget ?? '{id}'} — Payload (live)`}
+          title={`PATCH /roles/${gatewayRolesPatchTarget ?? '{id}'} — Payload`}
           data={gatewayRolesPatchPayload}
         />
       </div>
@@ -568,7 +568,7 @@ export default function RolesPage({ session }) {
               />
             </div>
             {addError && <span className="form-field__error">{addError}</span>}
-            <GatewayJsonPreview title="POST /roles — Payload (live)" data={{ name: newRoleName }} />
+            <GatewayJsonPreview title="POST /roles — Payload" data={{ name: newRoleName }} />
           </form>
         </DialogContent>
         <DialogActions>

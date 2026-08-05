@@ -4,25 +4,42 @@ import { useAuth } from '../hooks/useAuth.js'
 import { useT } from '../hooks/useT.js'
 import { strings } from '../i18n/strings.js'
 import GatewayJsonPreview from '../components/devdoc/GatewayJsonPreview.jsx'
+import JwtHandshakePreview from '../components/devdoc/JwtHandshakePreview.jsx'
 import { ALL_PERMISSIONS } from '../config/permissions.js'
 import { USE_MOCK_API } from '../config/appConfig.js'
 import { requestPasswordReset } from '../services/authService.js'
 import AuthLanguageToggle from '../components/auth/AuthLanguageToggle.jsx'
 
-// dev-doc only — static example of POST /login's 200 response (auth-contract.md).
-// Shown next to the live request preview so Freddy sees both sides of the
-// interaction without needing a real backend running. `id` is a real
-// uuid-shaped string (not the old 'usr_a1b2c3' mock prefix) so the format
-// itself is visible, not just the key name. `allowed_permissions` is spread
-// from ALL_PERMISSIONS (Larry is Superuser, all true) instead of hardcoded
-// so this example can never silently drift from the actual catalog.
+// dev-doc only — the shared signing secret both services read from their
+// own .env. Same value on both sides is the whole point: chat-gateway signs
+// with it, ai-engine verifies with it. Never committed for real — this is
+// just what a generated secret looks like (e.g. `openssl rand -hex 32`).
+const JWT_SHARED_SECRET = 'f4a9c1e6b7d23a08f5e19c4b6a7d3e01f2c8b9a4d6e0f1c3b5a7d9e0f2c4b6a8'
+
+// dev-doc only — static example of the token pair issued by both
+// POST /auth/login and POST /auth/refresh-token (auth-contract.md).
+const EXAMPLE_TOKEN_PAIR = {
+  access_token: 'eyJhbGciOi...',
+  refresh_token: 'eyJhbGciOi...',
+  access_expires_in: 900,
+  refresh_expires_in: 604800,
+}
+
+// dev-doc only — static example of POST /auth/login's 200 response
+// (auth-contract.md). Shown next to the live request preview so Freddy sees
+// both sides of the interaction without needing a real backend running.
+// `id` is a real uuid-shaped string (not the old 'usr_a1b2c3' mock prefix)
+// so the format itself is visible, not just the key name.
+// `allowed_permissions` is spread from ALL_PERMISSIONS (this mock is
+// Superuser, all true) instead of hardcoded so this example can never
+// silently drift from the actual catalog.
 const EXAMPLE_LOGIN_RESPONSE = {
   id: 'a1b2c3d4-5e6f-4a1b-8c2d-3e4f5a6b7c8d',
-  name: 'Larry Ridwan',
-  email: 'larry.ridwan@freshfactory.id',
+  name: 'Admin',
+  email: 'admin',
   phone: '6281110000001',
   role: 'Superuser',
-  allowed_scopes: ['wms.inventory', 'wms.inbound', 'wms.fulfillment', 'tms.shipment'],
+  allowed_scopes: ['wms.fulfillment', 'wms.inbound', 'wms.inventory'],
   allowed_permissions: [...ALL_PERMISSIONS],
   is_maintainer: true,
   access_token: 'eyJhbGciOi...',
@@ -31,9 +48,10 @@ const EXAMPLE_LOGIN_RESPONSE = {
   refresh_expires_in: 604800,
 }
 
-// dev-doc only — static example of POST /forgot-password's 200 response
-// (auth-contract.md). Always this shape regardless of whether the email is
-// registered — the endpoint intentionally never reveals account existence.
+// dev-doc only — static example of POST /auth/forgot-password's 200
+// response (auth-contract.md). Always this shape regardless of whether the
+// email is registered — the endpoint intentionally never reveals account
+// existence.
 const EXAMPLE_FORGOT_PASSWORD_RESPONSE = { success: true }
 
 export default function LoginPage({ language, setLanguage, passwordResetSuccess }) {
@@ -101,17 +119,23 @@ export default function LoginPage({ language, setLanguage, passwordResetSuccess 
 
       <div className="auth-layout">
         <div className="auth-devdoc-column">
-          <GatewayJsonPreview
-            title="POST /login — Request (live)"
-            data={{ email, password: 'x'.repeat(password.length) }}
+          <JwtHandshakePreview
+            title="JWT Token"
+            secret={JWT_SHARED_SECRET}
+            gatewayAction={'generate token -> encode(JWT_SECRET, JWT_ALGO)\napi response ->'}
+            aiEngineAction={'verify token -> decode(token, JWT_SECRET, JWT_ALGO)\ncheck condition -> if (verified) continue'}
+            exampleTokenResponse={EXAMPLE_TOKEN_PAIR}
           />
           <GatewayJsonPreview
-            title="POST /forgot-password — Request (live)"
-            data={{ email: forgotEmail }}
+            title="POST /auth/refresh-token — Request"
+            data={{ refresh_token: 'eyJhbGciOi...' }}
           />
+          {/* refresh tokens rotate on use (old one is invalidated) to limit
+              replay if a refresh token leaks — standard practice, hence the
+              same token-pair shape reappearing here as on /auth/login */}
           <GatewayJsonPreview
-            title="POST /forgot-password — Response 200 (example)"
-            data={EXAMPLE_FORGOT_PASSWORD_RESPONSE}
+            title="POST /auth/refresh-token — Response 200"
+            data={EXAMPLE_TOKEN_PAIR}
           />
         </div>
 
@@ -242,11 +266,26 @@ export default function LoginPage({ language, setLanguage, passwordResetSuccess 
               </form>
             )}
           </div>
+
+          <div className="auth-devdoc-below">
+            <GatewayJsonPreview
+              title="POST /auth/login — Request"
+              data={{ email, password: 'x'.repeat(password.length) }}
+            />
+            <GatewayJsonPreview
+              title="POST /auth/forgot-password — Request"
+              data={{ email: forgotEmail }}
+            />
+            <GatewayJsonPreview
+              title="POST /auth/forgot-password — Response 200"
+              data={EXAMPLE_FORGOT_PASSWORD_RESPONSE}
+            />
+          </div>
         </div>
 
         <div className="auth-devdoc-column">
           <GatewayJsonPreview
-            title="POST /login — Response 200 (example)"
+            title="POST /auth/login — Response 200"
             data={EXAMPLE_LOGIN_RESPONSE}
           />
         </div>

@@ -158,9 +158,9 @@ export default function PermissionsPage({ session }) {
       </div>
 
       <div className="config-devdoc">
-        <GatewayJsonPreview title="GET /permissions — Response (live)" data={gatewayPermissionsResponse} />
+        <GatewayJsonPreview title="GET /permissions — Response" data={gatewayPermissionsResponse} />
         <GatewayJsonPreview
-          title={`PATCH /permissions/${form.key || '{key}'} — Payload (live)`}
+          title={`PATCH /permissions/${form.key || '{key}'} — Payload`}
           data={{ label_id: form.labelId, label_en: form.labelEn }}
         />
       </div>

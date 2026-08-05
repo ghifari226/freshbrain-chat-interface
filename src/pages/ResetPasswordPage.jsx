@@ -8,11 +8,12 @@ import GatewayJsonPreview from '../components/devdoc/GatewayJsonPreview.jsx'
 
 const MIN_PASSWORD_LENGTH = 8
 
-// dev-doc only — static example of POST /reset-password's 200 response
-// (auth-contract.md). Same session shape as POST /login — this endpoint
-// also issues a fresh token — see LoginPage.jsx's EXAMPLE_LOGIN_RESPONSE
-// for the fully catalog-derived version; kept abbreviated here since this
-// page's only job is showing the request side is masked correctly.
+// dev-doc only — static example of POST /auth/reset-password's 200 response
+// (auth-contract.md). Same session shape as POST /auth/login — this
+// endpoint also issues a fresh token — see LoginPage.jsx's
+// EXAMPLE_LOGIN_RESPONSE for the fully catalog-derived version; kept
+// abbreviated here since this page's only job is showing the request side
+// is masked correctly.
 const EXAMPLE_RESET_PASSWORD_RESPONSE = {
   id: 'a1b2c3d4-5e6f-4a1b-8c2d-3e4f5a6b7c8d',
   name: 'Larry Ridwan',
@@ -145,11 +146,11 @@ export default function ResetPasswordPage({ token, language, setLanguage }) {
 
       <div className="auth-devdoc">
         <GatewayJsonPreview
-          title="POST /reset-password — Request (live)"
+          title="POST /auth/reset-password — Request"
           data={{ token, password: 'x'.repeat(password.length) }}
         />
         <GatewayJsonPreview
-          title="POST /reset-password — Response 200 (example)"
+          title="POST /auth/reset-password — Response 200"
           data={EXAMPLE_RESET_PASSWORD_RESPONSE}
         />
       </div>

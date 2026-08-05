@@ -484,7 +484,7 @@ export default function UsersPage() {
       )}
 
       <div className="config-devdoc">
-        <GatewayJsonPreview title="GET /users — Response (live)" data={gatewayUsersResponse} />
+        <GatewayJsonPreview title="GET /users — Response" data={gatewayUsersResponse} />
       </div>
 
       <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog} fullWidth maxWidth="sm">
@@ -504,7 +504,7 @@ export default function UsersPage() {
           {canEdit && isEditMode && resetLinkNotice}
           {canEdit && isEditMode && gatewayResetLinkResponse && (
             <GatewayJsonPreview
-              title="POST /users/{id}/reset-link — Response (live)"
+              title="POST /users/{id}/reset-link — Response"
               data={gatewayResetLinkResponse}
             />
           )}
@@ -608,7 +608,7 @@ export default function UsersPage() {
               </span>
             )}
             <GatewayJsonPreview
-              title={userFormTarget === 'new' ? 'POST /users — Payload (live)' : `PATCH /users/${userFormTarget} — Payload (live)`}
+              title={userFormTarget === 'new' ? 'POST /users — Payload' : `PATCH /users/${userFormTarget} — Payload`}
               data={gatewayUserFormPayload}
             />
           </form>
@@ -683,7 +683,7 @@ export default function UsersPage() {
             />
           </div>
           <GatewayJsonPreview
-            title={`PATCH /users/${permissionsDialogUserId ?? '{id}'} — Payload (live)`}
+            title={`PATCH /users/${permissionsDialogUserId ?? '{id}'} — Payload`}
             data={gatewayPermissionsPatchPayload}
           />
         </DialogContent>
