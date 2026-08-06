@@ -4,6 +4,7 @@ import SectionToggle from '../components/catalog/SectionToggle.jsx'
 import ToolCatalogFilters from './tool-catalog/ToolCatalogFilters.jsx'
 import ToolCatalogTable from './tool-catalog/ToolCatalogTable.jsx'
 import ToolEntryDialog from './tool-catalog/ToolEntryDialog.jsx'
+import GatewayJsonPreview from '../components/devdoc/GatewayJsonPreview.jsx'
 import {
   EMPTY_TOOL_FORM,
   isToolFormValid,
@@ -93,6 +94,17 @@ export default function ToolCatalogPage() {
         displayName: `${entry.system}.${entry.name}`,
       }))
   }, [entries, filterByStatus, searchQuery, selectedSystems])
+
+  // dev-doc only — GET /tools' 200 response. entries already merges
+  // published + request-status rows (useCatalogEntries); filtering out
+  // status === 'request' reconstructs exactly what getToolCatalogEntries()
+  // alone returns — empty for now, since every mock tool is still status
+  // 'request' (nothing has been promoted to staging/production yet).
+  const gatewayToolsResponse = entries.filter((entry) => entry.status !== 'request')
+
+  // dev-doc only — GET /tool-requests' 200 response: the request-status
+  // rows already sitting in entries (getToolCatalogRequestEntries()'s shape).
+  const gatewayToolRequestsResponse = entries.filter((entry) => entry.status === 'request')
 
   function toggleSystemFilter(system) {
     setSelectedSystems((current) => {
@@ -216,6 +228,14 @@ export default function ToolCatalogPage() {
           rows={visibleRows}
           t={t}
         />
+
+        <div className="config-devdoc">
+          {statusFilters.isRequestActive ? (
+            <GatewayJsonPreview variant="ai" title="GET /tool-requests — Response" data={gatewayToolRequestsResponse} />
+          ) : (
+            <GatewayJsonPreview variant="ai" title="GET /tools — Response" data={gatewayToolsResponse} />
+          )}
+        </div>
       </div>
 
       <ToolEntryDialog

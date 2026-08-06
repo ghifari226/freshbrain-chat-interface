@@ -128,7 +128,7 @@ export default function LoginPage({ language, setLanguage, passwordResetSuccess 
           />
           <GatewayJsonPreview
             title="POST /auth/refresh-token — Request"
-            data={{ refresh_token: 'eyJhbGciOi...' }}
+            data={{ refresh_token: EXAMPLE_TOKEN_PAIR.refresh_token }}
           />
           {/* refresh tokens rotate on use (old one is invalidated) to limit
               replay if a refresh token leaks — standard practice, hence the

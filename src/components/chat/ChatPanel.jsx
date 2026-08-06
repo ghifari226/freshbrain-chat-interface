@@ -2,9 +2,22 @@ import { useEffect, useRef } from 'react'
 import ChatMessage from './ChatMessage.jsx'
 import MessageInput from './MessageInput.jsx'
 import StagingModeToggle from './StagingModeToggle.jsx'
+import GatewayJsonPreview from '../devdoc/GatewayJsonPreview.jsx'
 import { useT } from '../../hooks/useT.js'
 
-export default function ChatPanel({ conversation, isLoading, onSend, onStop, onRetry, onFeedback, inputRef }) {
+export default function ChatPanel({
+  conversation,
+  isLoading,
+  onSend,
+  onStop,
+  onRetry,
+  onFeedback,
+  inputRef,
+  onDraftChange,
+  chatRequestPreview,
+  chatResponsePreview,
+  chatToken,
+}) {
   const t = useT()
   const scrollRef = useRef(null)
 
@@ -69,11 +82,28 @@ export default function ChatPanel({ conversation, isLoading, onSend, onStop, onR
             </div>
           )}
 
+          <div className="chat-devdoc">
+            <GatewayJsonPreview
+              variant="ai"
+              title="POST /chat — Request"
+              data={chatRequestPreview}
+              token={chatToken}
+              gatewayFields={['user_id', 'role', 'allowed_scopes']}
+            />
+            <GatewayJsonPreview variant="ai" title="POST /chat — Response 200" data={chatResponsePreview} />
+          </div>
+
           <div ref={scrollRef} />
         </div>
       </div>
 
-      <MessageInput ref={inputRef} onSend={onSend} onStop={onStop} disabled={isLoading} />
+      <MessageInput
+        ref={inputRef}
+        onSend={onSend}
+        onStop={onStop}
+        disabled={isLoading}
+        onDraftChange={onDraftChange}
+      />
       <p className="chat-disclaimer">{t('chat.disclaimer')}</p>
     </main>
   )

@@ -6,7 +6,7 @@ const MAX_LINES = 10
 const LINE_HEIGHT = 24
 
 const MessageInput = forwardRef(function MessageInput(
-  { onSend, onStop, disabled, autoFocus },
+  { onSend, onStop, disabled, autoFocus, onDraftChange },
   ref,
 ) {
   const t = useT()
@@ -35,6 +35,7 @@ const MessageInput = forwardRef(function MessageInput(
     if (!trimmed || disabled) return
     onSend(trimmed)
     setValue('')
+    onDraftChange?.('')
   }
 
   function handleKeyDown(event) {
@@ -51,7 +52,10 @@ const MessageInput = forwardRef(function MessageInput(
           ref={textareaRef}
           rows={1}
           value={value}
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => {
+            setValue(event.target.value)
+            onDraftChange?.(event.target.value)
+          }}
           onKeyDown={handleKeyDown}
           placeholder={t('chat.askPlaceholder')}
           disabled={disabled}

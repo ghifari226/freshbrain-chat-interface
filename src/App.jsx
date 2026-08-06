@@ -27,6 +27,23 @@ import { updateById } from './utils/collections.js'
 const MuiPage = lazy(() => import('./pages/MuiPage.jsx'))
 const AdminSection = lazy(() => import('./pages/admin/AdminSection.jsx'))
 
+// dev-doc only — static example of POST /chat's 200 response, shown until
+// the first real message is sent in this session (app/chat/schemas.py's
+// ChatResponse). Replaced by the real response via setLastChatResponse.
+const EXAMPLE_CHAT_RESPONSE = {
+  answer: 'Revenue bulan lalu tercatat sebesar Rp 10.176.965.194,47.',
+  conversation_id: 'b7e2d5f1-0000-4c22-9d33-000000000010',
+  message_id: 'b7e2d5f1-0000-4c22-9d33-000000000011',
+  title: 'Revenue bulan lalu',
+}
+
+// dev-doc only — target Authorization header for /chat, shown on the
+// Request panel. `session.token` is the real *current* value
+// (`mock:<user_id>` — see authService.js, temporary until chat-gateway
+// signs real JWTs), but this line is meant to show ai-engine what a real
+// signed token will look like once that's built, not today's placeholder.
+const EXAMPLE_CHAT_BEARER_TOKEN = 'eyJhbGciOi...'
+
 function AuthenticatedApp({ language, setLanguage }) {
   const { pathname: path } = useLocation()
   const navigate = useNavigate()
@@ -38,6 +55,8 @@ function AuthenticatedApp({ language, setLanguage }) {
   const [conversations, setConversations] = useState([])
   const [pendingMessages, setPendingMessages] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [chatDraft, setChatDraft] = useState('')
+  const [lastChatResponse, setLastChatResponse] = useState(null)
   const inputRef = useRef(null)
   const abortControllerRef = useRef(null)
   useEffect(() => {
@@ -139,6 +158,7 @@ function AuthenticatedApp({ language, setLanguage }) {
         token: session?.token,
         signal: controller.signal,
       })
+      setLastChatResponse(response)
       const assistantMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -231,6 +251,21 @@ function AuthenticatedApp({ language, setLanguage }) {
     abortControllerRef.current?.abort()
   }
 
+  // dev-doc only — POST /chat's request body, live-bound to the actual draft
+  // as typed in MessageInput (via onDraftChange), so Freddy sees the exact
+  // payload shape as-you-type (app/chat/schemas.py's ChatRequest).
+  const chatRequestPreview = {
+    message: chatDraft,
+    conversation_id: activeConversationId,
+    user_id: session?.id,
+    role: session?.role,
+    allowed_scopes: session?.allowed_scopes,
+  }
+
+  // dev-doc only — POST /chat's 200 response. Live once a message has been
+  // sent this session (see runSend), falls back to a static example.
+  const chatResponsePreview = lastChatResponse ?? EXAMPLE_CHAT_RESPONSE
+
   const chatPanel = (
     <ChatPanel
       conversation={activeConversation}
@@ -242,6 +277,10 @@ function AuthenticatedApp({ language, setLanguage }) {
         handleMessageFeedback(activeConversationId, messageId, feedback)
       }
       inputRef={inputRef}
+      onDraftChange={setChatDraft}
+      chatRequestPreview={chatRequestPreview}
+      chatResponsePreview={chatResponsePreview}
+      chatToken={EXAMPLE_CHAT_BEARER_TOKEN}
     />
   )
 

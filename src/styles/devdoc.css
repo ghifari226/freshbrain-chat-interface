@@ -75,6 +75,18 @@
   flex: 1 1 320px;
 }
 
+/* Sits inside .message-list__inner (ChatPanel.jsx), after the messages map
+   and loading indicator, before the scroll-anchor div — scrolls with the
+   conversation instead of being pinned outside it. Column, not row: the
+   message list is a narrow vertical column, not a full-width page. */
+.chat-devdoc {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
 .gateway-json-preview {
   background: #fff;
   border: 1px solid var(--border-color, #e2e2e2);
@@ -99,6 +111,40 @@
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
+}
+
+/* Authorization header line, shown above the body when GatewayJsonPreview
+   is given a `token` — same monospace treatment as the body, sits between
+   the title and the JSON. */
+.gateway-json-preview__auth {
+  color: #1a1a1a;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12.5px;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+/* Marks a value (in the body or the auth line) as extracted from the
+   gateway's JWT rather than produced by ai-engine itself — red regardless
+   of the panel's red/green variant, since it signals "this came from the
+   other side," not which side the panel itself belongs to. Quotes around
+   the value stay the body's default color; only the value text is red. */
+.gateway-json-preview__gateway-value {
+  color: var(--danger);
+}
+
+/* The "( )" around "Gateway auth" in the AI Engine label line — stays the
+   body's default black regardless of the green title color it sits inside,
+   so only "Gateway auth" itself reads as red. */
+.gateway-json-preview__paren {
+  color: #1a1a1a;
+}
+
+/* GatewayJsonPreview variant="ai" — same box as the default (red,
+   chat-gateway) preview, but green for ai-engine endpoints (POST /chat,
+   GET /tool-catalog). Only the title color changes. */
+.gateway-json-preview--ai .gateway-json-preview__title {
+  color: var(--ai-engine);
 }
 
 /* JwtHandshakePreview — same box as .gateway-json-preview, but the title
