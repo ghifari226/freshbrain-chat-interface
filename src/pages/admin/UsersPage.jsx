@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, ShieldCheck, Trash2 } from 'lucide-react'
+import { Check, Copy, Info, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import {
   IconButton,
   Dialog,
@@ -80,6 +80,7 @@ export default function UsersPage() {
   const [fieldErrors, setFieldErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetLink, setResetLink] = useState(null)
+  const [resetLinkSent, setResetLinkSent] = useState(false)
   const [isCopied, copyResetLink] = useCopyToClipboard()
   const [userFormTarget, setUserFormTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -180,6 +181,7 @@ export default function UsersPage() {
     setFormError('')
     setFieldErrors({})
     setResetLink(null)
+    setResetLinkSent(false)
     setUserFormTarget('new')
   }
 
@@ -188,6 +190,7 @@ export default function UsersPage() {
     setFormError('')
     setFieldErrors({})
     setResetLink(null)
+    setResetLinkSent(false)
     setUserFormTarget(row.id)
   }
 
@@ -225,6 +228,12 @@ export default function UsersPage() {
         )
         setUsers((prev) => [...prev, user])
         setResetLink(`/reset/${resetToken}`)
+        setResetLinkSent(false)
+        // Switch the dialog into edit mode for the user just created
+        // (instead of closing it) so resetLinkNotice — which only renders
+        // inside the dialog — has somewhere to show the link.
+        setForm({ name: user.name, email: user.email, phone: localPhoneDigitsFromStored(user.phone), role: user.role })
+        setUserFormTarget(user.id)
       } else {
         const id = userFormTarget
         const updated = await updateUser(
@@ -234,9 +243,9 @@ export default function UsersPage() {
         )
         setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)))
         if (id === session?.id) updateSession({ name: updated.name })
+        setForm(EMPTY_FORM)
+        setUserFormTarget(null)
       }
-      setForm(EMPTY_FORM)
-      setUserFormTarget(null)
     } catch (error) {
       setFormError(userFormTarget === 'new' ? 'emailTaken' : errorMessage(error))
     } finally {
@@ -251,15 +260,29 @@ export default function UsersPage() {
   async function handleGenerateResetLink(row) {
     const { resetToken } = await generateResetLink(row.id, actorForUpdate)
     setResetLink(`/reset/${resetToken}`)
+    setResetLinkSent(false)
+  }
+
+  // Mocked — no real mail transport locally (see authService.js's
+  // requestPasswordReset), so "sending" just flips the UI to its sent state.
+  function handleSendResetLinkToEmail() {
+    setResetLinkSent(true)
   }
 
   const resetLinkNotice = resetLink && (
     <div className="config-reset-link">
       <strong className="config-reset-link__label">{t('config.resetLinkLabel')}</strong>
-      <code className="config-reset-link__value">{resetLink}</code>
-      <button className="config-link-button" onClick={handleCopyResetLink}>
-        {t(isCopied ? 'config.copied' : 'config.copyLink')}
-      </button>
+      <div className="config-reset-link__row">
+        <code className="config-reset-link__value">{resetLink}</code>
+        <button
+          type="button"
+          className="icon-button config-reset-link__copy"
+          onClick={handleCopyResetLink}
+          aria-label={t(isCopied ? 'config.copied' : 'config.copyLink')}
+        >
+          {isCopied ? <Check size={18} /> : <Copy size={18} />}
+        </button>
+      </div>
     </div>
   )
 
@@ -332,8 +355,6 @@ export default function UsersPage() {
       {!canAdd && !canEdit && !canDelete && !canAssign && (
         <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>
       )}
-
-      {!userFormTarget && resetLinkNotice}
 
       {loadError && <p className="config-section__notice">{loadError}</p>}
 
@@ -449,13 +470,20 @@ export default function UsersPage() {
         <DialogTitle className="config-user-dialog-title">
           <span>{isEditMode ? editingUser?.name : t('config.addUser')}</span>
           {canEdit && isEditMode && (
-            <button
-              className="config-link-button"
-              type="button"
-              onClick={() => handleGenerateResetLink(editingUser)}
-            >
-              {t('config.generateResetLink')}
-            </button>
+            resetLinkSent ? (
+              <span className="config-email-sent-notice">
+                <Info size={14} />
+                {t('config.emailSentNotice')}
+              </span>
+            ) : (
+              <button
+                className="config-link-button"
+                type="button"
+                onClick={resetLink ? handleSendResetLinkToEmail : () => handleGenerateResetLink(editingUser)}
+              >
+                {t(resetLink ? 'config.sendResetLinkToEmail' : 'config.generateResetLink')}
+              </button>
+            )
           )}
         </DialogTitle>
         <DialogContent>

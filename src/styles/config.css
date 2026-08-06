@@ -419,9 +419,9 @@
 
 .config-reset-link {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 6px;
   background: rgba(65, 154, 210, 0.12);
   border-radius: 8px;
   padding: 10px 12px;
@@ -429,10 +429,32 @@
   font-size: 13px;
   width: 100%;
   box-sizing: border-box;
+  text-align: center;
 }
 
 .config-reset-link__label {
   color: var(--accent);
+}
+
+.config-reset-link__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Passive-looking, not button-like — same accent blue as the link text
+   beside it, no hover fill, just a pointer cursor to signal it's clickable. */
+.config-reset-link__copy {
+  width: 28px;
+  height: 28px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.config-reset-link__copy:hover {
+  background: transparent;
 }
 
 .config-reset-link__value {
@@ -543,6 +565,19 @@
   font-weight: 600;
   padding: 0;
 }
+
+/* Replaces .config-link-button in the same title slot once the mocked send
+   succeeds — status text, not an action, so it reads as muted/passive
+   rather than accent-colored and clickable. */
+.config-email-sent-notice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .permission-group-list {
   display: flex;
   flex-direction: column;
