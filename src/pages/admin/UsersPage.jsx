@@ -130,6 +130,17 @@ export default function UsersPage() {
   // back off so this shows exactly what the backend actually returns.
   const gatewayResetLinkResponse = resetLink ? { resetToken: resetLink.slice('/reset/'.length) } : null
 
+  // dev-doc only — POST /users/{id}/send-reset-email's 200 response
+  // (auth-contract.md). Best practice: no token or address in the request
+  // body — the backend already has both (the token from the call above,
+  // the address on file for {id}), so the FE never needs to see or resend
+  // either. Same shape as POST /auth/forgot-password's response for
+  // consistency — this is an authenticated admin action already scoped to
+  // a real user, so there's no account-existence leak to guard against
+  // here, but keeping both endpoints boringly identical means one fewer
+  // shape for Freddy to special-case.
+  const gatewaySendResetEmailResponse = resetLinkSent ? { success: true } : null
+
   // Highlights whichever preset's exact permission set matches the current
   // draft — never editable directly, purely derived from dialogPermissions
   // (see matchPresetForPermissions). Falls back to a synthetic "Custom"
@@ -534,6 +545,12 @@ export default function UsersPage() {
             <GatewayJsonPreview
               title="POST /users/{id}/reset-link — Response"
               data={gatewayResetLinkResponse}
+            />
+          )}
+          {canEdit && isEditMode && gatewaySendResetEmailResponse && (
+            <GatewayJsonPreview
+              title="POST /users/{id}/send-reset-email — Response"
+              data={gatewaySendResetEmailResponse}
             />
           )}
 
