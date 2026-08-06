@@ -209,12 +209,14 @@ export const strings = {
       en: "View only. You don't have permission to make changes here.",
     },
     resetLinkLabel: {
-      id: 'Link reset password:',
-      en: 'Link reset password:',
+      id: 'Link reset kata sandi:',
+      en: 'Password reset link:',
     },
+    emailSentNotice: { id: 'Email berhasil terkirim', en: 'Email sent' },
     copyLink: { id: 'Salin', en: 'Copy' },
     copied: { id: 'Tersalin', en: 'Copied' },
-    generateResetLink: { id: 'Link reset password', en: 'Link reset password' },
+    generateResetLink: { id: 'Request reset kata sandi', en: 'Request password reset' },
+    sendResetLinkToEmail: { id: 'Kirim ke email', en: 'Send to email' },
   },
   permissions: {
     sectionLabel: { id: 'Hak akses', en: 'Permissions' },
