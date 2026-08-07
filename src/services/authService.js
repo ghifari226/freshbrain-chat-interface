@@ -41,10 +41,6 @@ const MOCK_USERS = [
 function makeResetToken() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10)
 }
-// Visiting /reset/:token is a real browser navigation (full reload), which
-// re-initializes MOCK_USERS from scratch — an in-memory-only resetToken field
-// wouldn't survive that. Persist the token -> user id mapping in localStorage
-// so the mock flow is actually testable via a real URL, same as production.
 const MOCK_RESET_TOKENS_KEY = 'freshbrain_mock_reset_tokens'
 function readMockResetTokens() {
   try {
@@ -274,7 +270,6 @@ export async function requestPasswordReset(email, { signal } = {}) {
 
   const user = MOCK_USERS.find((u) => u.email === email)
   if (!user) {
-    // Always resolve success — never reveal whether the email exists.
     return { success: true }
   }
 
@@ -283,9 +278,6 @@ export async function requestPasswordReset(email, { signal } = {}) {
   const mockResetLink = `/reset/${user.resetToken}`
   console.info(`[mock] Password reset link for ${email}: ${mockResetLink}`)
 
-  // mockResetLink is dev-only — there's no real mail transport locally, so this
-  // is surfaced back to the same browser purely to make the flow testable.
-  // The real backend only ever returns { success: true }.
   return { success: true, mockResetLink }
 }
 export async function generateResetLink(id, actor, { signal } = {}) {
