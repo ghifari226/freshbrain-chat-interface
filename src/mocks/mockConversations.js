@@ -47,7 +47,7 @@ export function makeMockConversations() {
         {
           id: 'e5f6a7b8-0000-4d11-9c22-000000000004',
           role: 'assistant',
-          text: 'Saat ini terdapat total 45 warehouse.',
+          text: 'Saat ini terdapat total 88 warehouse (gudang fisik), dengan total 909 tempat penyimpanan (gudang virtual).',
           createdAt: '2026-07-11T15:42:15Z',
           backendMessageId: 'e5f6a7b8-0000-4d11-9c22-000000000004',
         },

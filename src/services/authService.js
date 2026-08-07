@@ -20,6 +20,7 @@ import {
   permissionFlagsToArray,
   permissionsArrayToFlags,
 } from '../config/permissions.js'
+import { flagsForPreset } from '../config/presets.js'
 import { authHeaders, gatewayApi } from './api.ts'
 import { mockDelay } from './mockDelay.ts'
 
@@ -93,12 +94,12 @@ function allFalsePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, false]))
 }
 
-// Seeds every permission true — used for the three Superuser mock rows
-// below (Larry, Ghifari, Admin: the "gets everything" role, both wildcard
-// data scope and every admin permission). Technology is no longer
-// role-conditional anywhere in this file (see createUser() — there's no
-// Technology branch left, new Technology users default false like any
-// other ordinary role, same as Finance/Human Resource/etc).
+// Seeds every permission true — used for Larry and Admin's Superuser rows
+// below, plus Ghifari's Technology row (a hand-picked exception, not
+// role-derived — Technology is no longer role-conditional anywhere in this
+// file, see createUser() — there's no Technology branch left, new
+// Technology users default false like any other ordinary role, same as
+// Finance/Human Resource/etc).
 function allTruePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, true]))
 }
@@ -126,7 +127,7 @@ const MOCK_USERS = [
     password: 'freshbrain',
     name: 'Ghifari',
     phone: '6281110000002',
-    role: 'Superuser',
+    role: 'Technology',
     is_maintainer: true,
     ...allTruePermissions(),
   },
@@ -138,7 +139,7 @@ const MOCK_USERS = [
     phone: '6281110000003',
     role: 'Client Service Management',
     is_maintainer: false,
-    ...allFalsePermissions(),
+    ...flagsForPreset('capability-tester'),
   },
   {
     id: 'b7e2d5f1-0000-4c22-9d33-000000000004',
@@ -148,7 +149,7 @@ const MOCK_USERS = [
     phone: '6281110000004',
     role: 'Finance',
     is_maintainer: false,
-    ...allFalsePermissions(),
+    ...flagsForPreset('capability-tester'),
   },
   {
     id: 'b7e2d5f1-0000-4c22-9d33-000000000005',
@@ -314,11 +315,11 @@ export async function getAllUsers({ signal, token } = {}) {
  * 'Superuser' (all start true — the "gets everything" role). Technology
  * has no special-cased default anymore, it starts false like any other
  * role (its two locked fields still read back true regardless, though —
- * see shapeUserPermissions); the three pre-existing Superuser mock
- * accounts (Larry, Ghifari, Admin) keep their already-true state as
- * static seed data, not because of a role branch here. This is purely a
- * function of `role` — never something the request body can ask for
- * directly.
+ * see shapeUserPermissions); the pre-existing Superuser mock accounts
+ * (Larry, Admin) and Ghifari's Technology row keep their already-true
+ * state as static seed data, not because of a role branch here. This is
+ * purely a function of `role` — never something the request body can ask
+ * for directly.
  *
  * `email` is captured but not verified or used to actually send anything —
  * real delivery is a chat-gateway/email-provider decision for later.

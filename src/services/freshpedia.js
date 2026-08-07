@@ -71,10 +71,9 @@ const ALLOWED_TRANSITIONS = {
   production: ['staging'],
 }
 
-// Ghifari's and Delanda's users.id, from authService.js's MOCK_USERS —
-// reused here so createdBy/updatedBy actually resolve to a real user.
+// Ghifari's users.id, from authService.js's MOCK_USERS — reused here so
+// createdBy/updatedBy actually resolve to a real user.
 const GHIFARI_UID = 'b7e2d5f1-0000-4c22-9d33-000000000002'
-const DELANDA_UID = 'b7e2d5f1-0000-4c22-9d33-000000000003'
 
 // Module-level, mutable — same role as MOCK_USERS in auth.js. Resets on
 // reload; no backend persistence yet. `id` is a fixed literal uid per row
@@ -82,20 +81,6 @@ const DELANDA_UID = 'b7e2d5f1-0000-4c22-9d33-000000000003'
 // as roles.js's ROLE_IDS/authService.js's MOCK_USERS); createFreshpediaEntry
 // generates a fresh one for genuinely new entries.
 const MOCK_ENTRIES = [
-  {
-    id: 'c9d4e1a0-0000-4f11-9a22-000000000001',
-    title: 'Jumlah Gudang Fisik',
-    type: 'definition',
-    status: 'production',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-10T09:00:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-10T09:00:00Z',
-    content: {
-      en: 'The count of physical warehouse locations Fresh Factory currently operates. Referenced whenever FreshBrain answers a "how many warehouses" question — see the mock chat example: "Saat ini terdapat total 45 warehouse."',
-      id: 'Jumlah lokasi gudang fisik yang saat ini dioperasikan oleh Fresh Factory. Dirujuk setiap kali FreshBrain menjawab pertanyaan "berapa jumlah gudang" — lihat contoh chat: "Saat ini terdapat total 45 warehouse."',
-    },
-  },
   {
     id: 'c9d4e1a0-0000-4f11-9a22-000000000002',
     title: 'Warehouse Management System',
@@ -108,69 +93,6 @@ const MOCK_ENTRIES = [
     content: {
       en: 'The system that tracks inventory, inbound receiving, and fulfillment across Fresh Factory\'s warehouses.',
       id: 'Sistem yang melacak inventaris, penerimaan barang masuk, dan fulfillment di seluruh gudang Fresh Factory.',
-    },
-  },
-  {
-    id: 'c9d4e1a0-0000-4f11-9a22-000000000003',
-    title: 'WMS',
-    type: 'alias',
-    status: 'production',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-09T09:05:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-09T09:05:00Z',
-    aliasTargetId: 'c9d4e1a0-0000-4f11-9a22-000000000002',
-    aliasPhrase: 'Singkatan umum untuk Warehouse Management System.',
-  },
-  {
-    id: 'c9d4e1a0-0000-4f11-9a22-000000000004',
-    title: 'Cross-Docking',
-    type: 'definition',
-    status: 'staging',
-    createdBy: DELANDA_UID,
-    createdAt: '2026-07-15T11:00:00Z',
-    updatedBy: DELANDA_UID,
-    updatedAt: '2026-07-15T11:00:00Z',
-    content: {
-      en: 'Unloading goods from inbound shipments and loading them directly onto outbound transport, with little or no warehouse storage in between.',
-      id: 'Menurunkan barang dari pengiriman masuk lalu langsung memuatnya ke transportasi keluar, dengan penyimpanan gudang minimal atau tanpa penyimpanan sama sekali.',
-    },
-  },
-  {
-    id: 'c9d4e1a0-0000-4f11-9a22-000000000005',
-    title: 'Panduan Tata Letak Gudang',
-    type: 'document',
-    status: 'production',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-08T09:00:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-08T09:00:00Z',
-    fileName: 'panduan-tata-letak-gudang.pdf',
-  },
-  {
-    id: 'c9d4e1a0-0000-4f11-9a22-000000000006',
-    title: 'SOP Retur Barang',
-    type: 'document',
-    status: 'staging',
-    createdBy: DELANDA_UID,
-    createdAt: '2026-07-16T14:30:00Z',
-    updatedBy: DELANDA_UID,
-    updatedAt: '2026-07-16T14:30:00Z',
-    fileName: 'sop-retur-barang.pdf',
-  },
-  {
-    id: 'c9d4e1a0-0000-4f11-9a22-000000000007',
-    title: 'Fulfillment Rate',
-    type: 'definition',
-    status: 'request',
-    requestStatus: 'posted',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-20T10:15:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-20T10:15:00Z',
-    content: {
-      en: 'The share of order lines shipped complete and on the first attempt, without split shipments or backorders.',
-      id: 'Persentase baris pesanan yang dikirim lengkap dan pada percobaan pertama, tanpa pengiriman terpisah atau backorder.',
     },
   },
   {
@@ -187,19 +109,6 @@ const MOCK_ENTRIES = [
       en: 'The system that plans and tracks outbound shipments across carriers and routes.',
       id: 'Sistem yang merencanakan dan melacak pengiriman keluar di berbagai kurir dan rute.',
     },
-  },
-  {
-    id: 'c9d4e1a0-0000-4f11-9a22-000000000009',
-    title: 'TMS',
-    type: 'alias',
-    status: 'request',
-    requestStatus: 'posted',
-    createdBy: GHIFARI_UID,
-    createdAt: '2026-07-19T16:45:00Z',
-    updatedBy: GHIFARI_UID,
-    updatedAt: '2026-07-19T16:45:00Z',
-    aliasTargetId: 'c9d4e1a0-0000-4f11-9a22-000000000008',
-    aliasPhrase: 'Singkatan umum untuk Transport Management System.',
   },
 ]
 
