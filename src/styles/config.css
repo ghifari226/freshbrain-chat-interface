@@ -281,6 +281,14 @@
   font-size: 18px;
 }
 
+.icon-button--static {
+  cursor: default;
+}
+
+.icon-button--static:hover {
+  background: transparent;
+}
+
 .role-card__rename-form {
   display: flex;
   align-items: center;
@@ -627,8 +635,7 @@
   color: var(--text-muted);
 }
 
-.permission-checkbox__label svg,
-.role-card__header-actions > svg {
+.permission-checkbox__label svg {
   width: 13px;
   height: 13px;
   vertical-align: -2px;
