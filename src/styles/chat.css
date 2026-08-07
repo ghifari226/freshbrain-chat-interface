@@ -145,12 +145,12 @@
 }
 
 .message__bubble {
-  font-family: var(--font-chat);
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .message--user .message__bubble {
+  font-family: var(--font-system);
   background: var(--surface-bubble-user);
   color: var(--text-chat);
   padding: 10px 14px;
@@ -158,6 +158,7 @@
 }
 
 .message--assistant .message__bubble {
+  font-family: var(--font-chat);
   background: transparent;
   color: var(--text-chat);
 }

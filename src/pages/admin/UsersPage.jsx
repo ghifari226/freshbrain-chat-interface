@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, ShieldCheck, Trash2 } from 'lucide-react'
+import { Info, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import {
   IconButton,
   Dialog,
@@ -20,7 +20,7 @@ import {
   TableRow,
   TableSortLabel,
 } from '@mui/material'
-import { createUser, deleteUser, getAllUsers, updateUser } from '../../services/authService.js'
+import { createUser, deleteUser, generateResetLink, getAllUsers, updateUser } from '../../services/authService.js'
 import { errorMessage, isCanceled } from '../../services/api.ts'
 import { ROLES } from '../../config/roles.js'
 import {
@@ -57,6 +57,13 @@ const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !
 // wire-shaped allowed_permissions array directly — see flagsForUser below.
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
+}
+
+// Same "disable Save until it actually differs from what was loaded" shape
+// as permissionsEqual/isPermissionsDialogDirty above, applied to the
+// name/email/phone/role edit form instead of the permissions checkboxes.
+function userFormEqual(a, b) {
+  return a.name === b.name && a.email === b.email && a.phone === b.phone && a.role === b.role
 }
 
 // Boundary helper: every directory-entry-shaped user object in this file
@@ -100,15 +107,17 @@ export default function UsersPage() {
   // Mocked, in-memory only — no backend persistence yet, resets on reload.
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
+  const [savedForm, setSavedForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
-  // Unlike Roles/Permissions/Freshpedia/Tool Catalog, this dialog's submit
-  // button is never disabled — validation only runs (and these populate)
-  // when it's actually clicked, showing a message under each problem field
-  // rather than blocking the click itself.
+  // Field-level validation only runs (and these populate) when Save is
+  // actually clicked, showing a message under each problem field rather
+  // than blocking the click itself — separate from isUserFormDirty below,
+  // which blocks the click itself but only for "nothing changed yet".
   const [fieldErrors, setFieldErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [resetLink, setResetLink] = useState(null)
   const [isCopied, setIsCopied] = useState(false)
+  const [resetLinkSent, setResetLinkSent] = useState(false)
   // Add and Edit share one dialog/form: null (closed), 'new', or the id
   // of the row being edited — so both flows are the same UI/UX, not two
   // different code paths that could drift apart.
@@ -130,6 +139,7 @@ export default function UsersPage() {
   const [pendingPermissions, setPendingPermissions] = useState({})
   const isEditMode = Boolean(userFormTarget) && userFormTarget !== 'new'
   const editingUser = isEditMode ? users.find((u) => u.id === userFormTarget) : null
+  const isUserFormDirty = !isEditMode || !userFormEqual(form, savedForm)
   // Derived from `users`, not a snapshot, so the dialog's title/base data is
   // never stale.
   const permissionsDialogUser = users.find((u) => u.id === permissionsDialogUserId) ?? null
@@ -245,15 +255,22 @@ export default function UsersPage() {
 
   function openAddUserDialog() {
     setForm(EMPTY_FORM)
+    setSavedForm(EMPTY_FORM)
     setFormError('')
     setFieldErrors({})
+    setResetLink(null)
+    setResetLinkSent(false)
     setUserFormTarget('new')
   }
 
   function openEditUserDialog(row) {
-    setForm({ name: row.name, email: row.email, phone: localPhoneDigitsFromStored(row.phone), role: row.role })
+    const nextForm = { name: row.name, email: row.email, phone: localPhoneDigitsFromStored(row.phone), role: row.role }
+    setForm(nextForm)
+    setSavedForm(nextForm)
     setFormError('')
     setFieldErrors({})
+    setResetLink(null)
+    setResetLinkSent(false)
     setUserFormTarget(row.id)
   }
 
@@ -326,6 +343,22 @@ export default function UsersPage() {
     })
   }
 
+  // Admin-side equivalent of the login page's self-service "forgot
+  // password" — generates a fresh link for an existing user being edited,
+  // shown via the same resetLinkNotice used for the create flow.
+  async function handleGenerateResetLink(row) {
+    const { resetToken } = await generateResetLink(row.id, actorForUpdate)
+    setResetLink(`/reset/${resetToken}`)
+    setIsCopied(false)
+    setResetLinkSent(false)
+  }
+
+  // Mocked — no real mail transport locally (see authService.js's
+  // requestPasswordReset), so "sending" just flips the UI to its sent state.
+  function handleSendResetLinkToEmail() {
+    setResetLinkSent(true)
+  }
+
   async function handleConfirmDelete() {
     if (!deleteTarget) return
     await deleteUser(deleteTarget.id, actorForUpdate)
@@ -385,6 +418,19 @@ export default function UsersPage() {
     setPermissionsDialogUserId(null)
   }
 
+  // Shared by the page-level notice below (shown after creating a user,
+  // once the dialog has closed) and the edit-user dialog's DialogContent
+  // (shown while generating a link for an existing user, dialog still open).
+  const resetLinkNotice = resetLink && (
+    <div className="config-reset-link">
+      <span className="config-reset-link__label">{t('config.resetLinkLabel')}</span>
+      <code className="config-reset-link__value">{resetLink}</code>
+      <button className="config-link-button" onClick={handleCopyResetLink}>
+        {t(isCopied ? 'config.copied' : 'config.copyLink')}
+      </button>
+    </div>
+  )
+
   return (
     <div className="config-section">
       {canAdd && (
@@ -404,15 +450,7 @@ export default function UsersPage() {
         <p className="config-section__notice">{t('config.viewOnlyNotice')}</p>
       )}
 
-      {resetLink && (
-        <div className="config-reset-link">
-          <span className="config-reset-link__label">{t('config.resetLinkLabel')}</span>
-          <code className="config-reset-link__value">{resetLink}</code>
-          <button className="config-link-button" onClick={handleCopyResetLink}>
-            {t(isCopied ? 'config.copied' : 'config.copyLink')}
-          </button>
-        </div>
-      )}
+      {resetLinkNotice}
 
       {loadError && <p className="config-section__notice">{loadError}</p>}
 
@@ -525,14 +563,74 @@ export default function UsersPage() {
       )}
 
       <Dialog open={Boolean(userFormTarget)} onClose={closeUserFormDialog} fullWidth maxWidth="sm">
-        <DialogTitle>{isEditMode ? editingUser?.name : t('config.addUser')}</DialogTitle>
+        <DialogTitle className="config-user-dialog-title">
+          <span>{isEditMode ? editingUser?.name : t('config.addUser')}</span>
+          {canEdit && isEditMode && (
+            resetLinkSent ? (
+              <span className="config-email-sent-notice">
+                <Info size={14} />
+                {t('config.emailSentNotice')}
+              </span>
+            ) : (
+              <button
+                className="config-link-button"
+                type="button"
+                onClick={resetLink ? handleSendResetLinkToEmail : () => handleGenerateResetLink(editingUser)}
+              >
+                {t(resetLink ? 'config.sendResetLinkToEmail' : 'config.generateResetLink')}
+              </button>
+            )
+          )}
+        </DialogTitle>
         <DialogContent>
+          {canEdit && isEditMode && resetLinkNotice}
+
           <form
             id="user-form"
             className="auth-form config-add-form"
             onSubmit={handleSubmitUserForm}
             noValidate
           >
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="user-name">
+                {t('config.nameLabel')}
+              </label>
+              <input
+                id="user-name"
+                className="form-field__input"
+                type="text"
+                value={form.name}
+                onChange={(event) => {
+                  setForm((prev) => ({ ...prev, name: event.target.value }))
+                  setFieldErrors((prev) => ({ ...prev, name: '' }))
+                }}
+                placeholder={t('config.namePlaceholder')}
+              />
+              {fieldErrors.name && (
+                <span className="form-field__error">{t('config.' + fieldErrors.name)}</span>
+              )}
+            </div>
+
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="user-role">
+                {t('auth.roleLabel')}
+              </label>
+              <Autocomplete
+                id="user-role"
+                size="small"
+                disableClearable
+                autoHighlight
+                options={roleOptions}
+                value={form.role}
+                getOptionLabel={(r) => r}
+                isOptionEqualToValue={(option, current) => option === current}
+                onChange={(_event, newValue) =>
+                  setForm((prev) => ({ ...prev, role: newValue ?? prev.role }))
+                }
+                renderInput={(params) => <TextField {...params} placeholder={t('auth.roleLabel')} />}
+              />
+            </div>
+
             <div className="form-field">
               <label className="form-field__label" htmlFor="user-email">
                 {t('auth.emailLabel')}
@@ -552,26 +650,6 @@ export default function UsersPage() {
               />
               {fieldErrors.email && (
                 <span className="form-field__error">{t('config.' + fieldErrors.email)}</span>
-              )}
-            </div>
-
-            <div className="form-field">
-              <label className="form-field__label" htmlFor="user-name">
-                {t('config.nameLabel')}
-              </label>
-              <input
-                id="user-name"
-                className="form-field__input"
-                type="text"
-                value={form.name}
-                onChange={(event) => {
-                  setForm((prev) => ({ ...prev, name: event.target.value }))
-                  setFieldErrors((prev) => ({ ...prev, name: '' }))
-                }}
-                placeholder={t('config.namePlaceholder')}
-              />
-              {fieldErrors.name && (
-                <span className="form-field__error">{t('config.' + fieldErrors.name)}</span>
               )}
             </div>
 
@@ -600,26 +678,6 @@ export default function UsersPage() {
               )}
             </div>
 
-            <div className="form-field">
-              <label className="form-field__label" htmlFor="user-role">
-                {t('auth.roleLabel')}
-              </label>
-              <Autocomplete
-                id="user-role"
-                size="small"
-                disableClearable
-                autoHighlight
-                options={roleOptions}
-                value={form.role}
-                getOptionLabel={(r) => r}
-                isOptionEqualToValue={(option, current) => option === current}
-                onChange={(_event, newValue) =>
-                  setForm((prev) => ({ ...prev, role: newValue ?? prev.role }))
-                }
-                renderInput={(params) => <TextField {...params} placeholder={t('auth.roleLabel')} />}
-              />
-            </div>
-
             {formError && (
               <span className="form-field__error">
                 {userFormTarget === 'new' ? t('auth.' + formError) : formError}
@@ -629,7 +687,7 @@ export default function UsersPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeUserFormDialog}>{t('config.cancelEdit')}</Button>
-          <Button type="submit" form="user-form" variant="contained" disabled={isSubmitting}>
+          <Button type="submit" form="user-form" variant="contained" disabled={isSubmitting || !isUserFormDirty}>
             {t(isEditMode ? 'config.saveUser' : 'config.addUser')}
           </Button>
         </DialogActions>
@@ -649,7 +707,10 @@ export default function UsersPage() {
       </Dialog>
 
       <Dialog open={Boolean(permissionsDialogUser)} onClose={closePermissionsDialog} fullWidth maxWidth="sm">
-        <DialogTitle>{permissionsDialogUser?.name}</DialogTitle>
+        <DialogTitle>
+          {permissionsDialogUser?.name}
+          {permissionsDialogUser?.role ? ` (${permissionsDialogUser.role})` : ''}
+        </DialogTitle>
         <DialogContent>
           <div className="form-field">
             <label className="form-field__label" htmlFor="permission-preset">

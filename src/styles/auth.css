@@ -152,6 +152,17 @@
   font-size: 13px;
 }
 
+.auth-form__notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #eaf3fb;
+  color: #1c6fb0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
 .form-field {
   display: flex;
   flex-direction: column;
@@ -236,6 +247,9 @@
 }
 
 .auth-forgot__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: transparent;
   color: #1c6fb0;
@@ -244,6 +258,11 @@
   font-weight: 600;
   padding: 0;
   cursor: pointer;
+}
+
+.auth-forgot__link-icon {
+  width: 14px;
+  height: 14px;
 }
 
 /* In normal flow, directly under .auth-card — a caption above the icon row

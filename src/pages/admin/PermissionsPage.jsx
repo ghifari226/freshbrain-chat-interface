@@ -8,6 +8,9 @@ import { errorMessage } from '../../services/api.ts'
 function isFormValid(form) {
   return Boolean(form.labelId.trim())
 }
+function formEqual(a, b) {
+  return a.labelId === b.labelId && a.labelEn === b.labelEn
+}
 
 // Same 6 prefix-derived groups the catalog itself is organized into
 // (Freshpedia/Tools/Permissions/Roles/Users/Staging) — single source of
@@ -30,6 +33,7 @@ export default function PermissionsPage({ session }) {
   const [permissions, setPermissions] = useState(getPermissionCatalog)
   const [formTarget, setFormTarget] = useState(null)
   const [form, setForm] = useState({ key: '', labelId: '', labelEn: '' })
+  const [savedForm, setSavedForm] = useState({ key: '', labelId: '', labelEn: '' })
   const [formError, setFormError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedChips, setSelectedChips] = useState(new Set())
@@ -70,7 +74,9 @@ export default function PermissionsPage({ session }) {
 
   function openEditForm(entry) {
     const label = resolveLabelEntry(entry.labelKey)
-    setForm({ key: entry.key, labelId: label.id, labelEn: label.en })
+    const nextForm = { key: entry.key, labelId: label.id, labelEn: label.en }
+    setForm(nextForm)
+    setSavedForm(nextForm)
     setFormError('')
     setFormTarget(entry.key)
   }
@@ -200,7 +206,12 @@ export default function PermissionsPage({ session }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeForm}>{t('config.cancelEdit')}</Button>
-          <Button type="submit" form="permission-form" variant="contained" disabled={!isFormValid(form)}>
+          <Button
+            type="submit"
+            form="permission-form"
+            variant="contained"
+            disabled={!isFormValid(form) || formEqual(form, savedForm)}
+          >
             {t('config.saveUser')}
           </Button>
         </DialogActions>

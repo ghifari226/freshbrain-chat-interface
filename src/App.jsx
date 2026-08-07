@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import Sidebar from './components/layout/Sidebar.jsx'
 import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import {
   sendMessage,
   sendFeedback,
@@ -48,8 +49,9 @@ function AuthenticatedApp({ language, setLanguage }) {
   // button only ever allows one at a time (see isLoading gating below).
   const abortControllerRef = useRef(null)
 
-  // Fires once on mount — conversations aren't seeded locally anymore, they
-  // come from GET /conversations (mocked).
+  // Re-fires whenever the session identity changes (not just on mount) —
+  // conversations aren't seeded locally anymore, they come from
+  // GET /conversations (mocked).
   useEffect(() => {
     listConversations({ user_id: session?.id, role: session?.role, token: session?.token })
       .then((response) => {
@@ -59,8 +61,7 @@ function AuthenticatedApp({ language, setLanguage }) {
         // Best-effort — an empty sidebar is a safe, visible-enough failure
         // mode; nothing else in the app depends on this resolving.
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [session?.id, session?.role, session?.token])
 
   // The URL is the source of truth for which conversation is open —
   // /chat/<id> — rather than duplicating that as separate React state that
@@ -370,14 +371,26 @@ function AuthenticatedApp({ language, setLanguage }) {
 export default function App() {
   const [language, setLanguage] = useLanguage()
   const [session, setSession] = useAuthSession()
+  const location = useLocation()
+  const resetMatch = location.pathname.match(/^\/reset\/(.+)$/)
 
   return (
     <LanguageProvider language={language}>
       <AuthProvider session={session} setSession={setSession}>
-        {session ? (
+        {resetMatch ? (
+          <ResetPasswordPage
+            token={decodeURIComponent(resetMatch[1])}
+            language={language}
+            setLanguage={setLanguage}
+          />
+        ) : session ? (
           <AuthenticatedApp language={language} setLanguage={setLanguage} />
         ) : (
-          <LoginPage language={language} setLanguage={setLanguage} />
+          <LoginPage
+            language={language}
+            setLanguage={setLanguage}
+            passwordResetSuccess={Boolean(location.state?.passwordResetSuccess)}
+          />
         )}
       </AuthProvider>
     </LanguageProvider>

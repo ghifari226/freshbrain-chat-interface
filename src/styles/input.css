@@ -39,7 +39,7 @@
   resize: none;
   background: transparent;
   font: inherit;
-  font-family: var(--font-chat);
+  font-family: var(--font-system);
   color: var(--text-chat);
   padding: 10px 0;
   line-height: 24px;

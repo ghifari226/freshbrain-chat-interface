@@ -628,6 +628,27 @@
   padding: 0;
 }
 
+/* Puts the edit-user dialog's generate/send-reset-link action on the same
+   row as the title instead of stacking below it. */
+.config-user-dialog-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Replaces .config-link-button in the same title slot once the mocked send
+   succeeds — status text, not an action, so it reads as muted/passive
+   rather than accent-colored and clickable. */
+.config-email-sent-notice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* Shield dialog's Access Config / User Management / Chat Access groups —
    each its own bordered card so the three sections read as distinct,
    matching the app's existing bordered-card visual language (role-card,
