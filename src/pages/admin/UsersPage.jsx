@@ -285,9 +285,6 @@ export default function UsersPage() {
         setUsers((prev) => [...prev, user])
         setResetLink(`/reset/${resetToken}`)
         setResetLinkSent(false)
-        // Switch the dialog into edit mode for the user just created
-        // (instead of closing it) so resetLinkNotice — which only renders
-        // inside the dialog — has somewhere to show the link.
         const nextForm = { name: user.name, email: user.email, phone: localPhoneDigitsFromStored(user.phone), role: user.role }
         setForm(nextForm)
         setSavedForm(nextForm)
@@ -321,8 +318,6 @@ export default function UsersPage() {
     setResetLinkSent(false)
   }
 
-  // Mocked — no real mail transport locally (see authService.js's
-  // requestPasswordReset), so "sending" just flips the UI to its sent state.
   function handleSendResetLinkToEmail() {
     setResetLinkSent(true)
   }
