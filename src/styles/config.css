@@ -332,6 +332,17 @@
   font-size: 18px;
 }
 
+/* Non-interactive icon-button — the Superuser lock indicator. Same 32px
+   box as the clickable action icons beside it so a locked card's header
+   row doesn't collapse shorter than every other role card's. */
+.icon-button--static {
+  cursor: default;
+}
+
+.icon-button--static:hover {
+  background: transparent;
+}
+
 .role-card__rename-form {
   display: flex;
   align-items: center;
@@ -709,8 +720,7 @@
   color: var(--text-muted);
 }
 
-.permission-checkbox__label svg,
-.role-card__header-actions > svg {
+.permission-checkbox__label svg {
   width: 13px;
   height: 13px;
   vertical-align: -2px;

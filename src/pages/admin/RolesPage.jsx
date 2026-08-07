@@ -416,7 +416,9 @@ export default function RolesPage({ session }) {
                     <div className="role-card__header-actions">
                       {isLocked && (
                         <Tooltip title={t('config.roleLockedNotice')}>
-                          <Lock />
+                          <span className="icon-button icon-button--static">
+                            <Lock />
+                          </span>
                         </Tooltip>
                       )}
                       {isDirty && (
