@@ -223,7 +223,7 @@ export const strings = {
     systemAccessSectionLabel: { id: 'Akses sistem', en: 'System access' },
     chatAccessSectionLabel: { id: 'Akses kapabilitas chat', en: 'Chat capability access' },
     selectAllToggle: { id: 'Pilih/batalkan semua di grup ini', en: 'Select/deselect all in this group' },
-    presetLabel: { id: 'Preset', en: 'Preset' },
+    presetLabel: { id: 'Preset hak akses', en: 'Permission preset' },
     customPreset: { id: 'Custom', en: 'Custom' },
 
     permissionView: { id: 'Hak akses — view', en: 'Permissions — view' },

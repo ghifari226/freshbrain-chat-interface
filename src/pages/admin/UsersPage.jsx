@@ -52,6 +52,9 @@ const EMPTY_FORM = { name: '', email: '', phone: '', role: ROLES.find((r) => r !
 function permissionsEqual(a, b) {
   return ALL_PERMISSIONS.every((field) => Boolean(a[field]) === Boolean(b[field]))
 }
+function userFormEqual(a, b) {
+  return a.name === b.name && a.email === b.email && a.phone === b.phone && a.role === b.role
+}
 function flagsForUser(user) {
   return permissionsArrayToFlags(user?.allowed_permissions)
 }
@@ -84,6 +87,7 @@ export default function UsersPage() {
   const roleOptions = ROLES.filter((r) => r !== 'Superuser')
   const [users, setUsers] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
+  const [savedForm, setSavedForm] = useState(EMPTY_FORM)
   const [formError, setFormError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -100,6 +104,7 @@ export default function UsersPage() {
   const [pendingPermissions, setPendingPermissions] = useState({})
   const isEditMode = Boolean(userFormTarget) && userFormTarget !== 'new'
   const editingUser = isEditMode ? users.find((u) => u.id === userFormTarget) : null
+  const isUserFormDirty = !isEditMode || !userFormEqual(form, savedForm)
   const permissionsDialogUser = users.find((u) => u.id === permissionsDialogUserId) ?? null
   const dialogPermissions = pendingPermissions[permissionsDialogUserId] ?? flagsForUser(permissionsDialogUser)
   const isPermissionsDialogDirty = permissionsDialogUser
@@ -235,7 +240,9 @@ export default function UsersPage() {
   }
 
   function openEditUserDialog(row) {
-    setForm({ name: row.name, email: row.email, phone: localPhoneDigitsFromStored(row.phone), role: row.role })
+    const nextForm = { name: row.name, email: row.email, phone: localPhoneDigitsFromStored(row.phone), role: row.role }
+    setForm(nextForm)
+    setSavedForm(nextForm)
     setFormError('')
     setFieldErrors({})
     setResetLink(null)
@@ -281,7 +288,9 @@ export default function UsersPage() {
         // Switch the dialog into edit mode for the user just created
         // (instead of closing it) so resetLinkNotice — which only renders
         // inside the dialog — has somewhere to show the link.
-        setForm({ name: user.name, email: user.email, phone: localPhoneDigitsFromStored(user.phone), role: user.role })
+        const nextForm = { name: user.name, email: user.email, phone: localPhoneDigitsFromStored(user.phone), role: user.role }
+        setForm(nextForm)
+        setSavedForm(nextForm)
         setUserFormTarget(user.id)
       } else {
         const id = userFormTarget
@@ -561,6 +570,46 @@ export default function UsersPage() {
             noValidate
           >
             <div className="form-field">
+              <label className="form-field__label" htmlFor="user-name">
+                {t('config.nameLabel')}
+              </label>
+              <input
+                id="user-name"
+                className="form-field__input"
+                type="text"
+                value={form.name}
+                onChange={(event) => {
+                  setForm((prev) => ({ ...prev, name: event.target.value }))
+                  setFieldErrors((prev) => ({ ...prev, name: '' }))
+                }}
+                placeholder={t('config.namePlaceholder')}
+              />
+              {fieldErrors.name && (
+                <span className="form-field__error">{t('config.' + fieldErrors.name)}</span>
+              )}
+            </div>
+
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="user-role">
+                {t('auth.roleLabel')}
+              </label>
+              <Autocomplete
+                id="user-role"
+                size="small"
+                disableClearable
+                autoHighlight
+                options={roleOptions}
+                value={form.role}
+                getOptionLabel={(r) => r}
+                isOptionEqualToValue={(option, current) => option === current}
+                onChange={(_event, newValue) =>
+                  setForm((prev) => ({ ...prev, role: newValue ?? prev.role }))
+                }
+                renderInput={(params) => <TextField {...params} placeholder={t('auth.roleLabel')} />}
+              />
+            </div>
+
+            <div className="form-field">
               <label className="form-field__label" htmlFor="user-email">
                 {t('auth.emailLabel')}
               </label>
@@ -579,26 +628,6 @@ export default function UsersPage() {
               />
               {fieldErrors.email && (
                 <span className="form-field__error">{t('config.' + fieldErrors.email)}</span>
-              )}
-            </div>
-
-            <div className="form-field">
-              <label className="form-field__label" htmlFor="user-name">
-                {t('config.nameLabel')}
-              </label>
-              <input
-                id="user-name"
-                className="form-field__input"
-                type="text"
-                value={form.name}
-                onChange={(event) => {
-                  setForm((prev) => ({ ...prev, name: event.target.value }))
-                  setFieldErrors((prev) => ({ ...prev, name: '' }))
-                }}
-                placeholder={t('config.namePlaceholder')}
-              />
-              {fieldErrors.name && (
-                <span className="form-field__error">{t('config.' + fieldErrors.name)}</span>
               )}
             </div>
 
@@ -627,26 +656,6 @@ export default function UsersPage() {
               )}
             </div>
 
-            <div className="form-field">
-              <label className="form-field__label" htmlFor="user-role">
-                {t('auth.roleLabel')}
-              </label>
-              <Autocomplete
-                id="user-role"
-                size="small"
-                disableClearable
-                autoHighlight
-                options={roleOptions}
-                value={form.role}
-                getOptionLabel={(r) => r}
-                isOptionEqualToValue={(option, current) => option === current}
-                onChange={(_event, newValue) =>
-                  setForm((prev) => ({ ...prev, role: newValue ?? prev.role }))
-                }
-                renderInput={(params) => <TextField {...params} placeholder={t('auth.roleLabel')} />}
-              />
-            </div>
-
             {formError && (
               <span className="form-field__error">
                 {userFormTarget === 'new' ? t('auth.' + formError) : formError}
@@ -660,7 +669,7 @@ export default function UsersPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeUserFormDialog}>{t('config.cancelEdit')}</Button>
-          <Button type="submit" form="user-form" variant="contained" disabled={isSubmitting}>
+          <Button type="submit" form="user-form" variant="contained" disabled={isSubmitting || !isUserFormDirty}>
             {t(isEditMode ? 'config.saveUser' : 'config.addUser')}
           </Button>
         </DialogActions>
@@ -684,7 +693,10 @@ export default function UsersPage() {
       </Dialog>
 
       <Dialog open={Boolean(permissionsDialogUser)} onClose={closePermissionsDialog} fullWidth maxWidth="sm">
-        <DialogTitle>{permissionsDialogUser?.name}</DialogTitle>
+        <DialogTitle>
+          {permissionsDialogUser?.name}
+          {permissionsDialogUser?.role ? ` (${permissionsDialogUser.role})` : ''}
+        </DialogTitle>
         <DialogContent>
           <div className="form-field">
             <label className="form-field__label" htmlFor="permission-preset">
