@@ -9,6 +9,7 @@ import {
   permissionsArrayToFlags,
 } from '../config/permissions.js'
 import { authHeaders, gatewayApi } from './api.ts'
+import { mintDevToken } from './apiClient.ts'
 import { mockDelay } from './mockDelay.ts'
 function allFalsePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, false]))
@@ -74,17 +75,25 @@ function shapeUserPermissions(user) {
 function resolveScopes(role) {
   return ROLE_SCOPES[role] ?? []
 }
-function toSession(user) {
+async function toSession(user) {
+  const allowed_scopes = resolveScopes(user.role)
+  // Stands in for chat-gateway signing a real login token — see
+  // mintDevToken's own comment. Replace once chat-gateway exists.
+  const { access_token } = await mintDevToken({
+    user_id: user.id,
+    role: user.role,
+    allowed_scopes,
+  })
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     phone: user.phone,
     role: user.role,
-    allowed_scopes: resolveScopes(user.role),
+    allowed_scopes,
     allowed_permissions: permissionFlagsToArray(shapeUserPermissions(user)),
     is_maintainer: Boolean(user.is_maintainer),
-    token: `mock:${user.id}`,
+    token: access_token,
   }
 }
 
@@ -116,7 +125,7 @@ export async function authenticate(email, password, { signal } = {}) {
     throw new Error('Invalid email or password')
   }
 
-  return toSession(user)
+  return await toSession(user)
 }
 export async function getAllUsers({ signal, token } = {}) {
   if (!USE_MOCK_API) {
@@ -322,5 +331,5 @@ export async function confirmPasswordReset(token, password, { signal } = {}) {
 
   user.password = password
   user.resetToken = null
-  return toSession(user)
+  return await toSession(user)
 }

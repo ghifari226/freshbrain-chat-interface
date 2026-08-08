@@ -97,6 +97,18 @@ export interface DeleteConversationResponse {
   conversation_id: string
 }
 
+export interface DevTokenRequest {
+  user_id: string
+  role: string
+  allowed_scopes: string[]
+}
+
+export interface DevTokenResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+}
+
 export interface LoginRequest {
   email: string
   password: string

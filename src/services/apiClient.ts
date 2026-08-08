@@ -5,6 +5,8 @@ import type {
   ConversationsListResponse,
   DeleteConversationRequest,
   DeleteConversationResponse,
+  DevTokenRequest,
+  DevTokenResponse,
   FeedbackRequest,
   FeedbackResponse,
   ListConversationsRequest,
@@ -154,5 +156,19 @@ export async function deleteConversation({
     headers: authHeaders(token),
     data: { user_id, role },
   })
+  return data
+}
+// Stands in for chat-gateway signing a real login token — deliberately
+// unauthenticated, matching ai-engine's own POST /dev/token. Delete once
+// chat-gateway exists (v0.5.0 Beta) and mints tokens at real login instead.
+export async function mintDevToken(
+  { user_id, role, allowed_scopes }: DevTokenRequest,
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<DevTokenResponse> {
+  const { data } = await aiEngineApi.post<DevTokenResponse>(
+    '/dev/token',
+    { user_id, role, allowed_scopes },
+    { signal },
+  )
   return data
 }
