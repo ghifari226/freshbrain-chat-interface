@@ -11,19 +11,18 @@ import {
 import { useAuth } from '../hooks/useAuth.js'
 import { useAuthorizedPage } from '../hooks/useAuthorizedPage.js'
 import { useStatusFilters } from '../hooks/useStatusFilters.js'
-import { useCatalogEntries } from '../hooks/useCatalogEntries.js'
 import { useT } from '../hooks/useT.js'
-import { canAccessToolCatalog, canPromote, hasPermission } from '../config/permissions.js'
+import { canAccessToolCatalog, hasPermission } from '../config/permissions.js'
 import { getScopeCatalog } from '../config/scopeCatalog.js'
 import {
-  createToolCatalogEntry,
-  getToolCatalogEntries,
-  getToolCatalogRequestEntries,
-  promoteToolCatalogRequestEntry,
-  updateToolCatalogRequestEntry,
-  updateToolCatalogRequestStatus,
+  createToolRequest,
+  getLiveTools,
+  getToolRequests,
+  updateToolRequest,
+  updateToolRequestStatus,
 } from '../services/toolCatalog.js'
-import { errorMessage } from '../services/api.ts'
+import { errorMessage, isCanceled } from '../services/api.ts'
+import { replaceById } from '../utils/collections.js'
 
 export default function ToolCatalogPage() {
   const t = useT()
@@ -36,20 +35,53 @@ export default function ToolCatalogPage() {
   const canAddRequest = hasPermission(session, 'tools.request_add')
   const canEditRequest = hasPermission(session, 'tools.request_edit')
   const canChangeRequestStatus = hasPermission(session, 'tools.request_status')
-  const canPromoteEntries = canPromote(session)
   const statusFilters = useStatusFilters({
     canViewProduction,
     canViewStaging,
     canViewRequest,
   })
-  const { filterByStatus } = statusFilters
 
-  const { entries, loadError, addEntry, replaceEntry } = useCatalogEntries({
-    loadPublished: getToolCatalogEntries,
-    loadRequests: getToolCatalogRequestEntries,
-    canViewRequests: canViewRequest,
-    token: session?.token,
-  })
+  // Live tools (code-owned, GET /tools) and tool requests (Postgres-owned,
+  // /tool-requests) are two independent sources — no merged list, matching
+  // the backend's actual architecture. Loaded separately, filtered locally
+  // below rather than through the shared useStatusFilters/useCatalogEntries
+  // merged-list machinery (that machinery stays exactly as Freshpedia uses
+  // it — this page just stops relying on it).
+  const [liveDomains, setLiveDomains] = useState([])
+  const [liveLoadError, setLiveLoadError] = useState('')
+  const [requests, setRequests] = useState([])
+  const [requestsLoadError, setRequestsLoadError] = useState('')
+
+  useEffect(() => {
+    if (!canViewProduction && !canViewStaging) return undefined
+    const controller = new AbortController()
+    getLiveTools({ signal: controller.signal, token: session?.token })
+      .then(setLiveDomains)
+      .catch((error) => {
+        if (!isCanceled(error)) setLiveLoadError(errorMessage(error))
+      })
+    return () => controller.abort()
+  }, [session?.token, canViewProduction, canViewStaging])
+
+  useEffect(() => {
+    if (!canViewRequest) return undefined
+    const controller = new AbortController()
+    getToolRequests({ signal: controller.signal, token: session?.token })
+      .then(setRequests)
+      .catch((error) => {
+        if (!isCanceled(error)) setRequestsLoadError(errorMessage(error))
+      })
+    return () => controller.abort()
+  }, [session?.token, canViewRequest])
+
+  function addRequest(entry) {
+    setRequests((current) => [...current, entry])
+  }
+
+  function replaceRequest(entry) {
+    setRequests((current) => replaceById(current, entry))
+  }
+
   const [systems, setSystems] = useState([])
   const [selectedSystems, setSelectedSystems] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
@@ -72,27 +104,54 @@ export default function ToolCatalogPage() {
   }, [])
 
   const visibleRows = useMemo(() => {
-    let filtered = filterByStatus(entries)
-    if (selectedSystems.size > 0) {
-      filtered = filtered.filter((entry) => selectedSystems.has(entry.system))
-    }
     const query = searchQuery.trim().toLowerCase()
-    if (query) {
-      filtered = filtered.filter((entry) =>
-        `${entry.system}.${entry.name}`.toLowerCase().includes(query),
+
+    if (statusFilters.isRequestActive) {
+      const active = statusFilters.availableRequestStatuses.filter(statusFilters.isRequestStatusActive)
+      const effectiveStatuses = active.length > 0 ? active : statusFilters.availableRequestStatuses
+      let filtered = requests.filter((entry) => effectiveStatuses.includes(entry.status))
+      if (selectedSystems.size > 0) {
+        filtered = filtered.filter((entry) => selectedSystems.has(entry.domain))
+      }
+      if (query) {
+        filtered = filtered.filter((entry) => entry.title.toLowerCase().includes(query))
+      }
+      return [...filtered].sort((a, b) => a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }))
+    }
+
+    const active = statusFilters.availableLiveStatuses.filter(statusFilters.isLiveStatusActive)
+    const effectiveStatuses = active.length > 0 ? active : statusFilters.availableLiveStatuses
+    let filtered = liveDomains
+      .flatMap((group) =>
+        group.tools.map((tool) => ({ ...tool, domain: group.domain, id: `${group.domain}.${tool.name}` })),
       )
+      .filter((entry) => effectiveStatuses.includes(entry.status))
+    if (selectedSystems.size > 0) {
+      filtered = filtered.filter((entry) => selectedSystems.has(entry.domain))
+    }
+    if (query) {
+      filtered = filtered.filter((entry) => `${entry.domain}.${entry.name}`.toLowerCase().includes(query))
     }
     return [...filtered]
       .sort(
         (a, b) =>
-          a.system.localeCompare(b.system, 'en', { sensitivity: 'base' }) ||
+          a.domain.localeCompare(b.domain, 'en', { sensitivity: 'base' }) ||
           a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }),
       )
-      .map((entry) => ({
-        ...entry,
-        displayName: `${entry.system}.${entry.name}`,
-      }))
-  }, [entries, filterByStatus, searchQuery, selectedSystems])
+      .map((entry) => ({ ...entry, displayName: `${entry.domain}.${entry.name}` }))
+  }, [
+    liveDomains,
+    requests,
+    searchQuery,
+    selectedSystems,
+    statusFilters.availableLiveStatuses,
+    statusFilters.availableRequestStatuses,
+    statusFilters.isLiveStatusActive,
+    statusFilters.isRequestActive,
+    statusFilters.isRequestStatusActive,
+  ])
+
+  const loadError = statusFilters.isRequestActive ? requestsLoadError : liveLoadError
 
   function toggleSystemFilter(system) {
     setSelectedSystems((current) => {
@@ -117,13 +176,12 @@ export default function ToolCatalogPage() {
 
   const openEditEntryDialog = useCallback((entry) => {
     setForm({
-      system: entry.system,
-      name: entry.name,
+      title: entry.title,
+      domain: entry.domain,
       description: entry.description,
-      exampleQuestions: entry.exampleQuestions,
     })
     setFormError('')
-    setIsEntryReadOnly(entry.requestStatus === 'live')
+    setIsEntryReadOnly(entry.status === 'live')
     setEntryFormTarget(entry.id)
   }, [])
 
@@ -135,11 +193,11 @@ export default function ToolCatalogPage() {
     setIsSubmitting(true)
     try {
       if (entryFormTarget === 'new') {
-        const created = await createToolCatalogEntry(form, session)
-        addEntry(created)
+        const created = await createToolRequest(form, session)
+        addRequest(created)
       } else {
-        const updated = await updateToolCatalogRequestEntry(entryFormTarget, form, session)
-        replaceEntry(updated)
+        const updated = await updateToolRequest(entryFormTarget, form, session)
+        replaceRequest(updated)
       }
       setForm(EMPTY_TOOL_FORM)
       setEntryFormTarget(null)
@@ -150,14 +208,9 @@ export default function ToolCatalogPage() {
     }
   }
 
-  async function handlePromote(entry) {
-    const updated = await promoteToolCatalogRequestEntry(entry.id, session)
-    replaceEntry(updated)
-  }
-
-  async function handleChangeRequestStatus(entry, nextRequestStatus) {
-    const updated = await updateToolCatalogRequestStatus(entry.id, nextRequestStatus, session)
-    replaceEntry(updated)
+  async function handleChangeRequestStatus(entry, nextStatus) {
+    const updated = await updateToolRequestStatus(entry.id, nextStatus, session)
+    replaceRequest(updated)
   }
 
   if (!isAuthorized) return null
@@ -208,11 +261,9 @@ export default function ToolCatalogPage() {
         <ToolCatalogTable
           canChangeRequestStatus={canChangeRequestStatus}
           canEdit={canEditRequest}
-          canPromote={canPromoteEntries}
           isRequestView={statusFilters.isRequestActive}
           onChangeRequestStatus={handleChangeRequestStatus}
           onEdit={openEditEntryDialog}
-          onPromote={handlePromote}
           rows={visibleRows}
           t={t}
         />

@@ -1,7 +1,6 @@
 export const TOOL_STATUS_COLOR = {
   production: 'success',
   staging: 'warning',
-  request: 'default',
 }
 export const REQUEST_STATUS_COLOR = {
   draft: 'default',
@@ -20,12 +19,11 @@ export const REQUEST_STATUS_TRANSITION_BY_STATUS = {
   },
 }
 export const EMPTY_TOOL_FORM = {
-  system: '',
-  name: '',
+  title: '',
+  domain: '',
   description: '',
-  exampleQuestions: [],
 }
 
 export function isToolFormValid(form) {
-  return Boolean(form.system) && Boolean(form.name.trim()) && Boolean(form.description.trim())
+  return Boolean(form.title.trim()) && Boolean(form.domain) && Boolean(form.description.trim())
 }

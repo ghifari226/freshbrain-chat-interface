@@ -4,7 +4,16 @@ import MessageInput from './MessageInput.jsx'
 import StagingModeToggle from './StagingModeToggle.jsx'
 import { useT } from '../../hooks/useT.js'
 
-export default function ChatPanel({ conversation, isLoading, onSend, onStop, onRetry, onFeedback, inputRef }) {
+export default function ChatPanel({
+  conversation,
+  isLoading,
+  streamingStatus,
+  onSend,
+  onStop,
+  onRetry,
+  onFeedback,
+  inputRef,
+}) {
   const t = useT()
   const scrollRef = useRef(null)
 
@@ -62,6 +71,9 @@ export default function ChatPanel({ conversation, isLoading, onSend, onStop, onR
           {isLoading && (
             <div className="message message--assistant">
               <div className="message__bubble message__bubble--loading">
+                {streamingStatus && (
+                  <span className="message__status">{t(`chat.status.${streamingStatus}`)}</span>
+                )}
                 <span className="typing-dot" />
                 <span className="typing-dot" />
                 <span className="typing-dot" />

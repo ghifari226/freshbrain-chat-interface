@@ -169,9 +169,15 @@
 
 .message__bubble--loading {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   align-items: center;
   padding: 10px 4px;
+}
+
+.message__status {
+  font-family: var(--font-chat);
+  font-size: 0.875rem;
+  color: var(--text-muted);
 }
 
 .typing-dot {

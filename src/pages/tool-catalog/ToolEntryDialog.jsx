@@ -7,76 +7,47 @@ import {
   DialogTitle,
   TextField,
 } from '@mui/material'
-import { X } from 'lucide-react'
 import { isToolFormValid } from './toolCatalogConfig.js'
 
 function ToolEntryForm({ form, setForm, systems, isReadOnly, t }) {
-  function updateQuestion(index, value) {
-    setForm((current) => ({
-      ...current,
-      exampleQuestions: current.exampleQuestions.map((question, questionIndex) =>
-        questionIndex === index ? value : question,
-      ),
-    }))
-  }
-
-  function addQuestion() {
-    setForm((current) => ({
-      ...current,
-      exampleQuestions: [...current.exampleQuestions, ''],
-    }))
-  }
-
-  function removeQuestion(index) {
-    setForm((current) => ({
-      ...current,
-      exampleQuestions: current.exampleQuestions.filter(
-        (_question, questionIndex) => questionIndex !== index,
-      ),
-    }))
-  }
-
   return (
     <>
       <div className="form-field">
-        <label className="form-field__label" htmlFor="tool-system">
-          {t('toolCatalog.systemLabel')}
+        <label className="form-field__label" htmlFor="tool-title">
+          {t('toolCatalog.nameLabel')}
         </label>
-        <Autocomplete
-          id="tool-system"
-          size="small"
-          autoHighlight
-          disabled={isReadOnly}
-          options={systems}
-          value={systems.find((entry) => entry.system === form.system) ?? null}
-          getOptionLabel={(entry) => entry?.label ?? ''}
-          isOptionEqualToValue={(option, current) => option.system === current.system}
-          onChange={(_event, value) =>
-            setForm((current) => ({ ...current, system: value?.system ?? '' }))
+        <input
+          id="tool-title"
+          className="form-field__input"
+          type="text"
+          value={form.title}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, title: event.target.value }))
           }
-          renderInput={(params) => (
-            <TextField {...params} placeholder={t('toolCatalog.systemLabel')} />
-          )}
+          placeholder={t('toolCatalog.namePlaceholder')}
+          disabled={isReadOnly}
         />
       </div>
 
       <div className="form-field">
-        <label className="form-field__label" htmlFor="tool-name">
-          {t('toolCatalog.nameLabel')}
+        <label className="form-field__label" htmlFor="tool-domain">
+          {t('toolCatalog.systemLabel')}
         </label>
-        <input
-          id="tool-name"
-          className="form-field__input"
-          type="text"
-          value={form.name}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              name: event.target.value.toLowerCase(),
-            }))
-          }
-          placeholder={t('toolCatalog.namePlaceholder')}
+        <Autocomplete
+          id="tool-domain"
+          size="small"
+          autoHighlight
           disabled={isReadOnly}
+          options={systems}
+          value={systems.find((entry) => entry.system === form.domain) ?? null}
+          getOptionLabel={(entry) => entry?.label ?? ''}
+          isOptionEqualToValue={(option, current) => option.system === current.system}
+          onChange={(_event, value) =>
+            setForm((current) => ({ ...current, domain: value?.system ?? '' }))
+          }
+          renderInput={(params) => (
+            <TextField {...params} placeholder={t('toolCatalog.systemLabel')} />
+          )}
         />
       </div>
 
@@ -95,39 +66,6 @@ function ToolEntryForm({ form, setForm, systems, isReadOnly, t }) {
           placeholder={t('toolCatalog.descriptionPlaceholder')}
           disabled={isReadOnly}
         />
-      </div>
-
-      <div className="form-field">
-        <label className="form-field__label">
-          {t('toolCatalog.exampleQuestionsLabel')}
-        </label>
-        {form.exampleQuestions.map((question, index) => (
-          <div className="form-field__list-row" key={index}>
-            <input
-              className="form-field__input"
-              type="text"
-              value={question}
-              onChange={(event) => updateQuestion(index, event.target.value)}
-              placeholder={t('toolCatalog.exampleQuestionPlaceholder')}
-              disabled={isReadOnly}
-            />
-            {!isReadOnly && (
-              <button
-                type="button"
-                className="icon-button"
-                aria-label={t('toolCatalog.removeQuestionAction')}
-                onClick={() => removeQuestion(index)}
-              >
-                <X />
-              </button>
-            )}
-          </div>
-        ))}
-        {!isReadOnly && (
-          <Button size="small" onClick={addQuestion}>
-            {t('toolCatalog.addQuestionAction')}
-          </Button>
-        )}
       </div>
     </>
   )
@@ -148,9 +86,7 @@ export default function ToolEntryDialog({
 }) {
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>
-        {isEditMode ? `${form.system}.${form.name}` : t('toolCatalog.addEntry')}
-      </DialogTitle>
+      <DialogTitle>{isEditMode ? form.title : t('toolCatalog.addEntry')}</DialogTitle>
       <DialogContent>
         {isReadOnly && <p className="config-section__notice">{t('toolCatalog.viewOnlyLiveRequestNotice')}</p>}
         <form

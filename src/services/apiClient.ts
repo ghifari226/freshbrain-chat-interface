@@ -1,7 +1,7 @@
-import axios from 'axios'
 import type {
   ChatRequest,
   ChatResponse,
+  ChatStreamStatus,
   ConversationsListResponse,
   DeleteConversationRequest,
   DeleteConversationResponse,
@@ -26,37 +26,96 @@ interface InternalChatRequest {
   signal?: AbortSignal
 }
 
-async function postChat({
-  message,
-  conversationId,
-  userId,
-  role,
-  allowedScopes,
-  token,
-  signal,
-}: InternalChatRequest): Promise<ChatResponse> {
-  const { data } = await aiEngineApi.post<ChatResponse>(
-    '/chat',
-    {
+interface ChatStreamHandlers {
+  onStatus?: (status: ChatStreamStatus) => void
+}
+
+interface SseFrame {
+  event: string
+  data: unknown
+}
+
+// Exported for unit testing — the only real parsing logic in this file,
+// everything else is thin fetch/axios plumbing like its siblings above.
+export function parseSseFrame(rawFrame: string): SseFrame | null {
+  let event = ''
+  let data = ''
+  for (const line of rawFrame.split('\n')) {
+    if (line.startsWith('event:')) event = line.slice('event:'.length).trim()
+    else if (line.startsWith('data:')) data = line.slice('data:'.length).trim()
+  }
+  if (!event || !data) return null
+  return { event, data: JSON.parse(data) }
+}
+
+async function postChatStream(
+  { message, conversationId, userId, role, allowedScopes, token, signal }: InternalChatRequest,
+  { onStatus }: ChatStreamHandlers,
+): Promise<ChatResponse> {
+  // Native fetch, not axios — browsers don't reliably expose a readable
+  // stream through axios' response body, and EventSource can't do POST.
+  // Deliberately no client-side timeout here (unlike aiEngineApi's fixed
+  // API_TIMEOUT_MS) — a multi-tool-call chat turn can legitimately run
+  // longer than a typical request timeout; Stop (AbortSignal) is the only
+  // cancellation path.
+  const response = await fetch(`${aiEngineApi.defaults.baseURL}/chat/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+      ...authHeaders(token),
+    },
+    body: JSON.stringify({
       message,
       conversation_id: conversationId ?? null,
       user_id: userId,
       role,
       allowed_scopes: allowedScopes,
-    },
-    { signal, headers: authHeaders(token) },
-  )
-  return data
+    }),
+    signal,
+  })
+
+  if (!response.ok || !response.body) {
+    const error = new Error(`Chat stream request failed: ${response.status}`) as Error & {
+      status?: number
+    }
+    error.status = response.status
+    throw error
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let result: ChatResponse | null = null
+
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let boundary = buffer.indexOf('\n\n')
+    while (boundary !== -1) {
+      const frame = parseSseFrame(buffer.slice(0, boundary))
+      buffer = buffer.slice(boundary + 2)
+      if (frame?.event === 'status') {
+        onStatus?.((frame.data as { status: ChatStreamStatus }).status)
+      } else if (frame?.event === 'done') {
+        result = frame.data as ChatResponse
+      }
+      boundary = buffer.indexOf('\n\n')
+    }
+  }
+
+  if (!result) {
+    throw new Error('Chat stream ended without a final response')
+  }
+  return result
 }
-export async function sendMessage({
-  message,
-  conversation_id,
-  user_id,
-  role,
-  allowed_scopes,
-  token,
-  signal,
-}: ChatRequest): Promise<ChatResponse> {
+
+export async function streamChat(
+  { message, conversation_id, user_id, role, allowed_scopes, token, signal }: ChatRequest,
+  handlers: ChatStreamHandlers = {},
+): Promise<ChatResponse> {
   const request = {
     message,
     conversationId: conversation_id,
@@ -68,15 +127,17 @@ export async function sendMessage({
   }
 
   try {
-    return await postChat(request)
+    return await postChatStream(request, handlers)
   } catch (error) {
-    const status = axios.isAxiosError(error) ? error.response?.status : undefined
+    // If the conversation no longer exists, retry once as a new one.
+    const status = (error as { status?: number }).status
     if (conversation_id && (status === 400 || status === 404)) {
-      return postChat({ ...request, conversationId: null })
+      return postChatStream({ ...request, conversationId: null }, handlers)
     }
     throw error
   }
 }
+
 export async function sendFeedback({
   message_id,
   conversation_id,

@@ -5,7 +5,7 @@ import ChatPanel from './components/chat/ChatPanel.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import {
-  sendMessage,
+  streamChat,
   sendFeedback,
   generateTitle,
   listConversations,
@@ -38,6 +38,7 @@ function AuthenticatedApp({ language, setLanguage }) {
   const [conversations, setConversations] = useState([])
   const [pendingMessages, setPendingMessages] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [streamingStatus, setStreamingStatus] = useState(null)
   const inputRef = useRef(null)
   const abortControllerRef = useRef(null)
   useEffect(() => {
@@ -126,19 +127,23 @@ function AuthenticatedApp({ language, setLanguage }) {
   }
   async function runSend(text, isNewConversation, priorMessages) {
     setIsLoading(true)
+    setStreamingStatus(null)
     const controller = new AbortController()
     abortControllerRef.current = controller
 
     try {
-      const response = await sendMessage({
-        message: text,
-        conversation_id: isNewConversation ? null : activeConversationId,
-        user_id: session?.id,
-        role: session?.role,
-        allowed_scopes: session?.allowed_scopes,
-        token: session?.token,
-        signal: controller.signal,
-      })
+      const response = await streamChat(
+        {
+          message: text,
+          conversation_id: isNewConversation ? null : activeConversationId,
+          user_id: session?.id,
+          role: session?.role,
+          allowed_scopes: session?.allowed_scopes,
+          token: session?.token,
+          signal: controller.signal,
+        },
+        { onStatus: setStreamingStatus },
+      )
       const assistantMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -198,6 +203,7 @@ function AuthenticatedApp({ language, setLanguage }) {
       }
     } finally {
       setIsLoading(false)
+      setStreamingStatus(null)
       abortControllerRef.current = null
     }
   }
@@ -235,6 +241,7 @@ function AuthenticatedApp({ language, setLanguage }) {
     <ChatPanel
       conversation={activeConversation}
       isLoading={isLoading}
+      streamingStatus={streamingStatus}
       onSend={handleSend}
       onStop={handleStopGenerating}
       onRetry={handleRetry}

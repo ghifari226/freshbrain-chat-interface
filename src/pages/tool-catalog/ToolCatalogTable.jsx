@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Check, Eye, Pencil } from 'lucide-react'
+import { ArrowDown, ArrowUp, Eye, Pencil } from 'lucide-react'
 import {
   Chip,
   IconButton,
@@ -15,14 +15,15 @@ import {
   REQUEST_STATUS_TRANSITION_BY_STATUS,
   TOOL_STATUS_COLOR,
 } from './toolCatalogConfig.js'
+// Live tools (status: production/staging, code-owned, GET /tools) and
+// tool requests (status: draft/posted/live, Postgres-owned, /tool-requests)
+// are two independent sources sharing this table only for layout — the
+// two branches below never mix status vocabularies.
 function statusChipProps(row, isRequestView, t) {
-  if (isRequestView && row.requestStatus) {
+  if (isRequestView) {
     return {
-      label:
-        row.requestStatus === 'live'
-          ? t('toolCatalog.liveTabLabel')
-          : t(`toolCatalog.${row.requestStatus}Status`),
-      color: REQUEST_STATUS_COLOR[row.requestStatus],
+      label: row.status === 'live' ? t('toolCatalog.liveTabLabel') : t(`toolCatalog.${row.status}Status`),
+      color: REQUEST_STATUS_COLOR[row.status],
     }
   }
   return { label: t(`toolCatalog.${row.status}Status`), color: TOOL_STATUS_COLOR[row.status] }
@@ -31,15 +32,13 @@ function statusChipProps(row, isRequestView, t) {
 export default function ToolCatalogTable({
   canChangeRequestStatus,
   canEdit,
-  canPromote,
   isRequestView,
   onChangeRequestStatus,
   onEdit,
-  onPromote,
   rows,
   t,
 }) {
-  const showActionsColumn = isRequestView && (canEdit || canPromote || canChangeRequestStatus)
+  const showActionsColumn = isRequestView && (canEdit || canChangeRequestStatus)
   return (
     <TableContainer className="data-table-container">
       <Table className="data-table" size="small" aria-label={t('toolCatalog.title')}>
@@ -56,18 +55,19 @@ export default function ToolCatalogTable({
         <TableBody>
           {rows.map((row) => {
             const chip = statusChipProps(row, isRequestView, t)
-            const requestStatusTransition =
-              row.status === 'request' ? REQUEST_STATUS_TRANSITION_BY_STATUS[row.requestStatus] : undefined
+            const requestStatusTransition = isRequestView
+              ? REQUEST_STATUS_TRANSITION_BY_STATUS[row.status]
+              : undefined
             return (
               <TableRow key={row.id} hover>
-                <TableCell>{row.system}</TableCell>
-                <TableCell>{row.displayName}</TableCell>
+                <TableCell>{row.domain}</TableCell>
+                <TableCell>{isRequestView ? row.title : row.displayName}</TableCell>
                 <TableCell>
                   <Chip
                     label={chip.label}
                     size="small"
                     color={chip.color}
-                    variant={row.status === 'request' ? 'outlined' : 'filled'}
+                    variant={isRequestView ? 'outlined' : 'filled'}
                   />
                 </TableCell>
                 {showActionsColumn && (
@@ -89,13 +89,11 @@ export default function ToolCatalogTable({
                     {canEdit && (
                       <Tooltip
                         title={t(
-                          row.requestStatus === 'live'
-                            ? 'toolCatalog.viewRequestAction'
-                            : 'toolCatalog.editRequestAction',
+                          row.status === 'live' ? 'toolCatalog.viewRequestAction' : 'toolCatalog.editRequestAction',
                         )}
                       >
                         <IconButton size="small" onClick={() => onEdit(row)}>
-                          {row.requestStatus === 'live' ? (
+                          {row.status === 'live' ? (
                             <Eye className="table-action-icon" />
                           ) : (
                             <Pencil
@@ -103,13 +101,6 @@ export default function ToolCatalogTable({
                               fill="currentColor"
                             />
                           )}
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {canPromote && row.status === 'request' && row.requestStatus === 'posted' && (
-                      <Tooltip title={t('toolCatalog.promoteToStagingAction')}>
-                        <IconButton size="small" onClick={() => onPromote(row)}>
-                          <Check className="table-action-icon icon-button--success" strokeWidth={3} />
                         </IconButton>
                       </Tooltip>
                     )}
