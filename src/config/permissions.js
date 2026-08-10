@@ -122,6 +122,9 @@ export function canChangeFreshpediaStatus(permissions) {
 export function canAccessToolCatalog(permissions) {
   return hasPermission(permissions, 'tools.live_view')
 }
+export function canAccessToolRequests(permissions) {
+  return hasPermission(permissions, 'tools.request_view')
+}
 export function permissionsArrayToFlags(allowedPermissions) {
   const set = new Set(allowedPermissions ?? [])
   return Object.fromEntries(ALL_PERMISSIONS.map((key) => [key, set.has(key)]))

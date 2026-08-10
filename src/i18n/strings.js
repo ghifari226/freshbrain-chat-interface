@@ -8,6 +8,11 @@ export const strings = {
     closeSidebar: { id: 'Tutup sidebar', en: 'Close sidebar' },
     recentChats: { id: 'Obrolan terkini', en: 'Recent chats' },
     noConversations: { id: 'Belum ada obrolan', en: 'No conversations yet' },
+    // Admin nav section headers — expanded sidebar only, see adminNav.js's
+    // ADMIN_NAV_SECTIONS.
+    knowledgeSection: { id: 'Pengetahuan', en: 'Knowledge' },
+    capabilitySection: { id: 'Kapabilitas', en: 'Capability' },
+    accessSection: { id: 'Akses', en: 'Access' },
   },
   conversationMenu: {
     options: { id: 'Opsi obrolan', en: 'Conversation options' },
@@ -324,6 +329,7 @@ export const strings = {
   },
   toolCatalog: {
     title: { id: 'Katalog tool', en: 'Tool catalog' },
+    requestsNavTitle: { id: 'Request tool', en: 'Tool requests' },
     toolColumn: { id: 'Tool', en: 'Tool' },
     statusColumn: { id: 'Status', en: 'Status' },
     liveTabLabel: { id: 'Live', en: 'Live' },

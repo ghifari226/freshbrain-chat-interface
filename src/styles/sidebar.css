@@ -265,6 +265,10 @@
   padding: 8px 10px 4px;
 }
 
+.sidebar-nav-group + .sidebar-nav-group {
+  margin-top: 12px;
+}
+
 .conversation-list {
   list-style: none;
   margin: 0;

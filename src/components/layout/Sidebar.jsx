@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import UserMenu from './UserMenu.jsx'
 import SearchModal from '../modals/SearchModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
-import { ADMIN_NAV_ITEMS } from '../../config/adminNav.js'
+import { ADMIN_NAV_ITEMS, ADMIN_NAV_SECTIONS } from '../../config/adminNav.js'
 
 export default function Sidebar({
   variant = 'chat',
@@ -56,6 +56,17 @@ export default function Sidebar({
   }, [])
 
   const visibleAdminItems = ADMIN_NAV_ITEMS.filter((item) => item.canSee(session))
+  // Expanded sidebar groups admin items under labeled sections; a section
+  // with zero visible items doesn't render at all (mirrors PermissionsPage's
+  // groupedRows pattern). Collapsed sidebar stays flat — see visibleAdminItems.
+  const groupedAdminItems = useMemo(
+    () =>
+      ADMIN_NAV_SECTIONS.map((section) => ({
+        ...section,
+        items: visibleAdminItems.filter((item) => item.section === section.id),
+      })).filter((section) => section.items.length > 0),
+    [visibleAdminItems],
+  )
 
   useEffect(() => {
     if (!isRecentsOpen) return
@@ -275,20 +286,25 @@ export default function Sidebar({
               </button>
 
               <div className="sidebar-section">
-                <nav className="sidebar-nav">
-                  {visibleAdminItems.map((item) => (
-                    <button
-                      key={item.path}
-                      className={
-                        'sidebar-nav__item' + (path === item.path ? ' sidebar-nav__item--active' : '')
-                      }
-                      onClick={() => navigate(item.path)}
-                    >
-                      <item.Icon className="sidebar-nav__item-icon" />
-                      <span className="sidebar-nav__item-label">{t(item.labelKey)}</span>
-                    </button>
-                  ))}
-                </nav>
+                {groupedAdminItems.map((section) => (
+                  <div key={section.id} className="sidebar-nav-group">
+                    <div className="sidebar-section__label">{t(section.labelKey)}</div>
+                    <nav className="sidebar-nav">
+                      {section.items.map((item) => (
+                        <button
+                          key={item.path}
+                          className={
+                            'sidebar-nav__item' + (path === item.path ? ' sidebar-nav__item--active' : '')
+                          }
+                          onClick={() => navigate(item.path)}
+                        >
+                          <item.Icon className="sidebar-nav__item-icon" />
+                          <span className="sidebar-nav__item-label">{t(item.labelKey)}</span>
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+                ))}
               </div>
             </>
           )}

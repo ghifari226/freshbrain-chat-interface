@@ -1,3 +1,9 @@
+// Explicit display order for status filter chips — not derived from the
+// color maps below, since REQUEST_STATUS_COLOR's key order (draft/posted/
+// live) doesn't match the intended chip order (live/posted/draft).
+export const LIVE_STATUSES = ['production', 'staging']
+export const REQUEST_STATUSES = ['live', 'posted', 'draft']
+
 export const TOOL_STATUS_COLOR = {
   production: 'success',
   staging: 'warning',

@@ -6,7 +6,8 @@ import RolesPage from './RolesPage.jsx'
 import PermissionsPage from './PermissionsPage.jsx'
 import UsersPage from './UsersPage.jsx'
 import FreshpediaPage from '../FreshpediaPage.jsx'
-import ToolCatalogPage from '../ToolCatalogPage.jsx'
+import ToolCatalogLivePage from '../ToolCatalogLivePage.jsx'
+import ToolCatalogRequestPage from '../ToolCatalogRequestPage.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
 import { canAccessConfigSection, canViewRoles, canViewPermissions, canViewUsers } from '../../config/permissions.js'
 import { ADMIN_NAV_ITEMS } from '../../config/adminNav.js'
@@ -39,8 +40,10 @@ export default function AdminSection({ language }) {
     <AdminLayout navigate={navigate} subTitle={SUB_PAGE_TITLES[path]}>
       {path === '/admin/freshpedia' ? (
         <FreshpediaPage language={language} />
-      ) : path === '/admin/tools' ? (
-        <ToolCatalogPage />
+      ) : path === '/admin/tool-catalog' ? (
+        <ToolCatalogLivePage />
+      ) : path === '/admin/tool-requests' ? (
+        <ToolCatalogRequestPage />
       ) : path === '/admin/roles' ? (
         <RolesPage session={session} />
       ) : path === '/admin/permissions' ? (
