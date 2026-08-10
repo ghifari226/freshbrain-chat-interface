@@ -9,7 +9,9 @@ import type {
   DevTokenResponse,
   FeedbackRequest,
   FeedbackResponse,
+  ListConversationMessagesRequest,
   ListConversationsRequest,
+  MessagesPageResponse,
   RenameConversationRequest,
   RenameConversationResponse,
   TitleRequest,
@@ -188,6 +190,23 @@ export async function listConversations({
     headers: authHeaders(token),
     params: { user_id, role },
   })
+  return data
+}
+export async function listConversationMessages({
+  conversation_id,
+  limit,
+  before,
+  token,
+  signal,
+}: ListConversationMessagesRequest): Promise<MessagesPageResponse> {
+  const { data } = await aiEngineApi.get<MessagesPageResponse>(
+    `/conversations/${conversation_id}/messages`,
+    {
+      signal,
+      headers: authHeaders(token),
+      params: { limit, before: before ?? undefined },
+    },
+  )
   return data
 }
 export async function renameConversation({

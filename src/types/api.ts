@@ -1,4 +1,5 @@
 import type {
+  ChatMessage,
   Conversation,
   FreshpediaEntryType,
   PartialPermissions,
@@ -75,6 +76,18 @@ export interface ListConversationsRequest {
 
 export interface ConversationsListResponse {
   conversations: Conversation[]
+}
+export interface ListConversationMessagesRequest {
+  conversation_id: string
+  limit: number
+  before?: string | null
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface MessagesPageResponse {
+  messages: ChatMessage[]
+  next_cursor: string | null
 }
 export interface RenameConversationRequest {
   conversation_id: string

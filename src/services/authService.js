@@ -19,7 +19,7 @@ function allTruePermissions() {
 }
 const MOCK_USERS = [
   {
-    id: 'b7e2d5f1-0000-4c22-9d33-000000000001',
+    id: '11111111-1111-4111-8111-111111111111',
     email: 'admin',
     password: 'admin',
     name: 'Admin',

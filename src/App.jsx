@@ -9,6 +9,7 @@ import {
   sendFeedback,
   generateTitle,
   listConversations,
+  listConversationMessages,
   renameConversation,
   deleteConversation,
 } from './services/apiClient.ts'
@@ -27,6 +28,11 @@ import { updateById } from './utils/collections.js'
 const MuiPage = lazy(() => import('./pages/MuiPage.jsx'))
 const AdminSection = lazy(() => import('./pages/admin/AdminSection.jsx'))
 
+// Messages paginate by count, not turns, but an even limit keeps pages
+// turn-aligned for normal text-only conversations.
+const TURNS_PER_PAGE = 20
+const MESSAGES_PER_PAGE = TURNS_PER_PAGE * 2
+
 function AuthenticatedApp({ language, setLanguage }) {
   const { pathname: path } = useLocation()
   const navigate = useNavigate()
@@ -39,12 +45,25 @@ function AuthenticatedApp({ language, setLanguage }) {
   const [pendingMessages, setPendingMessages] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [streamingStatus, setStreamingStatus] = useState(null)
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false)
   const inputRef = useRef(null)
   const abortControllerRef = useRef(null)
   useEffect(() => {
     listConversations({ user_id: session?.id, role: session?.role, token: session?.token })
       .then((response) => {
-        setConversations(response.conversations)
+        // Merge rather than replace — this list endpoint no longer carries
+        // messages, so a naive replace would wipe out any message window
+        // already hydrated per-conversation by the pagination effect below
+        // (including across React StrictMode's double-invoked dev effects).
+        setConversations((prev) => {
+          const existingById = new Map(prev.map((conversation) => [conversation.id, conversation]))
+          return response.conversations.map((incoming) => {
+            const existing = existingById.get(incoming.id)
+            return existing?.messages !== undefined
+              ? { ...incoming, messages: existing.messages, nextCursor: existing.nextCursor }
+              : incoming
+          })
+        })
       })
       .catch(() => {
       })
@@ -56,6 +75,61 @@ function AuthenticatedApp({ language, setLanguage }) {
     : pendingMessages
       ? { title: strings.sidebar.newChat[language], timestamp: null, messages: pendingMessages }
       : null
+
+  useEffect(() => {
+    if (!activeConversationId) return
+    const conversation = conversations.find((c) => c.id === activeConversationId)
+    if (!conversation || conversation.messages !== undefined) return
+
+    const controller = new AbortController()
+    listConversationMessages({
+      conversation_id: activeConversationId,
+      limit: MESSAGES_PER_PAGE,
+      token: session?.token,
+      signal: controller.signal,
+    })
+      .then((response) => {
+        setConversations((prev) =>
+          updateById(prev, activeConversationId, (c) => ({
+            ...c,
+            messages: [...response.messages].reverse(),
+            nextCursor: response.next_cursor,
+          })),
+        )
+      })
+      .catch((error) => {
+        if (!isCanceled(error)) console.error('Failed to load messages', error)
+      })
+    return () => controller.abort()
+  }, [activeConversationId, conversations, session?.token])
+
+  function handleLoadOlderMessages() {
+    if (!activeConversation?.nextCursor || isLoadingOlderMessages) return
+    setIsLoadingOlderMessages(true)
+    listConversationMessages({
+      conversation_id: activeConversationId,
+      limit: MESSAGES_PER_PAGE,
+      before: activeConversation.nextCursor,
+      token: session?.token,
+    })
+      .then((response) => {
+        const olderMessages = [...response.messages].reverse()
+        setConversations((prev) =>
+          updateById(prev, activeConversationId, (c) => ({
+            ...c,
+            messages: [...olderMessages, ...c.messages],
+            nextCursor: response.next_cursor,
+          })),
+        )
+      })
+      .catch((error) => {
+        console.error('Failed to load older messages', error)
+      })
+      .finally(() => {
+        setIsLoadingOlderMessages(false)
+      })
+  }
+
   function handleNewChat() {
     setPendingMessages(null)
     navigate('/')
@@ -248,6 +322,9 @@ function AuthenticatedApp({ language, setLanguage }) {
       onFeedback={(messageId, feedback) =>
         handleMessageFeedback(activeConversationId, messageId, feedback)
       }
+      onLoadOlderMessages={handleLoadOlderMessages}
+      hasMoreOlder={Boolean(activeConversation?.nextCursor)}
+      isLoadingOlder={isLoadingOlderMessages}
       inputRef={inputRef}
     />
   )

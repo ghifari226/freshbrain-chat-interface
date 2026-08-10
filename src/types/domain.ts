@@ -109,5 +109,11 @@ export interface Conversation {
   id: string
   title: string
   timestamp: string
-  messages: ChatMessage[]
+  // Absent until the first page of messages has been fetched (see
+  // App.jsx) — the conversations list endpoint no longer embeds message
+  // history, it's loaded on demand per conversation via cursor pagination.
+  messages?: ChatMessage[]
+  // Cursor for fetching the next (older) page of messages; null once the
+  // start of the conversation has been reached, undefined if never fetched.
+  nextCursor?: string | null
 }

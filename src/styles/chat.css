@@ -123,6 +123,14 @@
   gap: 32px;
 }
 
+.message-list__status {
+  font-family: var(--font-chat);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 12px 0;
+}
+
 .scroll-anchor {
   position: absolute;
   bottom: 0;
