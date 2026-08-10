@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ChatMessage from './ChatMessage.jsx'
 import MessageInput from './MessageInput.jsx'
 import StagingModeToggle from './StagingModeToggle.jsx'
@@ -16,10 +16,20 @@ export default function ChatPanel({
 }) {
   const t = useT()
   const scrollRef = useRef(null)
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767.98px)').matches,
+  )
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [conversation?.messages.length, isLoading])
+
+  useEffect(() => {
+    const mobileViewport = window.matchMedia('(max-width: 767.98px)')
+    const handleViewportChange = (event) => setIsMobileViewport(event.matches)
+    mobileViewport.addEventListener('change', handleViewportChange)
+    return () => mobileViewport.removeEventListener('change', handleViewportChange)
+  }, [])
 
   const isNewChat = !conversation || conversation.messages.length === 0
 
@@ -81,13 +91,16 @@ export default function ChatPanel({
             </div>
           )}
 
-          {!isLoading && <p className="chat-disclaimer">{t('chat.disclaimer')}</p>}
+          {isMobileViewport && !isLoading && (
+            <p className="chat-disclaimer">{t('chat.disclaimer')}</p>
+          )}
 
           <div ref={scrollRef} className="scroll-anchor" />
         </div>
       </div>
 
       <MessageInput ref={inputRef} onSend={onSend} onStop={onStop} disabled={isLoading} />
+      {!isMobileViewport && <p className="chat-disclaimer">{t('chat.disclaimer')}</p>}
     </main>
   )
 }
