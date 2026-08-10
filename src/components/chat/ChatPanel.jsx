@@ -81,12 +81,13 @@ export default function ChatPanel({
             </div>
           )}
 
-          <div ref={scrollRef} />
+          {!isLoading && <p className="chat-disclaimer">{t('chat.disclaimer')}</p>}
+
+          <div ref={scrollRef} className="scroll-anchor" />
         </div>
       </div>
 
       <MessageInput ref={inputRef} onSend={onSend} onStop={onStop} disabled={isLoading} />
-      <p className="chat-disclaimer">{t('chat.disclaimer')}</p>
     </main>
   )
 }

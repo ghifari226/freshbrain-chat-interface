@@ -7,8 +7,6 @@ import {
   Settings,
   UserShield,
 } from 'lucide-react'
-import SettingsModal from '../modals/SettingsModal.jsx'
-import ProfileModal from '../modals/ProfileModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { canAccessConfigSection } from '../../config/permissions.js'
@@ -19,22 +17,15 @@ function isAdminPath(path) {
 
 export default function UserMenu({
   collapsed = false,
-  theme,
-  setTheme,
-  tone,
-  setTone,
-  chatFont,
-  setChatFont,
-  language,
-  setLanguage,
+  onNavigate,
+  onOpenSettings,
+  onOpenProfile,
 }) {
   const t = useT()
   const { session, logout } = useAuth()
   const { pathname: path } = useLocation()
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const wrapRef = useRef(null)
   const onAdminPages = isAdminPath(path)
   const canSeeAdmin = canAccessConfigSection(session)
@@ -58,8 +49,9 @@ export default function UserMenu({
             className="menu__profile"
             aria-label={t('userMenu.viewProfile')}
             onClick={() => {
-              setIsProfileOpen(true)
+              onOpenProfile()
               setIsOpen(false)
+              onNavigate?.()
             }}
           >
             <img src="/assets/user.svg" alt="" className="user-avatar" />
@@ -69,8 +61,9 @@ export default function UserMenu({
           <button
             className="menu__item"
             onClick={() => {
-              setIsSettingsOpen(true)
+              onOpenSettings()
               setIsOpen(false)
+              onNavigate?.()
             }}
           >
             <Settings className="menu__item-icon" />
@@ -82,6 +75,7 @@ export default function UserMenu({
               onClick={() => {
                 navigate('/')
                 setIsOpen(false)
+                onNavigate?.()
               }}
             >
               <ArrowLeft className="menu__item-icon" />
@@ -94,6 +88,7 @@ export default function UserMenu({
                 onClick={() => {
                   navigate('/admin')
                   setIsOpen(false)
+                  onNavigate?.()
                 }}
               >
                 <UserShield className="menu__item-icon" />
@@ -107,6 +102,7 @@ export default function UserMenu({
             onClick={() => {
               logout()
               setIsOpen(false)
+              onNavigate?.()
             }}
           >
             <LogOut className="menu__item-icon" />
@@ -128,24 +124,6 @@ export default function UserMenu({
           </>
         )}
       </button>
-
-      {isSettingsOpen && (
-        <SettingsModal
-          onClose={() => setIsSettingsOpen(false)}
-          theme={theme}
-          setTheme={setTheme}
-          tone={tone}
-          setTone={setTone}
-          chatFont={chatFont}
-          setChatFont={setChatFont}
-          language={language}
-          setLanguage={setLanguage}
-        />
-      )}
-
-      {isProfileOpen && (
-        <ProfileModal onClose={() => setIsProfileOpen(false)} session={session} />
-      )}
     </div>
   )
 }

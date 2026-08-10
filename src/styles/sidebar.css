@@ -36,6 +36,39 @@
     padding-inline: 6px;
     box-shadow: none;
   }
+
+  .sidebar.sidebar--mobile-trigger {
+    position: static;
+    width: 0;
+    height: 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+}
+
+.sidebar-mobile-trigger {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-sidebar);
+  color: var(--text-sidebar);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 30;
+}
+
+.sidebar-mobile-trigger__icon {
+  width: 20px;
+  height: 20px;
 }
 
 .sidebar-collapsed__top {

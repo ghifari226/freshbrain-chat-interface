@@ -99,6 +99,14 @@
   color: #7fd0ff;
 }
 
+.auth-slogan--native {
+  display: flex;
+  justify-content: center;
+}
+.auth-slogan--native .auth-page__logo {
+  height: 40px;
+}
+
 .auth-box {
   width: 100%;
   box-sizing: border-box;
@@ -296,5 +304,18 @@
 
   .auth-box {
     padding: 22px 20px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .auth-page {
+    justify-content: flex-start;
+    padding-top: 96px;
+    padding-bottom: 24px;
+  }
+
+  .auth-family,
+  .auth-footer {
+    display: none;
   }
 }

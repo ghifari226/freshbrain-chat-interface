@@ -37,10 +37,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 2px;
 }
 
 .modal__row-label {
+  flex-shrink: 0;
   font-size: 14px;
   color: var(--text-muted);
 }
@@ -48,6 +50,8 @@
   display: flex;
   gap: 4px;
   width: 280px;
+  min-width: 0;
+  max-width: 100%;
   background: var(--surface-response);
   border-radius: 8px;
   padding: 3px;
@@ -83,6 +87,7 @@
 
 .font-select {
   width: auto;
+  min-width: 0;
   max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -198,13 +203,7 @@
     overflow-y: auto;
   }
 
-  .modal__row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .theme-toggle {
-    max-width: 100%;
+  .theme-toggle__option {
+    padding-inline: 8px;
   }
 }

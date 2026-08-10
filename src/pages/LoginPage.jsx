@@ -6,6 +6,7 @@ import { strings } from '../i18n/strings.js'
 import { USE_MOCK_API } from '../config/appConfig.js'
 import { requestPasswordReset } from '../services/authService.js'
 import AuthLanguageToggle from '../components/auth/AuthLanguageToggle.jsx'
+import { isNativeApp } from '../utils/platform.js'
 
 export default function LoginPage({ language, setLanguage, passwordResetSuccess }) {
   const { login } = useAuth()
@@ -66,28 +67,36 @@ export default function LoginPage({ language, setLanguage, passwordResetSuccess 
 
   return (
     <div className="auth-page">
-      <div className="auth-page__brand">
-        <img src="/assets/logos/freshbrain-horizontal-inverse.svg" alt="FreshBrain" className="auth-page__logo" />
-      </div>
+      {!isNativeApp && (
+        <div className="auth-page__brand">
+          <img src="/assets/logos/freshbrain-horizontal-inverse.svg" alt="FreshBrain" className="auth-page__logo" />
+        </div>
+      )}
 
       <div className="auth-card">
-        <div className="auth-slogan">
-          {strings.auth.slogan
-            .split('. ')
-            .map((sentence, index, sentences) => {
-              const text = index < sentences.length - 1 ? `${sentence}.` : sentence
-              const words = text.split(' ')
-              const lastWord = words.pop()
-              const leadingText = words.length > 0 ? `${words.join(' ')} ` : ''
+        {isNativeApp ? (
+          <div className="auth-slogan auth-slogan--native">
+            <img src="/assets/logos/freshbrain-horizontal-inverse.svg" alt="FreshBrain" className="auth-page__logo" />
+          </div>
+        ) : (
+          <div className="auth-slogan">
+            {strings.auth.slogan
+              .split('. ')
+              .map((sentence, index, sentences) => {
+                const text = index < sentences.length - 1 ? `${sentence}.` : sentence
+                const words = text.split(' ')
+                const lastWord = words.pop()
+                const leadingText = words.length > 0 ? `${words.join(' ')} ` : ''
 
-              return (
-                <div key={index} className="auth-slogan__line">
-                  {leadingText}
-                  <span className="auth-slogan__accent">{lastWord}</span>
-                </div>
-              )
-            })}
-        </div>
+                return (
+                  <div key={index} className="auth-slogan__line">
+                    {leadingText}
+                    <span className="auth-slogan__accent">{lastWord}</span>
+                  </div>
+                )
+              })}
+          </div>
+        )}
 
         <div className="auth-box">
           <div className="auth-box__toolbar">
@@ -199,16 +208,20 @@ export default function LoginPage({ language, setLanguage, passwordResetSuccess 
         </div>
       </div>
 
-      <div className="auth-family">
-        <span className="auth-family__caption">{t('auth.familyCaption')}</span>
-        <div className="auth-family__logos">
-          <img src="/assets/logos/freshfactory.svg" alt="FreshFactory" className="auth-family__logo" />
-          <img src="/assets/logos/freshcommerce.svg" alt="FreshCommerce" className="auth-family__logo" />
-          <img src="/assets/logos/frex.svg" alt="FreshExpress" className="auth-family__logo" />
+      {!isNativeApp && (
+        <div className="auth-family">
+          <span className="auth-family__caption">{t('auth.familyCaption')}</span>
+          <div className="auth-family__logos">
+            <img src="/assets/logos/freshfactory.svg" alt="FreshFactory" className="auth-family__logo" />
+            <img src="/assets/logos/freshcommerce.svg" alt="FreshCommerce" className="auth-family__logo" />
+            <img src="/assets/logos/frex.svg" alt="FreshExpress" className="auth-family__logo" />
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="auth-footer">© 2026 FreshBrain. All rights reserved.</div>
+      {!isNativeApp && (
+        <div className="auth-footer">© 2026 FreshBrain. All rights reserved.</div>
+      )}
     </div>
   )
 }

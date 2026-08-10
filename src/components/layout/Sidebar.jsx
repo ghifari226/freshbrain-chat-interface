@@ -3,14 +3,18 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   MessageSquare,
+  Menu,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
   SquarePen,
+  X,
 } from 'lucide-react'
 import ConversationItem from '../chat/ConversationItem.jsx'
 import UserMenu from './UserMenu.jsx'
 import SearchModal from '../modals/SearchModal.jsx'
+import SettingsModal from '../modals/SettingsModal.jsx'
+import ProfileModal from '../modals/ProfileModal.jsx'
 import { useT } from '../../hooks/useT.js'
 import { useAuth } from '../../hooks/useAuth.js'
 import { ADMIN_NAV_ITEMS, ADMIN_NAV_SECTIONS } from '../../config/adminNav.js'
@@ -41,19 +45,28 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767.98px)').matches,
   )
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767.98px)').matches,
+  )
   const [isRecentsOpen, setIsRecentsOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const recentsWrapRef = useRef(null)
+  const sidebarRef = useRef(null)
 
   useEffect(() => {
     const mobileViewport = window.matchMedia('(max-width: 767.98px)')
-    const collapseForMobile = (event) => {
+    const handleViewportChange = (event) => {
+      setIsMobileViewport(event.matches)
       if (event.matches) setIsCollapsed(true)
     }
 
-    mobileViewport.addEventListener('change', collapseForMobile)
-    return () => mobileViewport.removeEventListener('change', collapseForMobile)
+    mobileViewport.addEventListener('change', handleViewportChange)
+    return () => mobileViewport.removeEventListener('change', handleViewportChange)
   }, [])
+
+  const showMobileTrigger = isCollapsed && isMobileViewport
 
   const visibleAdminItems = ADMIN_NAV_ITEMS.filter((item) => item.canSee(session))
   // Expanded sidebar groups admin items under labeled sections; a section
@@ -79,6 +92,21 @@ export default function Sidebar({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isRecentsOpen])
 
+  useEffect(() => {
+    if (isCollapsed || !isMobileViewport) return
+    function handleClickOutsideSidebar(event) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setIsCollapsed(true)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutsideSidebar)
+    return () => document.removeEventListener('mousedown', handleClickOutsideSidebar)
+  }, [isCollapsed, isMobileViewport])
+
+  function collapseIfMobile() {
+    if (isMobileViewport) setIsCollapsed(true)
+  }
+
   function selectRecent(conversationId) {
     onSelectConversation(conversationId)
     setIsRecentsOpen(false)
@@ -87,11 +115,27 @@ export default function Sidebar({
   function selectFromSearch(conversationId) {
     onSelectConversation(conversationId)
     setIsSearchOpen(false)
+    collapseIfMobile()
   }
 
   return (
-    <aside className={'sidebar' + (isCollapsed ? ' sidebar--collapsed' : '')}>
-      {isCollapsed ? (
+    <aside
+      ref={sidebarRef}
+      className={
+        'sidebar' +
+        (isCollapsed ? ' sidebar--collapsed' : '') +
+        (showMobileTrigger ? ' sidebar--mobile-trigger' : '')
+      }
+    >
+      {showMobileTrigger ? (
+        <button
+          className="sidebar-mobile-trigger"
+          aria-label={t('sidebar.expandSidebar')}
+          onClick={() => setIsCollapsed(false)}
+        >
+          <Menu className="sidebar-mobile-trigger__icon" />
+        </button>
+      ) : isCollapsed ? (
         <>
           <div className="sidebar-collapsed__top">
             <button
@@ -194,14 +238,9 @@ export default function Sidebar({
 
           <UserMenu
             collapsed
-            theme={theme}
-            setTheme={setTheme}
-            tone={tone}
-            setTone={setTone}
-            chatFont={chatFont}
-            setChatFont={setChatFont}
-            language={language}
-            setLanguage={setLanguage}
+            onNavigate={collapseIfMobile}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenProfile={() => setIsProfileOpen(true)}
           />
         </>
       ) : (
@@ -213,6 +252,7 @@ export default function Sidebar({
               onClick={() => {
                 onNewChat()
                 navigate('/')
+                collapseIfMobile()
               }}
             >
               <img
@@ -243,14 +283,20 @@ export default function Sidebar({
                 data-tooltip={t('sidebar.closeSidebar')}
                 onClick={() => setIsCollapsed(true)}
               >
-                <PanelLeftClose />
+                {isMobileViewport ? <X /> : <PanelLeftClose />}
               </button>
             </div>
           </div>
 
           {isChat ? (
             <>
-              <button className="conversation-item conversation-item--new" onClick={onNewChat}>
+              <button
+                className="conversation-item conversation-item--new"
+                onClick={() => {
+                  onNewChat()
+                  collapseIfMobile()
+                }}
+              >
                 <SquarePen className="conversation-item__icon" />
                 <span className="conversation-item__title">{t('sidebar.newChat')}</span>
               </button>
@@ -266,7 +312,10 @@ export default function Sidebar({
                           conversation={conversation}
                           isActive={conversation.id === activeConversationId}
                           isMenuOpen={openMenuId === conversation.id}
-                          onSelect={() => onSelectConversation(conversation.id)}
+                          onSelect={() => {
+                            onSelectConversation(conversation.id)
+                            collapseIfMobile()
+                          }}
                           onOpenMenu={() => setOpenMenuId(conversation.id)}
                           onCloseMenu={() => setOpenMenuId(null)}
                           onRename={(title) => onRenameConversation(conversation.id, title)}
@@ -280,7 +329,13 @@ export default function Sidebar({
             </>
           ) : (
             <>
-              <button className="conversation-item conversation-item--new" onClick={() => navigate('/')}>
+              <button
+                className="conversation-item conversation-item--new"
+                onClick={() => {
+                  navigate('/')
+                  collapseIfMobile()
+                }}
+              >
                 <ArrowLeft className="conversation-item__icon" />
                 <span className="conversation-item__title">{t('config.backToChat')}</span>
               </button>
@@ -296,7 +351,10 @@ export default function Sidebar({
                           className={
                             'sidebar-nav__item' + (path === item.path ? ' sidebar-nav__item--active' : '')
                           }
-                          onClick={() => navigate(item.path)}
+                          onClick={() => {
+                            navigate(item.path)
+                            collapseIfMobile()
+                          }}
                         >
                           <item.Icon className="sidebar-nav__item-icon" />
                           <span className="sidebar-nav__item-label">{t(item.labelKey)}</span>
@@ -310,14 +368,9 @@ export default function Sidebar({
           )}
 
           <UserMenu
-            theme={theme}
-            setTheme={setTheme}
-            tone={tone}
-            setTone={setTone}
-            chatFont={chatFont}
-            setChatFont={setChatFont}
-            language={language}
-            setLanguage={setLanguage}
+            onNavigate={collapseIfMobile}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenProfile={() => setIsProfileOpen(true)}
           />
         </>
       )}
@@ -329,6 +382,22 @@ export default function Sidebar({
           onClose={() => setIsSearchOpen(false)}
         />
       )}
+
+      {isSettingsOpen && (
+        <SettingsModal
+          onClose={() => setIsSettingsOpen(false)}
+          theme={theme}
+          setTheme={setTheme}
+          tone={tone}
+          setTone={setTone}
+          chatFont={chatFont}
+          setChatFont={setChatFont}
+          language={language}
+          setLanguage={setLanguage}
+        />
+      )}
+
+      {isProfileOpen && <ProfileModal onClose={() => setIsProfileOpen(false)} session={session} />}
     </aside>
   )
 }

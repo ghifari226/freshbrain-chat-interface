@@ -97,6 +97,15 @@ input[type='checkbox'] {
   opacity: 1;
 }
 
+@media (max-width: 767.98px) {
+  .staging-toggle {
+    border-radius: 50%;
+    background: var(--surface-sidebar);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    z-index: 20;
+  }
+}
+
 .staging-banner {
   position: absolute;
   top: 8px;
