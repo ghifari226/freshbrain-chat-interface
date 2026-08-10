@@ -1,4 +1,5 @@
-function JwtHandshakeSide({ label, colorClass, secret, action, exampleJson }) {
+function JwtHandshakeSide({ label, colorClass, secret, payload, action, exampleJson }) {
+  const payloadSection = payload ? `\npayload = ${payload}\n` : ''
   return (
     <div className="jwt-handshake__side">
       <div className={`jwt-handshake__label ${colorClass}`}>{label}</div>
@@ -6,7 +7,7 @@ function JwtHandshakeSide({ label, colorClass, secret, action, exampleJson }) {
 JWT_SECRET=${secret}
 JWT_ALGO=HS256
 `}<span className="jwt-handshake__note">(matching env)</span>{`
-
+${payloadSection}
 action:
 ${action}`}</pre>
       {exampleJson && (
@@ -21,7 +22,7 @@ ${action}`}</pre>
 // sides, gateway encodes on login/refresh, ai-engine decodes on every
 // request. Freeze/remove once the contract is settled; it isn't meant to
 // ship to Production.
-export default function JwtHandshakePreview({ title, secret, gatewayAction, aiEngineAction, exampleTokenResponse }) {
+export default function JwtHandshakePreview({ title, secret, payload, gatewayAction, aiEngineAction, exampleTokenResponse }) {
   return (
     <div className="gateway-json-preview">
       <div className="jwt-handshake__title">{title}</div>
@@ -29,6 +30,7 @@ export default function JwtHandshakePreview({ title, secret, gatewayAction, aiEn
         label="Gateway Backend Token Encoding"
         colorClass="jwt-handshake__label--red"
         secret={secret}
+        payload={payload}
         action={gatewayAction}
         exampleJson={exampleTokenResponse}
       />

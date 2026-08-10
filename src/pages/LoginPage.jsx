@@ -16,13 +16,30 @@ import AuthLanguageToggle from '../components/auth/AuthLanguageToggle.jsx'
 // just what a generated secret looks like (e.g. `openssl rand -hex 32`).
 const JWT_SHARED_SECRET = 'f4a9c1e6b7d23a08f5e19c4b6a7d3e01f2c8b9a4d6e0f1c3b5a7d9e0f2c4b6a8'
 
+// dev-doc only — documents the claims chat-gateway should encode into (and
+// ai-engine should expect after decoding) both the access and refresh
+// token, shown as plain text in the JWT handshake panel below. Matches
+// EXAMPLE_LOGIN_RESPONSE's own id/allowed_scopes/allowed_permissions/
+// is_maintainer fields below.
+const JWT_PAYLOAD_SHAPE = `{
+  id,
+  allowed_scopes,
+  allowed_permissions,
+  is_maintainer
+}`
+
+// Placeholder strings, not real signed JWTs — see JWT_PAYLOAD_SHAPE above
+// for what actually goes into them.
+const EXAMPLE_ACCESS_TOKEN = 'eyJhbGciOi...'
+const EXAMPLE_REFRESH_TOKEN = 'eyJhbGciOi...'
+
 // dev-doc only — static example of the token pair issued by both
 // POST /auth/login and POST /auth/refresh-token (auth-contract.md).
 const EXAMPLE_TOKEN_PAIR = {
-  access_token: 'eyJhbGciOi...',
-  refresh_token: 'eyJhbGciOi...',
-  access_expires_in: 900,
-  refresh_expires_in: 604800,
+  access_token: EXAMPLE_ACCESS_TOKEN,
+  refresh_token: EXAMPLE_REFRESH_TOKEN,
+  access_expires_in: 1800,
+  refresh_expires_in: 1209600,
 }
 
 // dev-doc only — static example of POST /auth/login's 200 response
@@ -34,18 +51,18 @@ const EXAMPLE_TOKEN_PAIR = {
 // Superuser, all true) instead of hardcoded so this example can never
 // silently drift from the actual catalog.
 const EXAMPLE_LOGIN_RESPONSE = {
-  id: 'a1b2c3d4-5e6f-4a1b-8c2d-3e4f5a6b7c8d',
+  id: 'd102c3b7-5b82-4547-bdb9-afcaae5b6618',
   name: 'Admin',
   email: 'admin',
   phone: '6281110000001',
   role: 'Superuser',
-  allowed_scopes: ['wms.fulfillment', 'wms.inbound', 'wms.inventory'],
+  allowed_scopes: ['*'],
   allowed_permissions: [...ALL_PERMISSIONS],
   is_maintainer: true,
-  access_token: 'eyJhbGciOi...',
-  refresh_token: 'eyJhbGciOi...',
-  access_expires_in: 900,
-  refresh_expires_in: 604800,
+  access_token: EXAMPLE_ACCESS_TOKEN,
+  refresh_token: EXAMPLE_REFRESH_TOKEN,
+  access_expires_in: 1800,
+  refresh_expires_in: 1209600,
 }
 
 // dev-doc only — static example of POST /auth/forgot-password's 200
@@ -122,7 +139,8 @@ export default function LoginPage({ language, setLanguage, passwordResetSuccess 
           <JwtHandshakePreview
             title="JWT Token"
             secret={JWT_SHARED_SECRET}
-            gatewayAction={'generate token -> encode(JWT_SECRET, JWT_ALGO)\napi response ->'}
+            payload={JWT_PAYLOAD_SHAPE}
+            gatewayAction={'generate token -> encode(payload, JWT_SECRET, JWT_ALGO)\napi response ->'}
             aiEngineAction={'verify token -> decode(token, JWT_SECRET, JWT_ALGO)\ncheck condition -> if (verified) continue'}
             exampleTokenResponse={EXAMPLE_TOKEN_PAIR}
           />
