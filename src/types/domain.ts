@@ -36,6 +36,8 @@ export interface Session {
   allowed_permissions: PermissionKey[]
   is_maintainer: boolean
   token: string
+  access_token_expires_at: string
+  refresh_token_expires_at: string
 }
 
 export interface UserDirectoryEntry {

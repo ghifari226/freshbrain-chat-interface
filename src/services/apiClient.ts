@@ -13,7 +13,16 @@ import type {
   TitleRequest,
   TitleResponse,
 } from '../types/api.ts'
+import type { Conversation } from '../types/domain.ts'
 import { aiEngineApi, authHeaders } from './api.ts'
+import { USE_MOCK_API } from '../config/appConfig.js'
+import { mockDelay } from './mockDelay.ts'
+
+// In-memory only, mirrors MOCK_USERS in authService.js — resets on reload.
+const MOCK_CONVERSATIONS: Conversation[] = []
+
+const MOCK_ANSWER = 'Tidak dapat terhubung ke AI Engine'
+
 interface InternalChatRequest {
   message: string
   conversationId: string | null
@@ -55,6 +64,32 @@ export async function sendMessage({
   token,
   signal,
 }: ChatRequest): Promise<ChatResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(500, 900, signal)
+
+    let conversation = conversation_id
+      ? MOCK_CONVERSATIONS.find((c) => c.id === conversation_id)
+      : undefined
+    if (!conversation) {
+      conversation = {
+        id: crypto.randomUUID(),
+        title: '',
+        timestamp: new Date().toISOString(),
+        messages: [],
+      }
+      MOCK_CONVERSATIONS.unshift(conversation)
+    }
+
+    const now = new Date().toISOString()
+    conversation.messages.push({ id: crypto.randomUUID(), role: 'user', text: message, createdAt: now })
+    const answer = MOCK_ANSWER
+    const messageId = crypto.randomUUID()
+    conversation.messages.push({ id: messageId, role: 'assistant', text: answer, createdAt: now })
+    conversation.timestamp = now
+
+    return { answer, conversation_id: conversation.id, message_id: messageId }
+  }
+
   const request = {
     message,
     conversationId: conversation_id,
@@ -86,6 +121,11 @@ export async function sendFeedback({
   token,
   signal,
 }: FeedbackRequest): Promise<FeedbackResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(300, 600, signal)
+    return { id: crypto.randomUUID() }
+  }
+
   const { data } = await aiEngineApi.post<FeedbackResponse>(
     '/feedback',
     {
@@ -107,6 +147,14 @@ export async function generateTitle({
   token,
   signal,
 }: TitleRequest): Promise<string> {
+  if (USE_MOCK_API) {
+    await mockDelay(300, 600, signal)
+    const title = message.slice(0, 40)
+    const conversation = MOCK_CONVERSATIONS.find((c) => c.id === conversation_id)
+    if (conversation) conversation.title = title
+    return title
+  }
+
   const { data } = await aiEngineApi.post<TitleResponse>(
     '/chat/title',
     { message, conversation_id },
@@ -120,6 +168,11 @@ export async function listConversations({
   token,
   signal,
 }: ListConversationsRequest): Promise<ConversationsListResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(300, 600, signal)
+    return { conversations: [...MOCK_CONVERSATIONS] }
+  }
+
   const { data } = await aiEngineApi.get<ConversationsListResponse>('/conversations', {
     signal,
     headers: authHeaders(token),
@@ -135,6 +188,13 @@ export async function renameConversation({
   token,
   signal,
 }: RenameConversationRequest): Promise<RenameConversationResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(300, 600, signal)
+    const conversation = MOCK_CONVERSATIONS.find((c) => c.id === conversation_id)
+    if (conversation) conversation.title = title
+    return { conversation_id, title }
+  }
+
   const { data } = await aiEngineApi.patch<RenameConversationResponse>(
     `/conversations/${conversation_id}`,
     { title, user_id, role },
@@ -149,6 +209,13 @@ export async function deleteConversation({
   token,
   signal,
 }: DeleteConversationRequest): Promise<DeleteConversationResponse> {
+  if (USE_MOCK_API) {
+    await mockDelay(300, 600, signal)
+    const index = MOCK_CONVERSATIONS.findIndex((c) => c.id === conversation_id)
+    if (index !== -1) MOCK_CONVERSATIONS.splice(index, 1)
+    return { conversation_id }
+  }
+
   const { data } = await aiEngineApi.delete<DeleteConversationResponse>(`/conversations/${conversation_id}`, {
     signal,
     headers: authHeaders(token),

@@ -10,6 +10,10 @@ import {
 } from '../config/permissions.js'
 import { authHeaders, gatewayApi } from './api.ts'
 import { mockDelay } from './mockDelay.ts'
+
+const ACCESS_TOKEN_LIFETIME_MS = 30 * 60 * 1000
+const REFRESH_TOKEN_LIFETIME_MS = 14 * 24 * 60 * 60 * 1000
+
 function allFalsePermissions() {
   return Object.fromEntries(ALL_PERMISSIONS.map((field) => [field, false]))
 }
@@ -75,6 +79,7 @@ function resolveScopes(role) {
   return ROLE_SCOPES[role] ?? []
 }
 function toSession(user) {
+  const now = Date.now()
   return {
     id: user.id,
     name: user.name,
@@ -85,6 +90,8 @@ function toSession(user) {
     allowed_permissions: permissionFlagsToArray(shapeUserPermissions(user)),
     is_maintainer: Boolean(user.is_maintainer),
     token: `mock:${user.id}`,
+    access_token_expires_at: new Date(now + ACCESS_TOKEN_LIFETIME_MS).toISOString(),
+    refresh_token_expires_at: new Date(now + REFRESH_TOKEN_LIFETIME_MS).toISOString(),
   }
 }
 
