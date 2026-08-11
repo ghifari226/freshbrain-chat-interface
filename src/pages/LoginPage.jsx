@@ -23,6 +23,7 @@ const JWT_SHARED_SECRET = 'f4a9c1e6b7d23a08f5e19c4b6a7d3e01f2c8b9a4d6e0f1c3b5a7d
 // is_maintainer fields below.
 const JWT_PAYLOAD_SHAPE = `{
   id,
+  allowed_systems,
   allowed_scopes,
   allowed_permissions,
   is_maintainer
