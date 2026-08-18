@@ -12,9 +12,6 @@ export const SYSTEM_ACCESS_PERMISSIONS = [
   'users.assign_permissions',
 ]
 export const CHAT_ACCESS_PERMISSIONS = [
-  'freshpedia.live_view',
-  'freshpedia.live_edit',
-  'freshpedia.live_status',
   'freshpedia.request_view',
   'freshpedia.request_add',
   'freshpedia.request_edit',
@@ -55,9 +52,6 @@ export const PERMISSION_LABEL_KEYS = {
   'users.edit': 'permissions.userEdit',
   'users.delete': 'permissions.userDelete',
   'users.assign_permissions': 'permissions.userAssignPermissions',
-  'freshpedia.live_view': 'permissions.freshpediaLiveView',
-  'freshpedia.live_edit': 'permissions.freshpediaLiveEdit',
-  'freshpedia.live_status': 'permissions.freshpediaLiveChangeStatus',
   'freshpedia.request_view': 'permissions.freshpediaRequestView',
   'freshpedia.request_add': 'permissions.freshpediaRequestAdd',
   'freshpedia.request_edit': 'permissions.freshpediaRequestEdit',
@@ -110,14 +104,8 @@ export function canAccessConfigSection(permissions) {
 export function canAssignPermissions(actor) {
   return actor?.role === 'Superuser' || actor?.role === 'Technology'
 }
-export function canPromote(actor) {
-  return Boolean(actor?.is_maintainer)
-}
 export function canAccessFreshpedia(permissions) {
-  return hasPermission(permissions, 'freshpedia.live_view')
-}
-export function canChangeFreshpediaStatus(permissions) {
-  return hasPermission(permissions, 'freshpedia.live_status')
+  return hasPermission(permissions, 'freshpedia.request_view')
 }
 export function canAccessToolCatalog(permissions) {
   return hasPermission(permissions, 'tools.live_view')

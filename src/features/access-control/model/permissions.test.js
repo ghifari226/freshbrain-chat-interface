@@ -5,7 +5,6 @@ import {
   canAccessFreshpedia,
   canAccessToolCatalog,
   canAssignPermissions,
-  canPromote,
   canViewPermissions,
   canViewRoles,
   canViewUsers,
@@ -37,18 +36,11 @@ describe('permission gates', () => {
     expect(TECHNOLOGY_LOCKED_PERMISSIONS).toEqual(['users.assign_permissions', 'users.view'])
   })
 
-  it('gates Freshpedia/Tool Catalog access on live_view only', () => {
+  it('gates Freshpedia access on request_view, Tool Catalog access on live_view', () => {
     expect(canAccessFreshpedia({ allowed_permissions: ['staging.test'] })).toBe(false)
-    expect(canAccessFreshpedia({ allowed_permissions: ['freshpedia.request_view'] })).toBe(false)
     expect(canAccessToolCatalog({ allowed_permissions: ['staging.test'] })).toBe(false)
     expect(canAccessToolCatalog({ allowed_permissions: ['tools.request_view'] })).toBe(false)
-    expect(canAccessFreshpedia({ allowed_permissions: ['freshpedia.live_view'] })).toBe(true)
+    expect(canAccessFreshpedia({ allowed_permissions: ['freshpedia.request_view'] })).toBe(true)
     expect(canAccessToolCatalog({ allowed_permissions: ['tools.live_view'] })).toBe(true)
-  })
-
-  it('gates Promote on the is_maintainer boolean, never a permission', () => {
-    expect(canPromote({ is_maintainer: false, allowed_permissions: ['freshpedia.live_status'] })).toBe(false)
-    expect(canPromote({ is_maintainer: true, allowed_permissions: [] })).toBe(true)
-    expect(canPromote(undefined)).toBe(false)
   })
 })

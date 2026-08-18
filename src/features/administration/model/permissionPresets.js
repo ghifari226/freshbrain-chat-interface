@@ -21,8 +21,6 @@ export const PERMISSION_PRESETS = [
       'users.add',
       'users.edit',
       'users.delete',
-      'freshpedia.live_edit',
-      'freshpedia.live_status',
       'freshpedia.request_add',
       'freshpedia.request_edit',
       'freshpedia.request_status',
@@ -35,7 +33,6 @@ export const PERMISSION_PRESETS = [
     id: 'capability-all-requests',
     label: 'Capability all requests',
     permissions: [
-      'freshpedia.live_view',
       'freshpedia.request_view',
       'freshpedia.request_add',
       'freshpedia.request_edit',
@@ -53,24 +50,14 @@ export const PERMISSION_PRESETS = [
     permissions: allWithPrefix('freshpedia'),
   },
   {
-    id: 'capability-freshpedia-maintainer',
-    label: 'Capability Freshpedia maintainer',
-    permissions: ['freshpedia.live_view', 'freshpedia.live_edit', 'freshpedia.live_status'],
-  },
-  {
     id: 'capability-freshpedia-requestor',
     label: 'Capability Freshpedia requestor',
-    permissions: [
-      'freshpedia.live_view',
-      'freshpedia.request_view',
-      'freshpedia.request_add',
-      'freshpedia.request_edit',
-    ],
+    permissions: ['freshpedia.request_view', 'freshpedia.request_add', 'freshpedia.request_edit'],
   },
   {
     id: 'capability-tester',
     label: 'Capability tester',
-    permissions: ['freshpedia.live_view', 'tools.live_view', 'staging.test'],
+    permissions: ['freshpedia.request_view', 'tools.live_view', 'staging.test'],
   },
   {
     id: 'capability-tools-requestor',
@@ -90,7 +77,7 @@ export const PERMISSION_PRESETS = [
   {
     id: 'view-only-capability',
     label: 'View-only capability',
-    permissions: ['freshpedia.live_view', 'tools.live_view'],
+    permissions: ['freshpedia.request_view', 'tools.live_view'],
   },
   {
     id: 'view-only-user-roles',

@@ -49,14 +49,14 @@ export interface UserDirectoryEntry {
 
 export type CatalogStatus = 'request' | 'staging' | 'production'
 export type RequestStatus = 'draft' | 'posted' | 'live'
+export type FreshpediaStatus = 'draft' | 'posted'
 export type FreshpediaEntryType = 'definition' | 'document' | 'alias'
 export type LocalizedText = { id: string; en: string }
 export interface FreshpediaEntry {
   id: string
   title: string
   type: FreshpediaEntryType
-  status: CatalogStatus
-  requestStatus?: RequestStatus
+  status: FreshpediaStatus
   createdBy: string
   createdAt: string
   updatedBy: string

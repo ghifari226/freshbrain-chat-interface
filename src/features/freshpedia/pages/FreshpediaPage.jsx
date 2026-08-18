@@ -1,81 +1,69 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@mui/material'
-import SectionToggle from '../components/SectionToggle.jsx'
 import FreshpediaEntryDialog from '../components/FreshpediaEntryDialog.jsx'
 import FreshpediaEntryList from '../components/FreshpediaEntryList.jsx'
 import FreshpediaFilters from '../components/FreshpediaFilters.jsx'
-import {
-  EMPTY_FRESHPEDIA_FORM,
-  TRANSITION_BY_STATUS,
-  isFreshpediaFormValid,
-} from '../model/freshpediaConfig.js'
+import { EMPTY_FRESHPEDIA_FORM, STATUSES, isFreshpediaFormValid } from '../model/freshpediaConfig.js'
 import { useAuth } from '@features/authentication'
 import { useAuthorizedPage } from '@shared/hooks/useAuthorizedPage.js'
-import { useStatusFilters } from '../model/useStatusFilters.js'
-import { useCatalogEntries } from '../model/useCatalogEntries.js'
 import { useT } from '@shared/i18n/useT.js'
-import { canAccessFreshpedia, canChangeFreshpediaStatus, canPromote, hasPermission } from '@features/access-control'
+import { canAccessFreshpedia, hasPermission } from '@features/access-control'
 import {
   createFreshpediaEntry,
   getFreshpediaEntries,
-  getFreshpediaRequestEntries,
-  promoteFreshpediaRequestEntry,
-  updateFreshpediaEntryStatus,
   updateFreshpediaEntry,
-  updateFreshpediaRequestEntry,
-  updateFreshpediaRequestStatus,
+  updateFreshpediaEntryStatus,
 } from '../api/freshpediaApi.js'
-import { errorMessage } from '@integrations/http/httpClient.ts'
+import { errorMessage, isCanceled } from '@integrations/http/httpClient.ts'
+import { replaceById } from '@shared/lib/collections.js'
 
 export default function FreshpediaPage({ language }) {
   const t = useT()
   const { session } = useAuth()
   const isAuthorized = useAuthorizedPage(canAccessFreshpedia(session))
 
-  const canViewProduction = hasPermission(session, 'freshpedia.live_view')
-  const canViewStaging = hasPermission(session, 'staging.test')
-  const canViewRequest = hasPermission(session, 'freshpedia.request_view')
-  const canAddRequest = hasPermission(session, 'freshpedia.request_add')
-  const canEditRequest = hasPermission(session, 'freshpedia.request_edit')
-  const canEditLive = hasPermission(session, 'freshpedia.live_edit')
-  const canChangeStatus = canChangeFreshpediaStatus(session)
-  const canChangeRequestStatus = hasPermission(session, 'freshpedia.request_status')
-  const canPromoteEntries = canPromote(session)
-  const statusFilters = useStatusFilters({
-    canViewProduction,
-    canViewStaging,
-    canViewRequest,
-  })
-  const { filterByStatus } = statusFilters
+  const canAddEntry = hasPermission(session, 'freshpedia.request_add')
+  const canEditEntry = hasPermission(session, 'freshpedia.request_edit')
+  const canChangeStatus = hasPermission(session, 'freshpedia.request_status')
 
-  const { entries, entriesLoaded, loadError, addEntry, replaceEntry } = useCatalogEntries({
-    loadPublished: getFreshpediaEntries,
-    loadRequests: getFreshpediaRequestEntries,
-    canViewRequests: canViewRequest,
-    token: session?.token,
-  })
+  const [entries, setEntries] = useState([])
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    if (!isAuthorized) return undefined
+    const controller = new AbortController()
+    getFreshpediaEntries({ signal: controller.signal, token: session?.token })
+      .then(setEntries)
+      .catch((error) => {
+        if (!isCanceled(error)) setLoadError(errorMessage(error))
+      })
+    return () => controller.abort()
+  }, [session?.token, isAuthorized])
+
+  function addEntry(entry) {
+    setEntries((current) => [...current, entry])
+  }
+
+  function replaceEntry(entry) {
+    setEntries((current) => replaceById(current, entry))
+  }
+
+  const [selectedStatuses, setSelectedStatuses] = useState(new Set())
   const [selectedTypes, setSelectedTypes] = useState(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [entryFormTarget, setEntryFormTarget] = useState(null)
   const [form, setForm] = useState(EMPTY_FRESHPEDIA_FORM)
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isEntryReadOnly, setIsEntryReadOnly] = useState(false)
 
-  const visibleEntries = useMemo(() => {
-    const locale = language === 'id' ? 'id' : 'en'
-    let filtered = filterByStatus(entries)
-    if (selectedTypes.size > 0) {
-      filtered = filtered.filter((entry) => selectedTypes.has(entry.type))
-    }
-    const query = searchQuery.trim().toLowerCase()
-    if (query) {
-      filtered = filtered.filter((entry) => entry.title.toLowerCase().includes(query))
-    }
-    return [...filtered].sort((a, b) => a.title.localeCompare(b.title, locale))
-  }, [entries, filterByStatus, language, searchQuery, selectedTypes])
-
-  const isEditMode = Boolean(entryFormTarget) && entryFormTarget !== 'new'
+  function toggleStatusFilter(status) {
+    setSelectedStatuses((current) => {
+      const next = new Set(current)
+      if (next.has(status)) next.delete(status)
+      else next.add(status)
+      return next
+    })
+  }
 
   function toggleTypeFilter(type) {
     setSelectedTypes((current) => {
@@ -85,16 +73,26 @@ export default function FreshpediaPage({ language }) {
       return next
     })
   }
-  function handleToggleTab(tab) {
-    statusFilters.toggleTab(tab)
-    setSelectedTypes(new Set())
-    setSearchQuery('')
-  }
+
+  const visibleEntries = useMemo(() => {
+    const locale = language === 'id' ? 'id' : 'en'
+    const effectiveStatuses = selectedStatuses.size > 0 ? selectedStatuses : new Set(STATUSES)
+    let filtered = entries.filter((entry) => effectiveStatuses.has(entry.status))
+    if (selectedTypes.size > 0) {
+      filtered = filtered.filter((entry) => selectedTypes.has(entry.type))
+    }
+    const query = searchQuery.trim().toLowerCase()
+    if (query) {
+      filtered = filtered.filter((entry) => entry.title.toLowerCase().includes(query))
+    }
+    return [...filtered].sort((a, b) => a.title.localeCompare(b.title, locale))
+  }, [entries, language, searchQuery, selectedStatuses, selectedTypes])
+
+  const isEditMode = Boolean(entryFormTarget) && entryFormTarget !== 'new'
 
   function openAddEntryDialog() {
     setForm(EMPTY_FRESHPEDIA_FORM)
     setFormError('')
-    setIsEntryReadOnly(false)
     setEntryFormTarget('new')
   }
 
@@ -111,7 +109,6 @@ export default function FreshpediaPage({ language }) {
       aliasPhrase: entry.aliasPhrase ?? '',
     })
     setFormError('')
-    setIsEntryReadOnly(entry.requestStatus === 'live')
     setEntryFormTarget(entry.id)
   }
 
@@ -126,9 +123,7 @@ export default function FreshpediaPage({ language }) {
         const created = await createFreshpediaEntry(form, session)
         addEntry(created)
       } else {
-        const target = entries.find((entry) => entry.id === entryFormTarget)
-        const update = target?.status === 'request' ? updateFreshpediaRequestEntry : updateFreshpediaEntry
-        const updated = await update(entryFormTarget, form, session)
+        const updated = await updateFreshpediaEntry(entryFormTarget, form, session)
         replaceEntry(updated)
       }
       setForm(EMPTY_FRESHPEDIA_FORM)
@@ -140,23 +135,8 @@ export default function FreshpediaPage({ language }) {
     }
   }
 
-  async function handleTransition(entry) {
-    const transition = TRANSITION_BY_STATUS[entry.status]
-    const updated = await updateFreshpediaEntryStatus(
-      entry.id,
-      transition.toStatus,
-      session,
-    )
-    replaceEntry(updated)
-  }
-
-  async function handlePromote(entry) {
-    const updated = await promoteFreshpediaRequestEntry(entry.id, session)
-    replaceEntry(updated)
-  }
-
-  async function handleChangeRequestStatus(entry, nextRequestStatus) {
-    const updated = await updateFreshpediaRequestStatus(entry.id, nextRequestStatus, session)
+  async function handleChangeStatus(entry, nextStatus) {
+    const updated = await updateFreshpediaEntryStatus(entry.id, nextStatus, session)
     replaceEntry(updated)
   }
 
@@ -165,34 +145,22 @@ export default function FreshpediaPage({ language }) {
   return (
     <>
       <div className="config-section">
-        <div className="section-toggle-row">
-          <SectionToggle
-            options={statusFilters.availableTabs}
-            isActive={statusFilters.isTabActive}
-            onSelect={handleToggleTab}
-            labelForOption={(tab) => t(`freshpedia.${tab}TabLabel`)}
-            ariaLabel={t('freshpedia.filterByTabLabel')}
-          />
-          {canAddRequest && statusFilters.isRequestActive && (
+        {canAddEntry && (
+          <div className="config-section__title-row">
             <Button
-              className="section-toggle-row__action"
+              className="config-section__title-action"
               variant="contained"
               size="small"
               onClick={openAddEntryDialog}
             >
               {t('freshpedia.addEntry')}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
 
         <FreshpediaFilters
-          availableLiveStatuses={statusFilters.availableLiveStatuses}
-          isLiveStatusActive={statusFilters.isLiveStatusActive}
-          onToggleLiveStatus={statusFilters.toggleLiveStatus}
-          availableRequestStatuses={statusFilters.availableRequestStatuses}
-          isRequestStatusActive={statusFilters.isRequestStatusActive}
-          onToggleRequestStatus={statusFilters.toggleRequestStatus}
-          isRequestActive={statusFilters.isRequestActive}
+          isStatusActive={(status) => selectedStatuses.has(status)}
+          onToggleStatus={toggleStatusFilter}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           selectedTypes={selectedTypes}
@@ -202,23 +170,15 @@ export default function FreshpediaPage({ language }) {
 
         {loadError && <p className="config-section__notice">{t('freshpedia.comingSoonNotice')}</p>}
 
-        {entriesLoaded && !loadError && (
-          <FreshpediaEntryList
-            canChangeRequestStatus={canChangeRequestStatus}
-            canChangeStatus={canChangeStatus}
-            canEditLive={canEditLive}
-            canEditRequest={canEditRequest}
-            canPromote={canPromoteEntries}
-            entries={entries}
-            isRequestActive={statusFilters.isRequestActive}
-            onChangeRequestStatus={handleChangeRequestStatus}
-            onEdit={openEditEntryDialog}
-            onPromote={handlePromote}
-            onTransition={handleTransition}
-            t={t}
-            visibleEntries={visibleEntries}
-          />
-        )}
+        <FreshpediaEntryList
+          canChangeStatus={canChangeStatus}
+          canEdit={canEditEntry}
+          entries={entries}
+          onChangeStatus={handleChangeStatus}
+          onEdit={openEditEntryDialog}
+          t={t}
+          visibleEntries={visibleEntries}
+        />
       </div>
 
       <FreshpediaEntryDialog
@@ -226,7 +186,6 @@ export default function FreshpediaPage({ language }) {
         formError={formError}
         isEditMode={isEditMode}
         isOpen={Boolean(entryFormTarget)}
-        isReadOnly={isEntryReadOnly}
         isSubmitting={isSubmitting}
         entries={entries}
         onClose={() => setEntryFormTarget(null)}

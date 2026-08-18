@@ -11,7 +11,7 @@ describe('permission presets', () => {
 
   it('falls back to custom when nothing matches', () => {
     const flags = Object.fromEntries(ALL_PERMISSIONS.map((key) => [key, false]))
-    flags['freshpedia.live_view'] = true
+    flags['freshpedia.request_edit'] = true
     flags['users.view'] = true
     expect(matchPresetForPermissions(flags)).toBe('custom')
   })
@@ -26,14 +26,12 @@ describe('permission presets', () => {
     expect(flags['users.add']).toBe(false)
     expect(flags['users.edit']).toBe(false)
     expect(flags['users.delete']).toBe(false)
-    expect(flags['freshpedia.live_edit']).toBe(false)
-    expect(flags['freshpedia.live_status']).toBe(false)
     expect(flags['freshpedia.request_add']).toBe(false)
     expect(flags['freshpedia.request_status']).toBe(false)
     expect(flags['tools.request_add']).toBe(false)
     expect(flags['tools.request_status']).toBe(false)
     expect(flags['users.view']).toBe(true)
-    expect(flags['freshpedia.live_view']).toBe(true)
+    expect(flags['freshpedia.request_view']).toBe(true)
     expect(flags['users.assign_permissions']).toBe(true)
   })
 })

@@ -10,8 +10,6 @@ export {
   canAccessToolCatalog,
   canAccessToolRequests,
   canAssignPermissions,
-  canChangeFreshpediaStatus,
-  canPromote,
   canViewPermissions,
   canViewRoles,
   canViewUsers,

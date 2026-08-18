@@ -1,18 +1,10 @@
 import { Chip } from '@mui/material'
 import CatalogStatusFilters from '@shared/components/catalog/CatalogStatusFilters.jsx'
-import { ENTRY_TYPES } from '../model/freshpediaConfig.js'
-function labelForRequestStatus(status, t) {
-  return status === 'live' ? t('freshpedia.liveTabLabel') : t(`freshpedia.${status}Status`)
-}
+import { ENTRY_TYPES, STATUSES } from '../model/freshpediaConfig.js'
 
 export default function FreshpediaFilters({
-  availableLiveStatuses,
-  isLiveStatusActive,
-  onToggleLiveStatus,
-  availableRequestStatuses,
-  isRequestStatusActive,
-  onToggleRequestStatus,
-  isRequestActive,
+  isStatusActive,
+  onToggleStatus,
   searchQuery,
   setSearchQuery,
   selectedTypes,
@@ -22,30 +14,15 @@ export default function FreshpediaFilters({
   return (
     <div className="filter-bar">
       <div className="filter-bar__chip-groups">
-        {!isRequestActive && (
-          <CatalogStatusFilters
-            availableStatuses={availableLiveStatuses}
-            isStatusActive={isLiveStatusActive}
-            labelForStatus={(status) => t(`freshpedia.${status}Status`)}
-            onToggle={onToggleLiveStatus}
-            ariaLabel={t('freshpedia.filterByStatusLabel')}
-          />
-        )}
+        <CatalogStatusFilters
+          availableStatuses={STATUSES}
+          isStatusActive={isStatusActive}
+          labelForStatus={(status) => t(`freshpedia.${status}Status`)}
+          onToggle={onToggleStatus}
+          ariaLabel={t('freshpedia.filterByStatusLabel')}
+        />
 
-        {isRequestActive && (
-          <CatalogStatusFilters
-            availableStatuses={availableRequestStatuses}
-            isStatusActive={isRequestStatusActive}
-            labelForStatus={(status) => labelForRequestStatus(status, t)}
-            onToggle={onToggleRequestStatus}
-            ariaLabel={t('freshpedia.filterByStatusLabel')}
-          />
-        )}
-
-        {((!isRequestActive && availableLiveStatuses.length > 1) ||
-          (isRequestActive && availableRequestStatuses.length > 1)) && (
-          <span className="filter-bar__divider" />
-        )}
+        <span className="filter-bar__divider" />
 
         <div
           className="filter-bar__chips"
