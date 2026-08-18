@@ -1,0 +1,162 @@
+import type {
+  ChatMessage,
+  Conversation,
+  FreshpediaEntryType,
+  PartialPermissions,
+  Session,
+} from './domain.ts'
+
+export interface RequestOptions {
+  signal?: AbortSignal
+}
+
+export interface AuthenticatedRequestOptions extends RequestOptions {
+  token?: string
+}
+
+export interface TokenActor {
+  token?: string
+}
+
+export interface ActorIdentity extends TokenActor {
+  email: string
+  name: string
+}
+export interface ChatRequest {
+  message: string
+  conversation_id: string | null
+  user_id: string
+  role: string
+  allowed_scopes: string[]
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface ChatResponse {
+  answer: string
+  conversation_id: string
+  message_id: string
+  title?: string
+}
+
+export type ChatStreamStatus = 'understanding' | 'fetching_data' | 'analyzing'
+export interface FeedbackRequest {
+  message_id: string
+  conversation_id: string
+  user_id: string
+  role: string
+  rating: 'up' | 'down'
+  reason: string | null
+  comment: string | null
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface FeedbackResponse {
+  id: string
+}
+export interface TitleRequest {
+  message: string
+  conversation_id: string | null
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface TitleResponse {
+  title: string
+}
+export interface ListConversationsRequest {
+  user_id: string
+  role: string
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface ConversationsListResponse {
+  conversations: Conversation[]
+}
+export interface ListConversationMessagesRequest {
+  conversation_id: string
+  limit: number
+  before?: string | null
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface MessagesPageResponse {
+  messages: ChatMessage[]
+  next_cursor: string | null
+}
+export interface RenameConversationRequest {
+  conversation_id: string
+  title: string
+  user_id: string
+  role: string
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface RenameConversationResponse {
+  conversation_id: string
+  title: string
+}
+export interface DeleteConversationRequest {
+  conversation_id: string
+  user_id: string
+  role: string
+  token?: string
+  signal?: AbortSignal
+}
+
+export interface DeleteConversationResponse {
+  conversation_id: string
+}
+
+export interface DevTokenRequest {
+  user_id: string
+  role: string
+  allowed_scopes: string[]
+}
+
+export interface DevTokenResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export type LoginResponse = Session
+
+export interface CreateUserInput {
+  name: string
+  email: string
+  phone?: string
+  role: string
+}
+
+export type UpdateUserInput = Partial<Pick<CreateUserInput, 'name' | 'phone' | 'role'>> &
+  PartialPermissions
+
+export interface FreshpediaInput {
+  title: string
+  type: FreshpediaEntryType
+  content?: string
+  fileName?: string
+  aliasTargetId?: string
+  aliasPhrase?: string
+}
+
+export type FreshpediaUpdate = Partial<Omit<FreshpediaInput, 'type'>>
+
+export interface ToolCatalogInput {
+  system: string
+  name: string
+  description: string
+  exampleQuestions: string[]
+}
+
+export type ToolCatalogUpdate = Partial<ToolCatalogInput>
