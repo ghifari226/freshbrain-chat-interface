@@ -5,7 +5,7 @@ function JwtHandshakeSide({ label, colorClass, secret, payload, action, exampleJ
       <div className={`jwt-handshake__label ${colorClass}`}>{label}</div>
       <pre className="jwt-handshake__body">{`.env:
 JWT_SECRET=${secret}
-JWT_ALGO=HS256
+JWT_ALGO=HS256/RS256
 `}<span className="jwt-handshake__note">(matching env)</span>{`
 ${payloadSection}
 action:
